@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GIS Land Registry System</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body { margin:0; font-family: Arial; }
+
+#container {
+    display: flex;
+    height: 100vh;
+}
+
+#map {
+    width: 75%;
+    height: 100%;
+}
+
+#sidebar {
+    width: 25%;
+    padding: 15px;
+    background: #f4f4f4;
+    overflow-y: auto;
+}
+
+input, button {
+    width: 90%;
+    padding: 8px;
+    margin-top: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<h2 style="text-align:center;">GIS Land Registry System</h2>
+
+<div id="container">
+    <div id="map"></div>
+
+    <div id="sidebar">
+        <h3>Search Parcel</h3>
+        <input type="text" id="searchId" placeholder="Enter Parcel ID">
+        <button onclick="searchLand()">Search</button>
+
+        <h3>Land Details</h3>
+        <div id="details">Click a parcel</div>
+
+        <h3>QR Code</h3>
+        <div id="qrSection">Click a parcel</div>
+
+        <h3>Nearby Lands</h3>
+        <div id="nearby">Click a parcel</div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+var map = L.map('map').setView([12.97, 77.75], 12);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+let allLands = [];
+let currentHighlight = null;
+
+// 🎨 Color
+function getColor(type) {
+    if(type === "Residential") return "green";
+    if(type === "Commercial") return "red";
+    if(type === "Agricultural") return "orange";
+    return "blue";
+}
+
+// 🚀 Fetch Data
+fetch("/api/land")
+.then(res => res.json())
+.then(data => {
+
+    console.log("LAND DATA:", data);
+
+    allLands = data;
+
+    let bounds = [];
+
+    if (data.length > 0) {
+        map.setView([data[0].lat, data[0].lon], 14);
+    }
+
+    data.forEach(land => {
+
+        console.log("Processing:", land);
+
+        // 📍 Marker (ALWAYS)
+        if (land.lat && land.lon) {
+
+            let marker = L.marker([land.lat, land.lon])
+                .addTo(map)
+                .bindPopup(`<b>Land ID:</b> ${land.parcel_id}`);
+
+            marker.on("click", function () {
+                zoomToLand(land);
+                showDetails(land);
+                showQR(land);
+                loadNearby(land);
+            });
+        }
+
+        // 🔷 Polygon FIXED
+        if (land.polygon && land.polygon.length > 0) {
+
+            try {
+                let coords = land.polygon.map(p => [p[0], p[1]]);
+
+                // close polygon
+                if (coords.length > 0 &&
+                    (coords[0][0] !== coords[coords.length-1][0] ||
+                     coords[0][1] !== coords[coords.length-1][1])) {
+                    coords.push(coords[0]);
+                }
+
+                let poly = L.polygon(coords, {
+                    color: getColor(land.type),
+                    weight: 3
+                }).addTo(map);
+
+                bounds = bounds.concat(coords);
+
+                poly.on("click", function () {
+
+                    if(currentHighlight){
+                        currentHighlight.setStyle({color:getColor(land.type)});
+                    }
+
+                    poly.setStyle({color:"yellow"});
+                    currentHighlight = poly;
+
+                    zoomToLand(land);
+                    showDetails(land);
+                    showQR(land);
+                    loadNearby(land);
+                });
+
+            } catch(e) {
+                console.log("Polygon error:", e);
+            }
+        }
+
+    });
+
+    // ✅ Auto fit all lands
+    if(bounds.length > 0){
+        map.fitBounds(bounds);
+    }
+
+})
+.catch(err => console.error("Fetch error:", err));
+
+
+// 🔍 Zoom
+function zoomToLand(land){
+
+    if (land.polygon && land.polygon.length > 0) {
+
+        let poly = L.polygon(land.polygon);
+        map.fitBounds(poly.getBounds());
+
+        let center = poly.getBounds().getCenter();
+
+        L.popup()
+            .setLatLng(center)
+            .setContent(`<b>Land ID:</b> ${land.parcel_id}`)
+            .openOn(map);
+
+    } else {
+
+        map.setView([land.lat, land.lon], 16);
+
+        L.popup()
+            .setLatLng([land.lat, land.lon])
+            .setContent(`<b>Land ID:</b> ${land.parcel_id}`)
+            .openOn(map);
+    }
+}
+
+
+// 📄 Details
+function showDetails(land){
+    document.getElementById("details").innerHTML =
+        `<b>Parcel ID:</b> ${land.parcel_id}<br>
+         <b>Owner:</b> ${land.owner}<br>
+         <b>Type:</b> ${land.type}<br>
+         <b>Area:</b> ${land.area} sq ft<br>
+         <b>Survey:</b> ${land.survey}`;
+}
+
+
+// 📍 Nearby
+function loadNearby(land){
+    fetch(`/api/nearby_land?lat=${land.lat}&lon=${land.lon}&radius=1`)
+    .then(res => res.json())
+    .then(near => {
+
+        let html = "";
+
+        if(near.length === 0){
+            html = "No nearby lands";
+        } else {
+            near.forEach(n => {
+                html += `Parcel: ${n.parcel_id} (${n.distance} km)<br>`;
+            });
+        }
+
+        document.getElementById("nearby").innerHTML = html;
+    });
+}
+
+
+// 🔎 Search
+function searchLand(){
+
+    let id = document.getElementById("searchId").value.trim();
+
+    let found = allLands.find(l => l.parcel_id === id);
+
+    if(found){
+        zoomToLand(found);
+        showDetails(found);
+        showQR(found);
+        loadNearby(found);
+    } else {
+        alert("Parcel not found");
+    }
+}
+
+
+// 📱 QR
+function showQR(land){
+
+    fetch(`/get_qr/${land.parcel_id}`)
+    .then(res => res.json())
+    .then(qr => {
+        document.getElementById("qrSection").innerHTML = `
+            <img src="${qr.qr_url}" width="150"><br><br>
+            <a href="${qr.verify_url}" target="_blank">Verify Property</a><br><br>
+            <a href="${qr.qr_url}" download>Download QR</a>
+        `;
+    })
+    .catch(() => {
+        document.getElementById("qrSection").innerHTML = "QR not available";
+    });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LandChain Nexus</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body { font-family: Arial; margin: 0; }
+
+h1 {
+  background: #2c3e50;
+  color: white;
+  padding: 10px;
+  text-align: center;
+}
+
+#map { height: 500px; }
+
+.controls {
+  padding: 10px;
+}
+
+input, button {
+  padding: 8px;
+  margin: 5px;
+}
+
+.land-card {
+  border: 1px solid #ccc;
+  margin: 10px;
+  padding: 10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>LandChain Nexus</h1>
+
+<div id="map"></div>
+
+<div class="controls">
+  <h3>🔍 Search Land</h3>
+  <input type="text" id="searchId" placeholder="Enter Land ID">
+  <button onclick="searchLand()">Search</button>
+
+  <h3>📏 Distance Between Lands</h3>
+  <input type="text" id="land1" placeholder="Land ID 1">
+  <input type="text" id="land2" placeholder="Land ID 2">
+  <button onclick="calculateDistance()">Calculate</button>
+  <p id="distanceResult"></p>
+
+  <h3>➕ Add New Land</h3>
+  <input id="newId" placeholder="Land ID">
+  <input id="newOwner" placeholder="Owner Name">
+  <input id="newLat" placeholder="Latitude">
+  <input id="newLng" placeholder="Longitude">
+  <button onclick="addLand()">Add Land</button>
+</div>
+
+<h3 style="padding:10px;">📷 Scan QR</h3>
+<div id="reader"></div>
+
+<h3 style="padding:10px;">Land Records</h3>
+<div id="landList"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script>
+const map = L.map('map').setView([12.97, 77.59], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+let markers = [];
+let landData = [];
+
+// 📍 Load data
+fetch("http://127.0.0.1:5000/api/land")
+.then(res => res.json())
+.then(data => {
+  landData = data;
+  displayData(data);
+});
+
+function displayData(data) {
+  const list = document.getElementById("landList");
+
+  data.forEach(land => {
+
+    let color = "blue";
+    if (land.status === "dispute") color = "red";
+    if (land.status === "sale") color = "green";
+
+    const marker = L.circleMarker([land.latitude, land.longitude], { color }).addTo(map);
+
+    marker.land_id = land.land_id;
+    markers.push(marker);
+
+    marker.bindPopup(`<b>${land.land_id}</b><br>${land.owner_name}`);
+
+    // polygon
+    if (land.boundary_polygon) {
+      try {
+        const coords = JSON.parse(land.boundary_polygon);
+        L.polygon(coords, { color }).addTo(map);
+      } catch {}
+    }
+
+    const div = document.createElement("div");
+    div.className = "land-card";
+    div.innerHTML = `<b>${land.land_id}</b> - ${land.owner_name}`;
+    list.appendChild(div);
+  });
+}
+
+// 🔍 Search
+function searchLand() {
+  const id = document.getElementById("searchId").value;
+
+  markers.forEach(m => {
+    if (m.land_id === id) {
+      map.setView(m.getLatLng(), 18);
+      m.openPopup();
+    }
+  });
+}
+
+// 📏 Distance
+function calculateDistance() {
+  const id1 = document.getElementById("land1").value;
+  const id2 = document.getElementById("land2").value;
+
+  const l1 = landData.find(l => l.land_id === id1);
+  const l2 = landData.find(l => l.land_id === id2);
+
+  if (!l1 || !l2) {
+    alert("Invalid Land IDs");
+    return;
+  }
+
+  const R = 6371;
+  const dLat = (l2.latitude - l1.latitude) * Math.PI/180;
+  const dLon = (l2.longitude - l1.longitude) * Math.PI/180;
+
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(l1.latitude*Math.PI/180) *
+            Math.cos(l2.latitude*Math.PI/180) *
+            Math.sin(dLon/2)**2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+
+  document.getElementById("distanceResult").innerText =
+    "Distance: " + distance.toFixed(2) + " km";
+}
+
+// ➕ Add Land
+function addLand() {
+  const data = {
+    land_id: document.getElementById("newId").value,
+    owner_name: document.getElementById("newOwner").value,
+    latitude: parseFloat(document.getElementById("newLat").value),
+    longitude: parseFloat(document.getElementById("newLng").value)
+  };
+
+  fetch("http://127.0.0.1:5000/add_land", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(msg => {
+    alert("Land Added!");
+    location.reload();
+  });
+}
+
+// 📷 QR
+function onScanSuccess(text) {
+  alert("Scanned: " + text);
+  document.getElementById("searchId").value = text;
+  searchLand();
+}
+
+new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 })
+  .render(onScanSuccess);
+
+</script>
+
+</body>
+</html>
