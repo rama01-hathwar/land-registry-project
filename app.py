@@ -7,7 +7,6 @@ Created on Sat Mar  7 21:01:42 2026
 """
 
 from flask import Flask,jsonify
-import pyodbc
 from db_connection import conn
 cursor=conn.cursor()
 from flask import request
@@ -1226,7 +1225,7 @@ def home():
 
 @app.route("/api/land")
 def get_land():
-
+	conn=sqlite3.connect("land.db")
     cursor = conn.cursor()
 
     cursor.execute("""
