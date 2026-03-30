@@ -7,7 +7,6 @@ Created on Sat Mar  7 21:01:42 2026
 """
 
 from flask import Flask,jsonify
-from db_connection import conn
 cursor=conn.cursor()
 from flask import request
 from eth_account import Account
