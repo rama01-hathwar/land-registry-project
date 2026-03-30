@@ -1225,8 +1225,8 @@ def home():
 
 @app.route("/api/land")
 def get_land():
-	conn=sqlite3.connect("land.db")
-    cursor = conn.cursor()
+	    conn=sqlite3.connect("land.db")
+     cursor = conn.cursor()
 
     cursor.execute("""
         SELECT 
