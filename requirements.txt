@@ -1,5 +1,4 @@
 Flask
 gunicorn
 qrcode
-request
 psycopg2-binary
