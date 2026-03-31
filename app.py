@@ -14,7 +14,6 @@ import os
 import sqlite3
 import hashlib
 from flask import Flask, jsonify, render_template, request
-import pyodbc
 import math
 import hashlib
 app = Flask(__name__)
