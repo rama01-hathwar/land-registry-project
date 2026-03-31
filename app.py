@@ -11,7 +11,8 @@ from flask import request
 from datetime import datetime
 import qrcode
 import os
-import sqlite3
+import psycopg2
+import os
 import hashlib
 from flask import Flask, jsonify, render_template, request
 import math
@@ -1221,7 +1222,13 @@ def home():
 
 @app.route('/api/land')
 def get_land():
-    conn = sqlite3.connect("land.db")
+    import json
+    import os
+    import psycopg2
+
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+
+    conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM gis_land_data")
