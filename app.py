@@ -1397,6 +1397,27 @@ def add_land():
     conn.close()
 
     return jsonify({"message": "Land added successfully"})
+
+@app.route('/add-test-data')
+def add_test_data():
+    import os
+    import psycopg2
+
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO gis_land_data VALUES
+        ('L001', 'S001', 'Rama', 'Residential', 1200, 12.9716, 77.5946, ''),
+        ('L002', 'S002', 'Shyam', 'Commercial', 2000, 12.9720, 77.5950, ''),
+        ('L003', 'S003', 'Geeta', 'Agriculture', 3000, 12.9730, 77.5960, '')
+    """)
+
+    conn.commit()
+    conn.close()
+
+    return "Data inserted successfully!"
 	
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
