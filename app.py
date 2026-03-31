@@ -7,7 +7,6 @@ Created on Sat Mar  7 21:01:42 2026
 """
 
 from flask import Flask,jsonify
-cursor=conn.cursor()
 from flask import request
 from eth_account import Account
 from datetime import datetime
@@ -1227,51 +1226,23 @@ def get_land():
     conn = sqlite3.connect("land.db")
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT 
-            land_id,
-            survey_number,
-            owner_name,
-            land_use_type,
-            area_sq_ft,
-            latitude,
-            longitude,
-            boundary_polygon
-        FROM gis_land_data
-    """)
-
+    cursor.execute("SELECT * FROM gis_land_data")
     rows = cursor.fetchall()
 
     data = []
-
     for row in rows:
-
-        polygon_coords = []
-
-        if row[7]:
-            try:
-                poly_str = row[7].strip("()")
-                points = poly_str.split(";")
-
-                for point in points:
-                    lat, lon = point.split(",")
-                    polygon_coords.append([float(lat), float(lon)])
-
-            except:
-                polygon_coords = []
-
         data.append({
-            "parcel_id": str(row[0]),
-            "survey": str(row[1]),
-            "owner": str(row[2]),
-            "type": str(row[3]),
-            "area": float(row[4]) if row[4] else 0,
-            "lat": float(row[5]) if row[5] else None,
-            "lon": float(row[6]) if row[6] else None,
-            "polygon": polygon_coords,
-            "status": "sale"
+            "parcel_id": row[0],
+            "survey": row[1],
+            "owner": row[2],
+            "type": row[3],
+            "area": row[4],
+            "lat": row[5],
+            "lon": row[6],
+            "polygon": json.loads(row[7]) if row[7] else []
         })
 
+    conn.close()
     return jsonify(data)
 
 
