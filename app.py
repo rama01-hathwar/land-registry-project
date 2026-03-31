@@ -8,7 +8,6 @@ Created on Sat Mar  7 21:01:42 2026
 
 from flask import Flask,jsonify
 from flask import request
-from eth_account import Account
 from datetime import datetime
 import qrcode
 import os
