@@ -16,7 +16,8 @@ import os
 import hashlib
 from flask import Flask, jsonify, render_template, request
 import math
-import hashlib
+import hashli
+import json
 app = Flask(__name__)
 
 SECRET_KEY = "land_registry_secure"
@@ -1228,8 +1229,9 @@ def get_land():
 
     DATABASE_URL = os.environ.get("DATABASE_URL")
 
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg2.connect(DATABASE_URL,sslmode='require')
     cursor = conn.cursor()
+	print("DB Connected")
 
     cursor.execute("SELECT * FROM gis_land_data")
     rows = cursor.fetchall()
