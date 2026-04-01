@@ -1231,7 +1231,7 @@ def get_land():
 
     conn = psycopg2.connect(DATABASE_URL,sslmode='require')
     cursor = conn.cursor()
-	print("DB Connected")
+	
 
     cursor.execute("SELECT * FROM gis_land_data")
     rows = cursor.fetchall()
