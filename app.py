@@ -1419,6 +1419,34 @@ def add_test_data():
     conn.close()
 
     return "Data inserted successfully!"
+
+@app.route('/init-db')
+def init_db():
+    import os
+    import psycopg2
+
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS gis_land_data (
+        land_id TEXT,
+        survey_number TEXT,
+        owner_name TEXT,
+        land_use_type TEXT,
+        area_sq_ft REAL,
+        latitude REAL,
+        longitude REAL,
+        boundary_polygon TEXT
+    );
+    """)
+
+    conn.commit()
+    conn.close()
+
+    return "Table created successfully"
 	
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
