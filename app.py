@@ -1350,27 +1350,7 @@ def verify_property_qr(parcel_id, hash_value):
     return render_template("property_dashboard.html",
                            property=property_data,
                            error=None)
-## ── 2. NEW: Get QR image path for a parcel (called by map popup) ──
- 
-@app.route('/get_qr/<parcel_id>', methods=['GET'])
-def get_qr(parcel_id):
- 
-    qr_path = f"static/qr_codes/land_{parcel_id}.png"
- 
-    # Generate if it doesn't exist yet
-    if not os.path.exists(qr_path):
-        generate_qr(parcel_id)
- 
-    hash_value  = generate_secure_hash(parcel_id)
-    verify_url  = f"http://127.0.0.1:5000/verify_property/{parcel_id}/{hash_value}"
-    qr_img_url  = f"/static/qr_codes/land_{parcel_id}.png"
- 
-    return jsonify({
-        "parcel_id":  parcel_id,
-        "qr_url":     qr_img_url,
-        "verify_url": verify_url
-    })
- 
+
  
 ## ── 3. NEW: Regenerate QR for existing property ──
  
