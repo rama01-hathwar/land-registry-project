@@ -146,7 +146,7 @@ function showDetails(land){
 // 📱 QR (FIXED)
 function showQR(land){
     document.getElementById("qrSection").innerHTML = `
-        <img src="https://land-registry-project.onrender.com${land.qr}" width="150"><br><br>
+        <img src="https://land-registry-project.onrender.com/qr/${land.parcel_id}" width="150">
         <a href="https://land-registry-project.onrender.com/verify/${land.parcel_id}" target="_blank">
             Verify Property
         </a>
