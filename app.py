@@ -1220,36 +1220,45 @@ def home():
     return render_template("map.html")
 
 
+from flask import jsonify
+import psycopg2
+import os
+import json
+
 @app.route('/api/land')
 def get_land():
-    import json
-    import os
-    import psycopg2
+    try:
+        DATABASE_URL = os.environ.get("DATABASE_URL")
 
-    DATABASE_URL = os.environ.get("DATABASE_URL")
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
 
-    conn = psycopg2.connect(DATABASE_URL,sslmode='require')
-    cursor = conn.cursor()
-	
+        cursor.execute("SELECT * FROM gis_land_data")
+        rows = cursor.fetchall()
 
-    cursor.execute("SELECT * FROM gis_land_data")
-    rows = cursor.fetchall()
+        data = []
 
-    data = []
-    for row in rows:
-        data.append({
-            "parcel_id": row[0],
-            "survey": row[1],
-            "owner": row[2],
-            "type": row[3],
-            "area": row[4],
-            "lat": row[5],
-            "lon": row[6],
-            "polygon": json.loads(row[7]) if row[7] else []
-        })
+        for row in rows:
+            data.append({
+                "parcel_id": row[0],
+                "survey": row[1],
+                "owner": row[2],
+                "type": row[3],
+                "area": row[4],
+                "lat": row[5],
+                "lon": row[6],
+                "polygon": json.loads(row[7]) if row[7] else [],
+                
+                # ✅ QR Code Path
+                "qr": f"/static/qr_codes/{row[0]}.png"
+            })
 
-    conn.close()
-    return jsonify(data)
+        conn.close()
+
+        return jsonify(data)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 
@@ -1483,6 +1492,40 @@ def generate_data():
     conn.close()
 
     return "100 records inserted!"
+
+import os
+import psycopg2
+import qrcode
+
+@app.route('/generate-qr')
+def generate_qr():
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT land_id FROM gis_land_data")
+    rows = cursor.fetchall()
+
+    folder = "static/qr_codes"
+
+    # create folder if not exists
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    for row in rows:
+        land_id = row[0]
+
+        qr_data = f"https://land-registry-project.onrender.com/verify/{land_id}"
+
+        img = qrcode.make(qr_data)
+        img.save(f"{folder}/{land_id}.png")
+
+    conn.close()
+
+    return "QR codes generated successfully!"
+
+
 	
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
