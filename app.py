@@ -1499,32 +1499,35 @@ import qrcode
 
 @app.route('/generate-qr')
 def generate_qr():
-    DATABASE_URL = os.environ.get("DATABASE_URL")
+    try:
+        DATABASE_URL = os.environ.get("DATABASE_URL")
 
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = conn.cursor()
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
 
-    cursor.execute("SELECT land_id FROM gis_land_data")
-    rows = cursor.fetchall()
+        cursor.execute("SELECT land_id FROM gis_land_data")
+        rows = cursor.fetchall()
 
-    folder = "static/qr_codes"
+        folder = "static/qr_codes"
 
-    # create folder if not exists
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+        # create folder safely
+        if not os.path.exists(folder):
+            os.makedirs(folder)
 
-    for row in rows:
-        land_id = row[0]
+        for row in rows:
+            land_id = row[0]
 
-        qr_data = f"https://land-registry-project.onrender.com/verify/{land_id}"
+            qr_data = f"https://land-registry-project.onrender.com/verify/{land_id}"
 
-        img = qrcode.make(qr_data)
-        img.save(f"{folder}/{land_id}.png")
+            img = qrcode.make(qr_data)
+            img.save(os.path.join(folder, f"{land_id}.png"))
 
-    conn.close()
+        conn.close()
 
-    return "QR codes generated successfully!"
+        return "QR codes generated successfully!"
 
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 	
 if __name__ == "__main__":
