@@ -1529,6 +1529,21 @@ def generate_qr():
     except Exception as e:
         return f"Error: {str(e)}"
 
+import qrcode
+from io import BytesIO
+from flask import send_file
+
+@app.route('/qr/<parcel_id>')
+def get_qr(parcel_id):
+    url = f"https://land-registry-project.onrender.com/verify/{parcel_id}"
+
+    img = qrcode.make(url)
+
+    buffer = BytesIO()
+    img.save(buffer)
+    buffer.seek(0)
+
+    return send_file(buffer, mimetype='image/png')
 	
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
