@@ -1534,7 +1534,7 @@ from io import BytesIO
 from flask import send_file
 
 @app.route('/qr/<parcel_id>')
-def get_qr(parcel_id):
+def generate_qr_dynamically(parcel_id):
     url = f"https://land-registry-project.onrender.com/verify/{parcel_id}"
 
     img = qrcode.make(url)
