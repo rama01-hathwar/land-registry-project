@@ -1447,6 +1447,34 @@ def init_db():
     conn.close()
 
     return "Table created successfully"
+
+@app.route('/add-bulk-data')
+def add_bulk_data():
+    import os
+    import psycopg2
+
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cursor = conn.cursor()
+
+    data = [
+        ('L001','S001','Rama','Residential',1200,12.9716,77.5946,'[]'),
+        ('L002','S002','Sita','Commercial',1500,12.9720,77.5950,'[]'),
+        ('L003','S003','Ravi','Agriculture',2000,12.9730,77.5960,'[]'),
+        ('L004','S004','Anita','Residential',1800,12.9740,77.5970,'[]'),
+        ('L005','S005','Kiran','Commercial',2200,12.9750,77.5980,'[]')
+    ]
+
+    for row in data:
+        cursor.execute("""
+            INSERT INTO gis_land_data 
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        """, row)
+
+    conn.commit()
+    conn.close()
+
+    return "Bulk data inserted!"
 	
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
