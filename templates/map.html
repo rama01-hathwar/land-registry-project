@@ -63,11 +63,31 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let allLands = [];
 let nearbyMarkers = [];
 
+// 🌍 Map layers
+var normalMap = L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+);
+
+var satelliteMap = L.tileLayer(
+    'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
+);
+
+// Add default
+normalMap.addTo(map);
+
+// Layer control
+var baseMaps = {
+    "Normal Map": normalMap,
+    "Satellite Map": satelliteMap
+};
+
+L.control.layers(baseMaps).addTo(map);
+
 // 🎨 Color
 function getColor(type) {
     if(type === "Residential") return "green";
     if(type === "Commercial") return "red";
-    if(type === "Agriculture") return "orange";
+    if(type === "Agricultural") return "orange";
     return "blue";
 }
 
@@ -101,24 +121,27 @@ fetch("/api/land")
         // Polygon
         if (land.polygon && land.polygon.length > 0) {
 
-            let coords = land.polygon.map(p => [p[0], p[1]]);
+    let coords = land.polygon.map(p => [p[0], p[1]]);
 
-            let poly = L.polygon(coords, {
-                color: getColor(land.type),
-                weight: 3
-            }).addTo(map);
+    // CLOSE polygon properly
+    if (coords.length > 0 &&
+        (coords[0][0] !== coords[coords.length-1][0] ||
+         coords[0][1] !== coords[coords.length-1][1])) {
+        coords.push(coords[0]);
+    }
 
-            poly.on("click", function () {
-                zoomToLand(land);
-                showDetails(land);
-                showQR(land);
-                loadNearby(land);
-            });
-        }
+    let poly = L.polygon(coords, {
+        color: getColor(land.type),
+        weight: 3
+    }).addTo(map);
 
+    poly.on("click", function () {
+        zoomToLand(land);
+        showDetails(land);
+        showQR(land);
+        loadNearby(land);
     });
-
-});
+}
 
 // 🔍 Zoom
 function zoomToLand(land){
