@@ -1524,6 +1524,31 @@ def generate_qr_dynamically(parcel_id):
     buffer.seek(0)
 
     return send_file(buffer, mimetype='image/png')
+
+@app.route('/verify/<parcel_id>')
+def verify(parcel_id):
+
+    import psycopg2, os
+
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM gis_land_data WHERE land_id = %s", (parcel_id,))
+    row = cursor.fetchone()
+
+    conn.close()
+
+    if not row:
+        return f"<h2>❌ Property {parcel_id} Not Found</h2>"
+
+    return f"""
+    <h2>✅ Property Verified</h2>
+    <p><b>Parcel ID:</b> {row[0]}</p>
+    <p><b>Owner:</b> {row[2]}</p>
+    <p><b>Type:</b> {row[3]}</p>
+    <p><b>Area:</b> {row[4]} sq ft</p>
+    """
 	
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
