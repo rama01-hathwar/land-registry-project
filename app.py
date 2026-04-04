@@ -1239,6 +1239,21 @@ def get_land():
         data = []
 
         for row in rows:
+			import json
+			polygon=[]
+			if row[7]:
+				polugon=json.loads(row[7])
+			else:
+				lat=row[5]
+				lon=row[6]
+				polygon=[
+					[lat+0.0005,lon+0.0005],
+					[lat+0.0005,lon-0.0005],
+					[lat-0.0005,lon-0.0005],
+					[lat-0.0005,lon+0.0005]
+				]
+					
+			
             data.append({
                 "parcel_id": row[0],
                 "survey": row[1],
@@ -1247,7 +1262,8 @@ def get_land():
                 "area": row[4],
                 "lat": row[5],
                 "lon": row[6],
-                "polygon": json.loads(row[7]) if row[7] else [],
+			    "polygon":polygon,
+
                 
                 # ✅ QR Code Path
                 "qr": f"/static/qr_codes/{row[0]}.png"
