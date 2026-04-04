@@ -1227,12 +1227,17 @@ import json
 
 @app.route('/api/land')
 def get_land():
-    try:
-        DATABASE_URL = os.environ.get("DATABASE_URL")
+    import os
+    import psycopg2
+    import json
 
+    try:
+        # 🔗 Connect to Render PostgreSQL
+        DATABASE_URL = os.environ.get("DATABASE_URL")
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cursor = conn.cursor()
 
+        # 📥 Fetch data
         cursor.execute("SELECT * FROM gis_land_data")
         rows = cursor.fetchall()
 
@@ -1240,34 +1245,34 @@ def get_land():
 
         for row in rows:
 
-    import json
+            # 🟩 Polygon handling
+            polygon = []
 
-    polygon = []
+            if row[7]:
+                polygon = json.loads(row[7])
+            else:
+                lat = row[5]
+                lon = row[6]
 
-    if row[7]:
-        polygon = json.loads(row[7])
-    else:
-        lat = row[5]
-        lon = row[6]
+                polygon = [
+                    [lat + 0.0005, lon + 0.0005],
+                    [lat + 0.0005, lon - 0.0005],
+                    [lat - 0.0005, lon - 0.0005],
+                    [lat - 0.0005, lon + 0.0005]
+                ]
 
-        polygon = [
-            [lat + 0.0005, lon + 0.0005],
-            [lat + 0.0005, lon - 0.0005],
-            [lat - 0.0005, lon - 0.0005],
-            [lat - 0.0005, lon + 0.0005]
-        ]
-
-    data.append({
-        "parcel_id": row[0],
-        "survey": row[1],
-        "owner": row[2],
-        "type": row[3],
-        "area": row[4],
-        "lat": row[5],
-        "lon": row[6],
-        "polygon": polygon,
-        "qr": f"/static/qr_codes/{row[0]}.png"
-    })
+            # 📦 Append data
+            data.append({
+                "parcel_id": row[0],
+                "survey": row[1],
+                "owner": row[2],
+                "type": row[3],
+                "area": row[4],
+                "lat": row[5],
+                "lon": row[6],
+                "polygon": polygon,
+                "qr": f"/static/qr_codes/{row[0]}.png"
+            })
 
         conn.close()
 
