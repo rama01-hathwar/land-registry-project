@@ -1447,22 +1447,39 @@ def generate_data():
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
 
+    # 🔥 Realistic names
+    first_names = ["Ravi","Sita","Arjun","Meena","Kiran","Anita","Rahul","Priya","Vikram","Neha"]
+    last_names = ["Kumar","Sharma","Reddy","Patel","Singh","Nair","Gupta","Das"]
+
+    land_types = ["Residential", "Commercial", "Agricultural"]
+
     base_lat = 12.9716
     base_lon = 77.5946
 
-    for i in range(1, 101):  # 🔥 100 records
-        lat = base_lat + random.uniform(-0.01, 0.01)
-        lon = base_lon + random.uniform(-0.01, 0.01)
+    # ⚠️ Optional: clear old data
+    cursor.execute("DELETE FROM gis_land_data")
+
+    for i in range(1, 101):   # 🔥 100 records
+
+        owner = random.choice(first_names) + " " + random.choice(last_names)
+
+        lat = base_lat + random.uniform(-0.02, 0.02)
+        lon = base_lon + random.uniform(-0.02, 0.02)
+
+        land_type = random.choice(land_types)
+
+        area = random.randint(800, 5000)
 
         cursor.execute("""
             INSERT INTO gis_land_data 
+            (land_id, survey_number, owner_name, land_use_type, area_sq_ft, latitude, longitude, boundary_polygon)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             f"L{i:03}",
             f"S{i:03}",
-            f"Owner{i}",
-            random.choice(["Residential","Commercial","Agriculture"]),
-            random.randint(800, 5000),
+            owner,
+            land_type,
+            area,
             lat,
             lon,
             '[]'
@@ -1471,7 +1488,7 @@ def generate_data():
     conn.commit()
     conn.close()
 
-    return "100 records inserted!"
+    return "✅ 100 realistic land records generated!"
 
 import os
 import psycopg2
