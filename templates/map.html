@@ -84,10 +84,17 @@ var baseMaps = {
 L.control.layers(baseMaps).addTo(map);
 
 // 🎨 Color
-function getColor(type) {
-    if(type === "Residential") return "green";
-    if(type === "Commercial") return "red";
-    if(type === "Agricultural") return "orange";
+function getColor(type, status) {
+
+    type = type.toLowerCase();
+    status = status ? status.toLowerCase() : "";
+
+    if (status === "disputed") return "black";
+
+    if (type === "residential") return "green";
+    if (type === "commercial") return "red";
+    if (type === "agricultural") return "orange";
+
     return "blue";
 }
 
@@ -148,15 +155,19 @@ fetch("/api/land")
 
 
 // 🔍 Zoom
-function zoomToLand(land){
+function zoomToLand(land) {
+
+    if (land.lat && land.lon) {
+        map.setView([land.lat, land.lon], 18);
+    }
 
     if (land.polygon && land.polygon.length > 0) {
 
-        let poly = L.polygon(land.polygon);
-        map.fitBounds(poly.getBounds());
+        let bounds = L.latLngBounds(
+            land.polygon.map(p => [p[0], p[1]])
+        );
 
-    } else {
-        map.setView([land.lat, land.lon], 16);
+        map.fitBounds(bounds);
     }
 }
 
