@@ -1,11 +1,3 @@
-
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Mar  7 21:01:42 2026
-
-@author: RAMA
-"""
-
 from flask import Flask,jsonify
 from flask import request
 from datetime import datetime
@@ -1245,22 +1237,22 @@ def get_land():
 
         for row in rows:
 
-            # 🟩 Polygon handling
-            polygon = []
+    polygon = []
 
-            if row[7]:
-                polygon = json.loads(row[7])
-            else:
-                lat = row[5]
-                lon = row[6]
-				size=float(row[4]) / 10000000
+    if row[7]:
+        polygon = json.loads(row[7])
+    else:
+        lat = row[5]
+        lon = row[6]
 
-                polygon = [
-                    [lat + size, lon + size],
-                    [lat + size, lon - size],
-                    [lat - size, lon - size],
-                    [lat - size, lon + size]
-                ]
+        size = max(float(row[4]) / 10000000, 0.0003)
+
+        polygon = [
+            [lat + size, lon + size],
+            [lat + size, lon - size],
+            [lat - size, lon - size],
+            [lat - size, lon + size]
+        ]
 
             # 📦 Append data
             data.append({
@@ -1592,5 +1584,3 @@ def verify(parcel_id):
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
                             
-
-    
