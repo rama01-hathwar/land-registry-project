@@ -1234,26 +1234,21 @@ def get_land():
         rows = cursor.fetchall()
 
         data = []
-
-        for row in rows:
-
-    polygon = []
-
-    if row[7]:
-        polygon = json.loads(row[7])
-    else:
-        lat = row[5]
-        lon = row[6]
-
-        size = max(float(row[4]) / 10000000, 0.0003)
-
-        polygon = [
-            [lat + size, lon + size],
-            [lat + size, lon - size],
-            [lat - size, lon - size],
-            [lat - size, lon + size]
-        ]
-
+		for row in rows:
+			polygon=[]
+			if row[7]:
+				polygon=json.loads(row[7])
+			else:
+				lat=row[5]
+				lon=row[6]
+				size=max(float(row[4])/10000000,0.0003)
+				polygon=[
+					[lat+size,lon+size],
+					[lat+size,lon-size],
+					[lat-size,lon-size],
+					[lat-size,lon+size]
+				]
+    
             # 📦 Append data
             data.append({
                 "parcel_id": row[0],
