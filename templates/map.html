@@ -137,8 +137,9 @@ fetch("/api/land")
             }
 
             let poly = L.polygon(coords, {
-                color: getColor(land.type),
-                weight: 3
+                color: getColor(land.type,land.status),
+                weight: 2,
+                fillOpacity:0.4
             }).addTo(map);
 
             poly.on("click", function () {
