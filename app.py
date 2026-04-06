@@ -1253,12 +1253,13 @@ def get_land():
             else:
                 lat = row[5]
                 lon = row[6]
+				size=0.0001
 
                 polygon = [
-                    [lat + 0.0005, lon + 0.0005],
-                    [lat + 0.0005, lon - 0.0005],
-                    [lat - 0.0005, lon - 0.0005],
-                    [lat - 0.0005, lon + 0.0005]
+                    [lat + size, lon + size],
+                    [lat + size, lon - size],
+                    [lat - size, lon - size],
+                    [lat - size, lon + size]
                 ]
 
             # 📦 Append data
