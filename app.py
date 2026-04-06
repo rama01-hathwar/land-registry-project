@@ -1253,7 +1253,7 @@ def get_land():
             else:
                 lat = row[5]
                 lon = row[6]
-				size=0.0001
+				size=float(row[4])/10000000
 
                 polygon = [
                     [lat + size, lon + size],
