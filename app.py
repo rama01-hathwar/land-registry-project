@@ -1212,17 +1212,6 @@ def home():
     return render_template("map.html")
 
 
-from flask import jsonify
-import psycopg2
-import os
-import json
-
-from flask import Flask, jsonify
-import sqlite3
-import json
-
-app = Flask(__name__)
-
 @app.route('/api/land', methods=['GET'])
 def get_land():
     try:
@@ -1278,7 +1267,6 @@ def get_land():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/api/nearby_land")
 def nearby_land():
