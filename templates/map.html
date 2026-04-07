@@ -125,34 +125,34 @@ fetch("/api/land")
             });
         }
 
-        // Polygon
-        if (land.polygon && land.polygon.length > 0) {
+        
+        // ✅ Polygon
+if (land.polygon && land.polygon.length > 0) {
 
-            let coords = land.polygon.map(p => [p[0], p[1]]);
+    let coords = land.polygon;
 
-            if (coords.length > 0 &&
-                (coords[0][0] !== coords[coords.length-1][0] ||
-                 coords[0][1] !== coords[coords.length-1][1])) {
-                coords.push(coords[0]);
-            }
+    // ✅ Ensure polygon is closed
+    if (coords.length > 0 &&
+        (coords[0][0] !== coords[coords.length - 1][0] ||
+         coords[0][1] !== coords[coords.length - 1][1])) {
 
-            let poly = L.polygon(coords, {
-                color: getColor(land.type,land.status),
-                weight: 2,
-                fillOpacity:0.4
-            }).addTo(map);
+        coords.push(coords[0]);
+    }
 
-            poly.on("click", function () {
-                zoomToLand(land);
-                showDetails(land);
-                showQR(land);
-                loadNearby(land);
-            });
-        }
+    let poly = L.polygon(coords, {
+        color: getColor(land.type, land.status),
+        weight: 2,
+        fillOpacity: 0.4
+    }).addTo(map);
 
-    }); // ✅ CLOSE forEach
-
-}); // ✅ CLOSE then
+    // ✅ Click event (zoom + details)
+    poly.on("click", function () {
+        map.fitBounds(poly.getBounds());   // 🔥 zoom fix
+        showDetails(land);
+        showQR(land);
+        loadNearby(land);
+    });
+}
 
 
 // 🔍 Zoom
