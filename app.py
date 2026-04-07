@@ -9,6 +9,7 @@ import hashlib
 from flask import Flask, jsonify, render_template, request
 import math
 import json
+import sqlite3
 app = Flask(__name__)
 
 SECRET_KEY = "land_registry_secure"
