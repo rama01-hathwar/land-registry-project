@@ -1217,58 +1217,67 @@ import psycopg2
 import os
 import json
 
-@app.route('/api/land')
-def get_land():
-    import os
-    import psycopg2
-    import json
+from flask import Flask, jsonify
+import sqlite3
+import json
 
+app = Flask(__name__)
+
+@app.route('/api/land', methods=['GET'])
+def get_land():
     try:
-        # 🔗 Connect to Render PostgreSQL
-        DATABASE_URL = os.environ.get("DATABASE_URL")
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = sqlite3.connect("land.db")
         cursor = conn.cursor()
 
-        # 📥 Fetch data
         cursor.execute("SELECT * FROM gis_land_data")
         rows = cursor.fetchall()
 
         data = []
+
         for row in rows:
-            polygon=[]
+            polygon = []
+
+            # ✅ If polygon exists in DB
             if row[7]:
-                polygon=json.loads(row[7])
-            else:
-                lat=row[5]
-                lon=row[6]
-                size=max(float(row[4])/10000000,0.0003)
-                polygon=[
-                    [lat+size,lon+size],
-                    [lat+size,lon-size],
-                    [lat-size,lon-size],
-                    [lat-size,lon+size]
+                try:
+                    polygon = json.loads(row[7])
+                except:
+                    polygon = []
+
+            # ✅ If polygon missing → create square
+            if not polygon:
+                lat = row[5]
+                lon = row[6]
+
+                # 🔥 dynamic size based on area
+                size = max(float(row[4]) / 10000000, 0.0003)
+
+                polygon = [
+                    [lat + size, lon + size],
+                    [lat + size, lon - size],
+                    [lat - size, lon - size],
+                    [lat - size, lon + size]
                 ]
-    
-            # 📦 Append data
+
+            # ✅ Add to response
             data.append({
                 "parcel_id": row[0],
                 "survey": row[1],
-                "owner": row[2],
+                "owner": row[2] if row[2] else "Unknown",
                 "type": row[3],
                 "area": row[4],
                 "lat": row[5],
                 "lon": row[6],
                 "polygon": polygon,
+                "status": row[8] if len(row) > 8 and row[8] else "verified",
                 "qr": f"/static/qr_codes/{row[0]}.png"
             })
 
         conn.close()
-
         return jsonify(data)
 
     except Exception as e:
-        return jsonify({"error": str(e)})
-
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/nearby_land")
