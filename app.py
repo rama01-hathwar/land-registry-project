@@ -1234,20 +1234,20 @@ def get_land():
         rows = cursor.fetchall()
 
         data = []
-		for row in rows:
-			polygon=[]
-			if row[7]:
-				polygon=json.loads(row[7])
-			else:
-				lat=row[5]
-				lon=row[6]
-				size=max(float(row[4])/10000000,0.0003)
-				polygon=[
-					[lat+size,lon+size],
-					[lat+size,lon-size],
-					[lat-size,lon-size],
-					[lat-size,lon+size]
-				]
+        for row in rows:
+            polygon=[]
+            if row[7]:
+                polygon=json.loads(row[7])
+            else:
+                lat=row[5]
+                lon=row[6]
+                size=max(float(row[4])/10000000,0.0003)
+                polygon=[
+                    [lat+size,lon+size],
+                    [lat+size,lon-size],
+                    [lat-size,lon-size],
+                    [lat-size,lon+size]
+                ]
     
             # 📦 Append data
             data.append({
@@ -1575,7 +1575,7 @@ def verify(parcel_id):
     <p><b>Type:</b> {row[3]}</p>
     <p><b>Area:</b> {row[4]} sq ft</p>
     """
-	
+    
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
                             
