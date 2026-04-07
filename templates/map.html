@@ -99,6 +99,7 @@ function getColor(type, status) {
 }
 
 // 🚀 Fetch Data
+// 🚀 Fetch Data
 fetch("/api/land")
 .then(res => res.json())
 .then(data => {
@@ -111,6 +112,7 @@ fetch("/api/land")
 
     data.forEach(land => {
 
+        // 📍 Marker
         if (land.lat && land.lon) {
 
             let marker = L.marker([land.lat, land.lon])
@@ -125,6 +127,37 @@ fetch("/api/land")
             });
         }
 
+        // ✅ Polygon
+        if (land.polygon && land.polygon.length > 0) {
+
+            let coords = land.polygon;
+
+            // close polygon
+            if (coords.length > 0 &&
+                (coords[0][0] !== coords[coords.length - 1][0] ||
+                 coords[0][1] !== coords[coords.length - 1][1])) {
+
+                coords.push(coords[0]);
+            }
+
+            let poly = L.polygon(coords, {
+                color: getColor(land.type, land.status),
+                weight: 2,
+                fillOpacity: 0.4
+            }).addTo(map);
+
+            poly.on("click", function () {
+                map.fitBounds(poly.getBounds());
+                showDetails(land);
+                showQR(land);
+                loadNearby(land);
+            });
+        }
+
+    }); // ✅ CLOSE forEach
+
+}) // ✅ CLOSE then
+.catch(err => console.error(err)); // ✅ ERROR HANDLER
         
         // ✅ Polygon
 if (land.polygon && land.polygon.length > 0) {
