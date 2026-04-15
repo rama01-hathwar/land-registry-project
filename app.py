@@ -1213,10 +1213,11 @@ def home():
     return render_template("map.html")
 
 
-@app.route('/api/land', methods=['GET'])
+@app.route('/api/land')
 def get_land():
+
     try:
-        conn = sqlite3.connect("land.db")
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
         cursor = conn.cursor()
 
         cursor.execute("SELECT * FROM gis_land_data")
@@ -1225,21 +1226,18 @@ def get_land():
         data = []
 
         for row in rows:
+
             polygon = []
 
-            # ✅ If polygon exists in DB
             if row[7]:
                 try:
                     polygon = json.loads(row[7])
                 except:
                     polygon = []
 
-            # ✅ If polygon missing → create square
             if not polygon:
                 lat = row[5]
                 lon = row[6]
-
-                # 🔥 dynamic size based on area
                 size = max(float(row[4]) / 10000000, 0.0003)
 
                 polygon = [
@@ -1249,25 +1247,23 @@ def get_land():
                     [lat - size, lon + size]
                 ]
 
-            # ✅ Add to response
             data.append({
                 "parcel_id": row[0],
                 "survey": row[1],
-                "owner": row[2] if row[2] else "Unknown",
+                "owner": row[2],
                 "type": row[3],
                 "area": row[4],
                 "lat": row[5],
                 "lon": row[6],
                 "polygon": polygon,
-                "status": row[8] if len(row) > 8 and row[8] else "verified",
-                "qr": f"/static/qr_codes/{row[0]}.png"
+                "status": row[8] if row[8] else "pending"
             })
 
         conn.close()
         return jsonify(data)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)})
 
 @app.route("/api/nearby_land")
 def nearby_land():
