@@ -1229,7 +1229,7 @@ def get_land():
 
             polygon = []
 
-            if row[7]:
+            if len(row)>7 and row[7]:
                 try:
                     polygon = json.loads(row[7])
                 except:
@@ -1256,7 +1256,7 @@ def get_land():
                 "lat": row[5],
                 "lon": row[6],
                 "polygon": polygon,
-                "status": row[8] if row[8] else "pending"
+                "status": row[8] if len(row)>8 and row[8] else "pending"
             })
 
         conn.close()
