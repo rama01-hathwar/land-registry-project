@@ -17,7 +17,6 @@ def ensure_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
-    # 🔥 FORCE CREATE TABLE EVERY TIME
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,7 +25,6 @@ def ensure_db():
     )
     """)
 
-    # 🔥 FORCE ADD USER
     c.execute("""
     INSERT OR IGNORE INTO users (username, password_hash)
     VALUES (?, ?)
@@ -34,9 +32,6 @@ def ensure_db():
 
     conn.commit()
     conn.close()
-# Run on startup
-init_db()
-add_user()
 
 # from helpers import (
 #     load_data, predict_next_10_days,
@@ -411,7 +406,7 @@ def sentiment():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    ensure_db()   # 🔥 ADD THIS LINE
+    ensure_db()   # ✅ ensures table exists
 
     if request.method == "POST":
         username = request.form.get("username")
