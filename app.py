@@ -404,29 +404,5 @@ def sentiment():
         title="Performance Metrics"
     )
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    ensure_db()   # ✅ ensures table exists
-
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-
-        c.execute("SELECT id, password_hash FROM users WHERE username=?", (username,))
-        user = c.fetchone()
-
-        conn.close()
-
-        if user and password == user[1]:
-            session["user_id"] = user[0]
-            session["username"] = username
-            return redirect(url_for("dashboard"))
-        else:
-            flash("Invalid credentials", "danger")
-
-    return render_template("login.html")
 
 
