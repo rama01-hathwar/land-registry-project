@@ -339,7 +339,7 @@ def sentiment():
 
     #from helpers import (
         #load_data, predict_next_10_days, make_random_forest_prediction, compute_detailed_performance
-    )
+    #)
 
     ticker = tickers[0]
     data = load_data([ticker], start_date, end_date)
