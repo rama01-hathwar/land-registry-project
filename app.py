@@ -13,10 +13,11 @@ import sqlite3
 
 DB_FILE = "land.db"
 
-def init_db():
+def ensure_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
+    # 🔥 FORCE CREATE TABLE EVERY TIME
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,13 +26,7 @@ def init_db():
     )
     """)
 
-    conn.commit()
-    conn.close()
-
-def add_user():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-
+    # 🔥 FORCE ADD USER
     c.execute("""
     INSERT OR IGNORE INTO users (username, password_hash)
     VALUES (?, ?)
@@ -39,7 +34,6 @@ def add_user():
 
     conn.commit()
     conn.close()
-
 # Run on startup
 init_db()
 add_user()
@@ -54,19 +48,7 @@ app = Flask(__name__, static_folder="static")
 app.secret_key = "super_secret_key"
 DB_FILE = "users.db"
 
-def add_user():
-    conn = sqlite3.connect("land.db")
-    c = conn.cursor()
 
-    c.execute("""
-    INSERT OR IGNORE INTO users (username, password_hash)
-    VALUES (?, ?)
-    """, ("admin", "1234"))
-
-    conn.commit()
-    conn.close()
-
-add_user()
 
 
 # ---------------- DATABASE ----------------
@@ -427,7 +409,30 @@ def sentiment():
         title="Performance Metrics"
     )
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    ensure_db()   # 🔥 ADD THIS LINE
 
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+
+        c.execute("SELECT id, password_hash FROM users WHERE username=?", (username,))
+        user = c.fetchone()
+
+        conn.close()
+
+        if user and password == user[1]:
+            session["user_id"] = user[0]
+            session["username"] = username
+            return redirect(url_for("dashboard"))
+        else:
+            flash("Invalid credentials", "danger")
+
+    return render_template("login.html")
 
 if __name__ == "__main__":
     init_db()
