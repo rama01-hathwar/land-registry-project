@@ -120,11 +120,43 @@ fetch("/api/land")
                 .bindPopup(`<b>Land ID:</b> ${land.parcel_id}`);
 
             marker.on("click", function () {
-                zoomToLand(land);
-                showDetails(land);
-                showQR(land);
-                loadNearby(land);
-            });
+
+    zoomToLand(land);
+    showDetails(land);
+    showQR(land);
+    loadNearby(land);
+
+    // 🔥 ML Prediction
+    fetch("http://127.0.0.1:5000/predict_price", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            area_sqft: land.area,
+            road_distance_km: 2,
+            city_distance_km: 5,
+            nearby_school: "Yes",
+            nearby_hospital: "No",
+            year: 2024,
+
+            // ⚠️ If your model uses these (recommended)
+            district: land.district || "Unknown",
+            state: land.state || "Unknown",
+            land_type: land.type || "residential"
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        marker.bindPopup(`
+            <b>Land ID:</b> ${land.parcel_id}<br>
+            <b>Predicted Price:</b> ₹${data.predicted_price}
+        `).openPopup();
+
+    })
+    .catch(err => console.error(err));
+});
         }
 
         // ✅ Polygon
