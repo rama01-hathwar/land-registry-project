@@ -11,16 +11,11 @@ import sqlite3
 import os
 import sqlite3
 
-import sqlite3
-import os
-
-DB_PATH = "land.db"
+DB_FILE = "land.db"
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-
-    print("Creating users table...")  # DEBUG
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
@@ -34,7 +29,7 @@ def init_db():
     conn.close()
 
 def add_user():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
     c.execute("""
@@ -45,7 +40,7 @@ def add_user():
     conn.commit()
     conn.close()
 
-# 🔥 VERY IMPORTANT: CALL THESE
+# Run on startup
 init_db()
 add_user()
 
