@@ -9,6 +9,25 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
+import sqlite3
+
+def init_db():
+    conn = sqlite3.connect("land.db")
+    c = conn.cursor()
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password_hash TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+# Run once when app starts
+init_db()
 
 # from helpers import (
 #     load_data, predict_next_10_days,
@@ -19,6 +38,20 @@ import os
 app = Flask(__name__, static_folder="static")
 app.secret_key = "super_secret_key"
 DB_FILE = "users.db"
+
+def add_user():
+    conn = sqlite3.connect("land.db")
+    c = conn.cursor()
+
+    c.execute("""
+    INSERT OR IGNORE INTO users (username, password_hash)
+    VALUES (?, ?)
+    """, ("admin", "1234"))
+
+    conn.commit()
+    conn.close()
+
+add_user()
 
 
 # ---------------- DATABASE ----------------
