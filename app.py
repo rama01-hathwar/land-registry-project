@@ -10,24 +10,24 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
 
-from helpers import (
-    load_data,
-    get_ohlc_table_html,
-    make_price_plot,
-    make_comparison_plot,
-    make_moving_average_plot,
-    make_rsi_plot,
-    make_bollinger_plot,
-    make_macd_plot,
-    predict_next_10_days,
-    make_random_forest_prediction,
-    make_prediction_plot,
-    plot_correlation_heatmap,
-    compute_risk_metrics_html,
-    compute_volatility_plot,
-    compute_beta_and_riskscore,
-    sentiment_analyze
-)
+#from helpers import (
+    #load_data,
+    3get_ohlc_table_html,
+    #make_price_plot,
+    #make_comparison_plot,
+    #make_moving_average_plot,
+    #make_rsi_plot,
+    #make_bollinger_plot,
+    #make_macd_plot,
+    #predict_next_10_days,
+    #make_random_forest_prediction,
+    #make_prediction_plot,
+    #plot_correlation_heatmap,
+    #compute_risk_metrics_html,
+    #compute_volatility_plot,
+    #compute_beta_and_riskscore,
+    #sentiment_analyze
+#)
 
 app = Flask(__name__, static_folder="static")
 app.secret_key = "super_secret_key"
