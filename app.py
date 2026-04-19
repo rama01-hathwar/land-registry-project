@@ -11,9 +11,16 @@ import sqlite3
 import os
 import sqlite3
 
+import sqlite3
+import os
+
+DB_PATH = "land.db"
+
 def init_db():
-    conn = sqlite3.connect("land.db")
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+
+    print("Creating users table...")  # DEBUG
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
@@ -26,8 +33,21 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Run once when app starts
+def add_user():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    c.execute("""
+    INSERT OR IGNORE INTO users (username, password_hash)
+    VALUES (?, ?)
+    """, ("admin", "1234"))
+
+    conn.commit()
+    conn.close()
+
+# 🔥 VERY IMPORTANT: CALL THESE
 init_db()
+add_user()
 
 # from helpers import (
 #     load_data, predict_next_10_days,
