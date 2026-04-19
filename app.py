@@ -9,41 +9,29 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
-import sqlite3
 
-DB_FILE = "land.db"
-
-def ensure_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password_hash TEXT
-    )
-    """)
-
-    c.execute("""
-    INSERT OR IGNORE INTO users (username, password_hash)
-    VALUES (?, ?)
-    """, ("admin", "1234"))
-
-    conn.commit()
-    conn.close()
-
-# from helpers import (
-#     load_data, predict_next_10_days,
-#     make_random_forest_prediction,
-#     compute_detailed_performance
-# )
+from helpers import (
+    load_data,
+    get_ohlc_table_html,
+    make_price_plot,
+    make_comparison_plot,
+    make_moving_average_plot,
+    make_rsi_plot,
+    make_bollinger_plot,
+    make_macd_plot,
+    predict_next_10_days,
+    make_random_forest_prediction,
+    make_prediction_plot,
+    plot_correlation_heatmap,
+    compute_risk_metrics_html,
+    compute_volatility_plot,
+    compute_beta_and_riskscore,
+    sentiment_analyze
+)
 
 app = Flask(__name__, static_folder="static")
 app.secret_key = "super_secret_key"
 DB_FILE = "users.db"
-
-
 
 
 # ---------------- DATABASE ----------------
@@ -348,23 +336,23 @@ def sentiment():
     return render_template("sentiment.html", result_label=label, chart=chart, title="Sentiment")
 
 #------------------performance------------------
-#@app.route("/performance", methods=["GET", "POST"])
-#def performance():
-    #if "user_id" not in session:
-        #return redirect(url_for("login"))
+@app.route("/performance", methods=["GET", "POST"])
+def performance():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-    #saved_tickers = session.get("saved_tickers") or ""
-    #start_date = session.get("saved_start_date") or ""
-    #end_date = session.get("saved_end_date") or ""
-    #tickers = [t.strip() for t in saved_tickers.split(",") if t.strip()]
+    saved_tickers = session.get("saved_tickers") or ""
+    start_date = session.get("saved_start_date") or ""
+    end_date = session.get("saved_end_date") or ""
+    tickers = [t.strip() for t in saved_tickers.split(",") if t.strip()]
 
-    #if not tickers or not start_date or not end_date:
-        #flash("Please select a valid ticker and date range in Dashboard.", "warning")
-        #return redirect(url_for("dashboard"))
+    if not tickers or not start_date or not end_date:
+        flash("Please select a valid ticker and date range in Dashboard.", "warning")
+        return redirect(url_for("dashboard"))
 
-    #from helpers import (
-        #load_data, predict_next_10_days, make_random_forest_prediction, compute_detailed_performance
-    #)
+    from helpers import (
+        load_data, predict_next_10_days, make_random_forest_prediction, compute_detailed_performance
+    )
 
     ticker = tickers[0]
     data = load_data([ticker], start_date, end_date)
@@ -406,3 +394,6 @@ def sentiment():
 
 
 
+if __name__ == "__main__":
+    init_db()
+    app.run(debug=True)
