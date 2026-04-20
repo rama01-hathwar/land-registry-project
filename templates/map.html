@@ -10,7 +10,6 @@
 body { margin:0; font-family: Arial; }
 
 #container { display: flex; height: 100vh; }
-
 #map { width: 75%; height: 100%; }
 
 #sidebar {
@@ -26,7 +25,17 @@ body { margin:0; font-family: Arial; }
     color: green;
 }
 
-/* 🔥 Legend */
+/* 🔥 blinking effect */
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.2; }
+    100% { opacity: 1; }
+}
+.blink {
+    animation: blink 1s infinite;
+}
+
+/* Legend */
 #legend {
     position: absolute;
     bottom: 20px;
@@ -71,59 +80,73 @@ body { margin:0; font-family: Arial; }
     </div>
 </div>
 
-<!-- 🔥 Legend -->
+<!-- Legend -->
 <div id="legend">
-    <b>Price Range</b><br>
-    <div><span class="legend-box" style="background:green"></span> Low</div>
-    <div><span class="legend-box" style="background:orange"></span> Medium</div>
-    <div><span class="legend-box" style="background:red"></span> High</div>
+    <b>Land Type</b><br>
+    <div><span class="legend-box" style="background:green"></span> Residential</div>
+    <div><span class="legend-box" style="background:red"></span> Commercial</div>
+    <div><span class="legend-box" style="background:orange"></span> Agricultural</div>
+
+    <hr>
+    <b>Status</b><br>
+    <div><span class="legend-box" style="background:yellow"></span> For Sale</div>
+    <div><span class="legend-box" style="background:black"></span> Disputed</div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// 🗺 Map
+// Map
 var map = L.map('map').setView([12.97, 77.75], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let allLands = [];
 
-// 🎨 Price color
-function getPriceColor(price) {
-    if (price < 500000) return "green";
-    if (price < 1500000) return "orange";
-    return "red";
+// Land type color
+function getLandColor(type){
+    type = (type || "").toLowerCase();
+
+    if(type === "residential") return "green";
+    if(type === "commercial") return "red";
+    if(type === "agricultural") return "orange";
+    return "blue";
 }
 
-// 🔥 MAIN FUNCTION
-function handleLandClick(land, marker=null, poly=null){
+// Distance
+function getDistance(lat1, lon1, lat2, lon2){
+    const R = 6371;
+    const dLat = (lat2-lat1)*Math.PI/180;
+    const dLon = (lon2-lon1)*Math.PI/180;
 
-    // Zoom
-    if (land.lat && land.lon) {
-        map.flyTo([land.lat, land.lon], 18);
-    }
+    const a =
+        Math.sin(dLat/2)**2 +
+        Math.cos(lat1*Math.PI/180) *
+        Math.cos(lat2*Math.PI/180) *
+        Math.sin(dLon/2)**2;
 
-    if (land.polygon) {
-        map.fitBounds(land.polygon.map(p => [p[0], p[1]]));
-    }
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+}
 
-    // Sidebar
+// MAIN CLICK
+function handleLandClick(land, marker=null){
+
+    map.flyTo([land.lat, land.lon], 18);
+
     showDetails(land);
     showQR(land);
     loadNearby(land);
 
-    // Prediction
     fetch("/predict_price", {
         method:"POST",
-        headers: {"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
             area_sqft: land.area,
             road_distance_km: 2,
             city_distance_km: 5,
-            nearby_school: "Yes",
-            nearby_hospital: "No",
-            year: 2024
+            nearby_school:"Yes",
+            nearby_hospital:"No",
+            year:2024
         })
     })
     .then(res=>res.json())
@@ -131,30 +154,19 @@ function handleLandClick(land, marker=null, poly=null){
 
         let price = result.predicted_price || 0;
 
-        document.getElementById("priceBox").innerHTML =
-            `₹ ${price}`;
-
-        let color = getPriceColor(price);
+        document.getElementById("priceBox").innerHTML = `₹ ${price}`;
 
         if(marker){
             marker.bindPopup(`
                 <b>${land.parcel_id}</b><br>
-                Price: ₹${price}
+                ₹${price}
             `).openPopup();
         }
 
-        if(poly){
-            poly.setStyle({
-                color: color,
-                fillColor: color
-            });
-        }
-
-    })
-    .catch(err=>console.error(err));
+    });
 }
 
-// 🚀 LOAD DATA + AUTO COLOR
+// LOAD DATA
 fetch("/api/land")
 .then(res=>res.json())
 .then(data=>{
@@ -163,90 +175,90 @@ fetch("/api/land")
 
     data.forEach(land=>{
 
-        let marker=null, poly=null;
+        let baseColor = getLandColor(land.type);
 
-        // Marker
-        if(land.lat && land.lon){
-            marker = L.marker([land.lat, land.lon]).addTo(map);
+        let style = {
+            color: baseColor,
+            fillColor: baseColor,
+            fillOpacity: 0.4,
+            weight: 2
+        };
 
-            marker.on("click", function(){
-                handleLandClick(land, marker, poly);
-            });
+        // 🔥 FOR SALE
+        if(land.status === "for sale"){
+            style.color = "yellow";
+            style.dashArray = "5,5";
         }
 
-        // Polygon
-        if(land.polygon){
-            poly = L.polygon(land.polygon, {
-                color: "gray",
-                fillOpacity: 0.4
-            }).addTo(map);
-
-            poly.on("click", function(){
-                handleLandClick(land, marker, poly);
-            });
+        // 🔥 DISPUTED
+        if(land.status === "disputed"){
+            style.color = "black";
         }
 
-        // 🔥 AUTO COLOR (without clicking)
-        fetch("/predict_price", {
-            method:"POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({
-                area_sqft: land.area,
-                road_distance_km: 2,
-                city_distance_km: 5,
-                nearby_school: "Yes",
-                nearby_hospital: "No",
-                year: 2024
-            })
-        })
-        .then(res=>res.json())
-        .then(result=>{
+        let poly = L.polygon(land.polygon, style).addTo(map);
 
-            let price = result.predicted_price || 0;
-            let color = getPriceColor(price);
+        // 🔥 blinking for disputed
+        if(land.status === "disputed"){
+            let el = poly.getElement();
+            if(el) el.classList.add("blink");
+        }
 
-            if(poly){
-                poly.setStyle({
-                    color: color,
-                    fillColor: color
-                });
-            }
+        let marker = L.marker([land.lat, land.lon]).addTo(map);
 
+        marker.on("click", ()=>{
+            handleLandClick(land, marker);
+        });
+
+        poly.on("click", ()=>{
+            handleLandClick(land, marker);
         });
 
     });
 
 });
 
-// 📄 Details
+// Sidebar
 function showDetails(land){
     document.getElementById("details").innerHTML =
         `ID: ${land.parcel_id}<br>
          Owner: ${land.owner}<br>
+         Type: ${land.type}<br>
+         Status: ${land.status}<br>
          Area: ${land.area}`;
 }
 
-// 📱 QR
+// QR
 function showQR(land){
     document.getElementById("qrSection").innerHTML =
         `<img src="/qr/${land.parcel_id}" width="120">`;
 }
 
-// 📍 Nearby
+// Nearby
 function loadNearby(land){
-    document.getElementById("nearby").innerHTML = "Loading...";
+    let html="";
+    let found=false;
+
+    allLands.forEach(o=>{
+        if(o.parcel_id!==land.parcel_id){
+            let d=getDistance(land.lat,land.lon,o.lat,o.lon);
+            if(d<1){
+                found=true;
+                html+=`${o.parcel_id} (${d.toFixed(2)} km)<br>`;
+            }
+        }
+    });
+
+    document.getElementById("nearby").innerHTML =
+        found?html:"No nearby lands";
 }
 
-// 🔎 Search
+// Search
 function searchLand(){
-    let id = document.getElementById("searchId").value;
-    let land = allLands.find(l=>l.parcel_id===id);
+    let id=document.getElementById("searchId").value;
+    let land=allLands.find(l=>l.parcel_id===id);
 
-    if(land){
-        handleLandClick(land);
-    }else{
-        alert("Not found");
-    }
+    if(land) handleLandClick(land);
+    else alert("Not found");
 }
 
 </script>
