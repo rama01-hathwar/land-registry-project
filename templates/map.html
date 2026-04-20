@@ -83,6 +83,8 @@ var baseMaps = {
 
 L.control.layers(baseMaps).addTo(map);
 
+
+
 // 🎨 Color
 function getColor(type, status) {
 
@@ -127,7 +129,15 @@ fetch("/api/land")
     loadNearby(land);
 
     // 🔥 ML Prediction
-    fetch("http://127.0.0.1:5000/predict_price", {
+    marker.on("click", function () {
+
+    zoomToLand(land);
+    showDetails(land);
+    showQR(land);
+    loadNearby(land);
+
+    // 🔥 ML Prediction
+    fetch("/predict_price", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -138,12 +148,7 @@ fetch("/api/land")
             city_distance_km: 5,
             nearby_school: "Yes",
             nearby_hospital: "No",
-            year: 2024,
-
-            // ⚠️ If your model uses these (recommended)
-            district: land.district || "Unknown",
-            state: land.state || "Unknown",
-            land_type: land.type || "residential"
+            year: 2024
         })
     })
     .then(res => res.json())
