@@ -1880,6 +1880,29 @@ def generate_documents():
 
     except Exception as e:
         return f"Error: {str(e)}"
+
+@app.route("/create_document_table")
+def create_document_table():
+
+    conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS document (
+        document_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        document_type TEXT,
+        file_hash TEXT,
+        uploaded_by TEXT,
+        uploaded_date TIMESTAMP,
+        verification_status TEXT
+    );
+    """)
+
+    conn.commit()
+    conn.close()
+
+    return "Table created"
     
     
 if __name__ == "__main__":
