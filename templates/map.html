@@ -118,18 +118,10 @@ fetch("/api/land")
         if (land.lat && land.lon) {
 
             let marker = L.marker([land.lat, land.lon])
-                .addTo(map)
-                .bindPopup(`<b>Land ID:</b> ${land.parcel_id}`);
+    .addTo(map)
+    .bindPopup(`<b>Land ID:</b> ${land.parcel_id}`);
 
-            marker.on("click", function () {
-
-    zoomToLand(land);
-    showDetails(land);
-    showQR(land);
-    loadNearby(land);
-
-    // 🔥 ML Prediction
-    marker.on("click", function () {
+marker.on("click", function () {
 
     zoomToLand(land);
     showDetails(land);
@@ -191,11 +183,6 @@ fetch("/api/land")
                 loadNearby(land);
             });
         }
-
-
-        
-       
-
 
 // 🔍 Zoom
 function zoomToLand(land) {
