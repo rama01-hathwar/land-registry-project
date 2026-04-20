@@ -1339,70 +1339,67 @@ def get_land_locations():
 
 @app.route('/verify_property/<parcel_id>/<hash_value>')
 def verify_property_qr(parcel_id, hash_value):
- 
+
     expected_hash = generate_secure_hash(parcel_id)
- 
+
     if hash_value != expected_hash:
         return render_template("property_dashboard.html",
-                               error="Invalid or tampered QR Code",
-                               property=None)
- 
+                               error="Invalid QR Code",
+                               property=None,
+                               documents=[])
+
     cursor.execute("SELECT * FROM property WHERE parcel_id = ?", (parcel_id,))
     row = cursor.fetchone()
- 
+
     if not row:
         return render_template("property_dashboard.html",
                                error="Property not found",
-                               property=None)
- 
-    # Map columns by index (adjust order to match your DB schema)
+                               property=None,
+                               documents=[])
+
+    # ✅ PROPERTY DATA
     property_data = {
-        "parcel_id":           row[0],
-        "owner_id":            row[1],
-        "survey_number":       row[2],
-        "khata_number":        row[3],
-        "village":             row[4],
-        "taluk":               row[5],
-        "district":            row[6],
-        "state":               row[7],
-        "land_type":           row[8],
-        "area_sqft":           row[9],
-        "registration_date":   str(row[10]),
-        "current_market_value":row[11],
-        "geo_latitude":        row[12],
-        "geo_longitude":       row[13],
-        "tax_status":          row[14],
-        "mortgage_status":     row[15],
+        "parcel_id": row[0],
+        "owner_id": row[1],
+        "survey_number": row[2],
+        "khata_number": row[3],
+        "village": row[4],
+        "taluk": row[5],
+        "district": row[6],
+        "state": row[7],
+        "land_type": row[8],
+        "area_sqft": row[9],
+        "registration_date": str(row[10]),
+        "current_market_value": row[11],
+        "geo_latitude": row[12],
+        "geo_longitude": row[13],
+        "tax_status": row[14],
+        "mortgage_status": row[15],
     }
-    # 📄 DOCUMENTS
-cursor.execute("""
-    SELECT document_id, document_type, verification_status
-    FROM document
-    WHERE parcel_id = ?
-""", (parcel_id,))
 
-documents = cursor.fetchall()
-
-doc_list = []
-for d in documents:
-    doc_list.append({
-        "document_id": d[0],
-        "document_type": d[1],
-        "status": d[2],
-        "url": f"/view_document/{d[0]}"
-    })
+    # ✅ DOCUMENTS
     cursor.execute("""
-SELECT document_id, document_type
-FROM document
-WHERE parcel_id = ?
-""", (parcel_id,))
+        SELECT document_id, document_type, verification_status
+        FROM document
+        WHERE parcel_id = ?
+    """, (parcel_id,))
 
-documents = cursor.fetchall()
- 
-  return render_template("property_dashboard.html",
-                       property=property_data,
-                       documents=doc_list,
-                       error=None)
+    documents = cursor.fetchall()
+
+    doc_list = []
+    for d in documents:
+        doc_list.append({
+            "document_id": d[0],
+            "document_type": d[1],
+            "status": d[2],
+            "url": f"/view_document/{d[0]}"
+        })
+
+    # ✅ FINAL RETURN (IMPORTANT POSITION)
+    return render_template("property_dashboard.html",
+                           property=property_data,
+                           documents=doc_list,
+                           error=None)
 
  
 ## ── 3. NEW: Regenerate QR for existing property ──
