@@ -25,6 +25,13 @@ body { margin:0; font-family: Arial; }
     background: #f4f4f4;
     overflow-y: auto;
 }
+
+#priceBox {
+    font-size: 20px;
+    font-weight: bold;
+    color: green;
+    padding: 10px;
+}
 </style>
 </head>
 
@@ -40,11 +47,22 @@ body { margin:0; font-family: Arial; }
         <input type="text" id="searchId" placeholder="Enter Parcel ID">
         <button onclick="searchLand()">Search</button>
 
+        <hr>
+
         <h3>Land Details</h3>
         <div id="details">Click a parcel</div>
 
+        <hr>
+
+        <h3>Predicted Price</h3>
+        <div id="priceBox">Click a parcel</div>
+
+        <hr>
+
         <h3>QR Code</h3>
         <div id="qrSection">Click a parcel</div>
+
+        <hr>
 
         <h3>Nearby Lands</h3>
         <div id="nearby">Click a parcel</div>
@@ -84,6 +102,58 @@ function getColor(type, status) {
     return "blue";
 }
 
+// 🔥 MAIN HANDLER (IMPORTANT)
+function handleLandClick(land, marker = null) {
+
+    // Zoom
+    if (land.lat && land.lon) {
+        map.flyTo([land.lat, land.lon], 18);
+    }
+
+    if (land.polygon && land.polygon.length > 0) {
+        let bounds = L.latLngBounds(
+            land.polygon.map(p => [p[0], p[1]])
+        );
+        map.fitBounds(bounds);
+    }
+
+    // Sidebar
+    showDetails(land);
+    showQR(land);
+    loadNearby(land);
+
+    // ML Prediction
+    fetch("/predict_price", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            area_sqft: land.area,
+            road_distance_km: 2,
+            city_distance_km: 5,
+            nearby_school: "Yes",
+            nearby_hospital: "No",
+            year: 2024
+        })
+    })
+    .then(res => res.json())
+    .then(result => {
+
+        // Sidebar price
+        document.getElementById("priceBox").innerHTML =
+            `<b>₹ ${result.predicted_price}</b>`;
+
+        // Popup
+        if (marker) {
+            marker.bindPopup(`
+                <b>Land ID:</b> ${land.parcel_id}<br>
+                <b>Predicted Price:</b> ₹${result.predicted_price}
+            `).openPopup();
+        }
+
+    })
+    .catch(err => console.error(err));
+}
+
 // 🚀 FETCH DATA
 fetch("/api/land")
 .then(res => res.json())
@@ -97,7 +167,7 @@ fetch("/api/land")
 
     data.forEach(land => {
 
-        // 📍 Marker
+        // Marker
         if (land.lat && land.lon) {
 
             let marker = L.marker([land.lat, land.lon])
@@ -105,76 +175,27 @@ fetch("/api/land")
                 .bindPopup(`<b>Land ID:</b> ${land.parcel_id}`);
 
             marker.on("click", function () {
-
-                zoomToLand(land);
-                showDetails(land);
-                showQR(land);
-                loadNearby(land);
-
-                // 🔥 ML Prediction
-                fetch("/predict_price", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        area_sqft: land.area,
-                        road_distance_km: 2,
-                        city_distance_km: 5,
-                        nearby_school: "Yes",
-                        nearby_hospital: "No",
-                        year: 2024
-                    })
-                })
-                .then(res => res.json())
-                .then(result => {
-
-                    marker.bindPopup(`
-                        <b>Land ID:</b> ${land.parcel_id}<br>
-                        <b>Predicted Price:</b> ₹${result.predicted_price}
-                    `).openPopup();
-
-                })
-                .catch(err => console.error(err));
+                handleLandClick(land, marker);
             });
         }
 
-        // ✅ Polygon
+        // Polygon
         if (land.polygon && land.polygon.length > 0) {
 
-            let coords = land.polygon;
-
-            let poly = L.polygon(coords, {
+            let poly = L.polygon(land.polygon, {
                 color: getColor(land.type, land.status),
                 weight: 2,
                 fillOpacity: 0.4
             }).addTo(map);
 
             poly.on("click", function () {
-                map.fitBounds(poly.getBounds());
-                showDetails(land);
-                showQR(land);
-                loadNearby(land);
+                handleLandClick(land);
             });
         }
 
-    }); // ✅ CLOSE forEach
+    });
 
-}); // ✅ CLOSE fetch
-
-// 🔍 Zoom
-function zoomToLand(land) {
-    if (land.lat && land.lon) {
-        map.setView([land.lat, land.lon], 18);
-    }
-
-    if (land.polygon && land.polygon.length > 0) {
-        let bounds = L.latLngBounds(
-            land.polygon.map(p => [p[0], p[1]])
-        );
-        map.fitBounds(bounds);
-    }
-}
+});
 
 // 📄 Details
 function showDetails(land){
@@ -189,10 +210,8 @@ function showDetails(land){
 // 📱 QR
 function showQR(land){
     document.getElementById("qrSection").innerHTML = `
-        <img src="/qr/${land.parcel_id}" width="150">
-        <a href="/verify/${land.parcel_id}" target="_blank">
-            Verify Property
-        </a>
+        <img src="/qr/${land.parcel_id}" width="150"><br>
+        <a href="/verify/${land.parcel_id}" target="_blank">Verify Property</a>
     `;
 }
 
@@ -254,10 +273,7 @@ function searchLand(){
     let found = allLands.find(l => l.parcel_id === id);
 
     if(found){
-        zoomToLand(found);
-        showDetails(found);
-        showQR(found);
-        loadNearby(found);
+        handleLandClick(found);
     } else {
         alert("Parcel not found");
     }
