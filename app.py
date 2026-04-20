@@ -1843,39 +1843,43 @@ init_document_table()
 @app.route("/generate_documents")
 def generate_documents():
 
-    conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
-    cursor = conn.cursor()
+    try:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+        cursor = conn.cursor()
 
-    cursor.execute("SELECT land_id FROM gis_land_data")
-    lands = cursor.fetchall()
+        cursor.execute("SELECT land_id FROM gis_land_data")
+        lands = cursor.fetchall()
 
-    count = 1
+        count = 1
 
-    for land in lands:
-        parcel_id = land[0]
+        for land in lands:
+            parcel_id = land[0]
 
-        doc_id = f"DOC{count:03}"
+            doc_id = f"DOC{count:03}"
 
-        cursor.execute("""
-            INSERT INTO document 
-            (document_id, parcel_id, document_type, file_hash, uploaded_by, uploaded_date, verification_status)
-            VALUES (%s,%s,%s,%s,%s,NOW(),%s)
-            ON CONFLICT (document_id) DO NOTHING
-        """, (
-            doc_id,
-            parcel_id,
-            "Sale Deed",
-            f"hash{count}",
-            "U001",
-            "Verified"
-        ))
+            cursor.execute("""
+                INSERT INTO document 
+                (document_id, parcel_id, document_type, file_hash, uploaded_by, uploaded_date, verification_status)
+                VALUES (%s,%s,%s,%s,%s,NOW(),%s)
+                ON CONFLICT (document_id) DO NOTHING
+            """, (
+                doc_id,
+                parcel_id,
+                "Sale Deed",
+                f"hash{count}",
+                "U001",
+                "Verified"
+            ))
 
-        count += 1
+            count += 1
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
-    return "Documents generated for all lands"
+        return "Documents generated successfully"
+
+    except Exception as e:
+        return f"Error: {str(e)}"
     
     
 if __name__ == "__main__":
