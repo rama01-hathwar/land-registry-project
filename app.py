@@ -14,6 +14,27 @@ import joblib
 import pandas as pd
 from werkzeug.utils import secure_filename
 
+def init_document_table():
+    import sqlite3
+
+    conn = sqlite3.connect("land.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS document (
+        document_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        document_type TEXT,
+        file_hash TEXT,
+        uploaded_by TEXT,
+        uploaded_date TEXT,
+        verification_status TEXT
+    );
+    """)
+
+    conn.commit()
+    conn.close()
+
 model = joblib.load("land_price_model.pkl")
 model_columns = joblib.load("model_columns.pkl")
 app = Flask(__name__)
@@ -1816,6 +1837,8 @@ def validate_document(document_id):
         "status": "tampered",
         "message": "Document integrity compromised"
     }
+
+init_document_table()
     
     
 if __name__ == "__main__":
