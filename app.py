@@ -1903,6 +1903,18 @@ def create_document_table():
     conn.close()
 
     return "Table created"
+
+@app.route("/check_lands")
+def check_lands():
+    conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT land_id FROM gis_land_data LIMIT 10")
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return str(rows)
     
     
 if __name__ == "__main__":
