@@ -196,33 +196,7 @@ fetch("/api/land")
 }) // ✅ CLOSE then
 .catch(err => console.error(err)); // ✅ ERROR HANDLER
         
-        // ✅ Polygon
-if (land.polygon && land.polygon.length > 0) {
-
-    let coords = land.polygon;
-
-    // ✅ Ensure polygon is closed
-    if (coords.length > 0 &&
-        (coords[0][0] !== coords[coords.length - 1][0] ||
-         coords[0][1] !== coords[coords.length - 1][1])) {
-
-        coords.push(coords[0]);
-    }
-
-    let poly = L.polygon(coords, {
-        color: getColor(land.type, land.status),
-        weight: 2,
-        fillOpacity: 0.4
-    }).addTo(map);
-
-    // ✅ Click event (zoom + details)
-    poly.on("click", function () {
-        map.fitBounds(poly.getBounds());   // 🔥 zoom fix
-        showDetails(land);
-        showQR(land);
-        loadNearby(land);
-    });
-}
+       
 
 
 // 🔍 Zoom
