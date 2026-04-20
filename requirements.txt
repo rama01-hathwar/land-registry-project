@@ -5,3 +5,6 @@ psycopg2-binary
 pillow
 joblib
 pandas
+scikit-learn
+werkzeug
+xgboost
