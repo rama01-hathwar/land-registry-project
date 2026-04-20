@@ -96,6 +96,22 @@
             <h3>QR Code</h3>
             <div id="qrSection"></div>
 
+            <h3>📤 Upload Document</h3>
+
+            <input type="text" id="docParcel" placeholder="Parcel ID"><br><br>
+
+            <select id="docType">
+               <option value="Sale Deed">Sale Deed</option>
+               <option value="Tax Receipt">Tax Receipt</option>
+               <option value="Transfer Deed">Transfer Deed</option>
+                </select><br><br>
+
+            <input type="file" id="docFile"><br><br>
+
+             <button onclick="uploadDocument()">Upload</button>
+
+              <div id="uploadStatus"></div>
+
             <h3>Nearby Lands</h3>
             <div id="nearby"></div>
 
@@ -159,6 +175,7 @@
 
             showDetails(land);
             showQR(land);
+            document.getElementById("docParcel").value = land.parcel_id;
             loadNearby(land);
             loadDocuments(land);
 
@@ -316,6 +333,36 @@
                     document.getElementById("documents").innerHTML = "Error loading documents";
                 });
         }
+
+        function uploadDocument(){
+
+    let parcel = document.getElementById("docParcel").value;
+    let type = document.getElementById("docType").value;
+    let file = document.getElementById("docFile").files[0];
+
+    if(!parcel || !file){
+        alert("Fill all fields");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("parcel_id", parcel);
+    formData.append("document_type", type);
+    formData.append("uploaded_by", "U001");
+    formData.append("file", file);
+
+    fetch("/upload_document", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("uploadStatus").innerHTML = "✅ Uploaded";
+    })
+    .catch(err => {
+        document.getElementById("uploadStatus").innerHTML = "❌ Error";
+    });
+}
 
     </script>
 
