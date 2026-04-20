@@ -58,41 +58,25 @@ body { margin:0; font-family: Arial; }
 // 🗺 Map init
 var map = L.map('map').setView([12.97, 77.75], 12);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+var normalMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+var satelliteMap = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
+
+normalMap.addTo(map);
+
+L.control.layers({
+    "Normal Map": normalMap,
+    "Satellite Map": satelliteMap
+}).addTo(map);
 
 let allLands = [];
 let nearbyMarkers = [];
 
-// 🌍 Map layers
-var normalMap = L.tileLayer(
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-);
-
-var satelliteMap = L.tileLayer(
-    'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png'
-);
-
-// Add default
-normalMap.addTo(map);
-
-// Layer control
-var baseMaps = {
-    "Normal Map": normalMap,
-    "Satellite Map": satelliteMap
-};
-
-L.control.layers(baseMaps).addTo(map);
-
-
-
 // 🎨 Color
 function getColor(type, status) {
-
     type = type.toLowerCase();
     status = status ? status.toLowerCase() : "";
 
     if (status === "disputed") return "black";
-
     if (type === "residential") return "green";
     if (type === "commercial") return "red";
     if (type === "agricultural") return "orange";
@@ -100,8 +84,7 @@ function getColor(type, status) {
     return "blue";
 }
 
-// 🚀 Fetch Data
-// 🚀 Fetch Data
+// 🚀 FETCH DATA
 fetch("/api/land")
 .then(res => res.json())
 .then(data => {
@@ -118,57 +101,48 @@ fetch("/api/land")
         if (land.lat && land.lon) {
 
             let marker = L.marker([land.lat, land.lon])
-    .addTo(map)
-    .bindPopup(`<b>Land ID:</b> ${land.parcel_id}`);
+                .addTo(map)
+                .bindPopup(`<b>Land ID:</b> ${land.parcel_id}`);
 
-marker.on("click", function () {
+            marker.on("click", function () {
 
-    zoomToLand(land);
-    showDetails(land);
-    showQR(land);
-    loadNearby(land);
+                zoomToLand(land);
+                showDetails(land);
+                showQR(land);
+                loadNearby(land);
 
-    // 🔥 ML Prediction
-    fetch("/predict_price", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            area_sqft: land.area,
-            road_distance_km: 2,
-            city_distance_km: 5,
-            nearby_school: "Yes",
-            nearby_hospital: "No",
-            year: 2024
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
+                // 🔥 ML Prediction
+                fetch("/predict_price", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        area_sqft: land.area,
+                        road_distance_km: 2,
+                        city_distance_km: 5,
+                        nearby_school: "Yes",
+                        nearby_hospital: "No",
+                        year: 2024
+                    })
+                })
+                .then(res => res.json())
+                .then(result => {
 
-        marker.bindPopup(`
-            <b>Land ID:</b> ${land.parcel_id}<br>
-            <b>Predicted Price:</b> ₹${data.predicted_price}
-        `).openPopup();
+                    marker.bindPopup(`
+                        <b>Land ID:</b> ${land.parcel_id}<br>
+                        <b>Predicted Price:</b> ₹${result.predicted_price}
+                    `).openPopup();
 
-    })
-    .catch(err => console.error(err));
-});
-       
-        
+                })
+                .catch(err => console.error(err));
+            });
+        }
 
         // ✅ Polygon
         if (land.polygon && land.polygon.length > 0) {
 
             let coords = land.polygon;
-
-            // close polygon
-            if (coords.length > 0 &&
-                (coords[0][0] !== coords[coords.length - 1][0] ||
-                 coords[0][1] !== coords[coords.length - 1][1])) {
-
-                coords.push(coords[0]);
-            }
 
             let poly = L.polygon(coords, {
                 color: getColor(land.type, land.status),
@@ -184,19 +158,20 @@ marker.on("click", function () {
             });
         }
 
+    }); // ✅ CLOSE forEach
+
+}); // ✅ CLOSE fetch
+
 // 🔍 Zoom
 function zoomToLand(land) {
-
     if (land.lat && land.lon) {
         map.setView([land.lat, land.lon], 18);
     }
 
     if (land.polygon && land.polygon.length > 0) {
-
         let bounds = L.latLngBounds(
             land.polygon.map(p => [p[0], p[1]])
         );
-
         map.fitBounds(bounds);
     }
 }
@@ -211,11 +186,11 @@ function showDetails(land){
          <b>Survey:</b> ${land.survey}`;
 }
 
-// 📱 QR (FIXED)
+// 📱 QR
 function showQR(land){
     document.getElementById("qrSection").innerHTML = `
-        <img src="https://land-registry-project.onrender.com/qr/${land.parcel_id}" width="150">
-        <a href="https://land-registry-project.onrender.com/verify/${land.parcel_id}" target="_blank">
+        <img src="/qr/${land.parcel_id}" width="150">
+        <a href="/verify/${land.parcel_id}" target="_blank">
             Verify Property
         </a>
     `;
@@ -238,10 +213,9 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// 📍 Nearby (FIXED)
+// 📍 Nearby
 function loadNearby(land){
 
-    // remove old markers
     nearbyMarkers.forEach(m => map.removeLayer(m));
     nearbyMarkers = [];
 
@@ -261,13 +235,7 @@ function loadNearby(land){
 
             html += `Parcel: ${other.parcel_id} (${distance.toFixed(2)} km)<br>`;
 
-            let marker = L.marker([other.lat, other.lon], {
-                icon: L.icon({
-                    iconUrl: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
-                    iconSize: [25, 25]
-                })
-            }).addTo(map);
-
+            let marker = L.marker([other.lat, other.lon]).addTo(map);
             nearbyMarkers.push(marker);
         }
     });
@@ -281,7 +249,6 @@ function loadNearby(land){
 
 // 🔎 Search
 function searchLand(){
-
     let id = document.getElementById("searchId").value.trim();
 
     let found = allLands.find(l => l.parcel_id === id);
