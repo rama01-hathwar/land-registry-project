@@ -10,6 +10,11 @@ from flask import Flask, jsonify, render_template, request
 import math
 import json
 import sqlite3
+import joblib
+import pandas as pd
+
+model = joblib.load("land_price_model.pkl")
+model_columns = joblib.load("model_columns.pkl")
 app = Flask(__name__)
 
 SECRET_KEY = "land_registry_secure"
@@ -1569,6 +1574,41 @@ def verify(parcel_id):
     <p><b>Type:</b> {row[3]}</p>
     <p><b>Area:</b> {row[4]} sq ft</p>
     """
+
+# ---------------- ML PRICE PREDICTION ----------------
+@app.route('/predict_price', methods=['POST'])
+def predict_price():
+    try:
+        data = request.json
+
+        input_data = {
+            'area_sqft': data['area_sqft'],
+            'road_distance_km': data['road_distance_km'],
+            'city_distance_km': data['city_distance_km'],
+            'nearby_school': 1 if data['nearby_school'] == 'Yes' else 0,
+            'nearby_hospital': 1 if data['nearby_hospital'] == 'Yes' else 0,
+            'year': data['year']
+        }
+
+        df = pd.DataFrame([input_data])
+
+        # match training columns
+        df = pd.get_dummies(df)
+
+        for col in model_columns:
+            if col not in df:
+                df[col] = 0
+
+        df = df[model_columns]
+
+        prediction = model.predict(df)
+
+        return jsonify({
+            "predicted_price": float(prediction[0])
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
     
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
