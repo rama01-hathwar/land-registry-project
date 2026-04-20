@@ -244,22 +244,7 @@ def verify_property(parcel_id):
         "status": "approved",
         "message": "Property eligible for transfer"
     }
-    cursor.execute("""
-SELECT document_id, document_type, verification_status
-FROM document
-WHERE parcel_id = ?
-""", (parcel_id,))
-
-documents = cursor.fetchall()
-
-doc_list = []
-for d in documents:
-    doc_list.append({
-        "document_id": d[0],
-        "document_type": d[1],
-        "status": d[2],
-        "url": f"/view_document/{d[0]}"
-    })
+    
 
 #--transaction--#
 import hashlib
@@ -1389,6 +1374,23 @@ def verify_property_qr(parcel_id, hash_value):
         "tax_status":          row[14],
         "mortgage_status":     row[15],
     }
+    # 📄 DOCUMENTS
+cursor.execute("""
+    SELECT document_id, document_type, verification_status
+    FROM document
+    WHERE parcel_id = ?
+""", (parcel_id,))
+
+documents = cursor.fetchall()
+
+doc_list = []
+for d in documents:
+    doc_list.append({
+        "document_id": d[0],
+        "document_type": d[1],
+        "status": d[2],
+        "url": f"/view_document/{d[0]}"
+    })
     cursor.execute("""
 SELECT document_id, document_type
 FROM document
