@@ -1847,7 +1847,8 @@ def generate_documents():
         conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
         cursor = conn.cursor()
 
-        cursor.execute("SELECT land_id FROM gis_land_data")
+        # ✅ CORRECT TABLE
+        cursor.execute("SELECT parcel_id FROM property")
         lands = cursor.fetchall()
 
         count = 1
