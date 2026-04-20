@@ -9,15 +9,9 @@
 <style>
 body { margin:0; font-family: Arial; }
 
-#container {
-    display: flex;
-    height: 100vh;
-}
+#container { display: flex; height: 100vh; }
 
-#map {
-    width: 75%;
-    height: 100%;
-}
+#map { width: 75%; height: 100%; }
 
 #sidebar {
     width: 25%;
@@ -30,7 +24,23 @@ body { margin:0; font-family: Arial; }
     font-size: 20px;
     font-weight: bold;
     color: green;
+}
+
+/* 🔥 Legend */
+#legend {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: white;
     padding: 10px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+.legend-box {
+    width: 15px;
+    height: 15px;
+    display: inline-block;
+    margin-right: 5px;
 }
 </style>
 </head>
@@ -44,77 +54,58 @@ body { margin:0; font-family: Arial; }
 
     <div id="sidebar">
         <h3>Search Parcel</h3>
-        <input type="text" id="searchId" placeholder="Enter Parcel ID">
+        <input type="text" id="searchId">
         <button onclick="searchLand()">Search</button>
-
-        <hr>
 
         <h3>Land Details</h3>
         <div id="details">Click a parcel</div>
 
-        <hr>
-
         <h3>Predicted Price</h3>
         <div id="priceBox">Click a parcel</div>
 
-        <hr>
-
         <h3>QR Code</h3>
-        <div id="qrSection">Click a parcel</div>
-
-        <hr>
+        <div id="qrSection"></div>
 
         <h3>Nearby Lands</h3>
-        <div id="nearby">Click a parcel</div>
+        <div id="nearby"></div>
     </div>
+</div>
+
+<!-- 🔥 Legend -->
+<div id="legend">
+    <b>Price Range</b><br>
+    <div><span class="legend-box" style="background:green"></span> Low</div>
+    <div><span class="legend-box" style="background:orange"></span> Medium</div>
+    <div><span class="legend-box" style="background:red"></span> High</div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// 🗺 Map init
+// 🗺 Map
 var map = L.map('map').setView([12.97, 77.75], 12);
-
-var normalMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-var satelliteMap = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
-
-normalMap.addTo(map);
-
-L.control.layers({
-    "Normal Map": normalMap,
-    "Satellite Map": satelliteMap
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 let allLands = [];
-let nearbyMarkers = [];
 
-// 🎨 Color
-function getColor(type, status) {
-    type = type.toLowerCase();
-    status = status ? status.toLowerCase() : "";
-
-    if (status === "disputed") return "black";
-    if (type === "residential") return "green";
-    if (type === "commercial") return "red";
-    if (type === "agricultural") return "orange";
-
-    return "blue";
+// 🎨 Price color
+function getPriceColor(price) {
+    if (price < 500000) return "green";
+    if (price < 1500000) return "orange";
+    return "red";
 }
 
-// 🔥 MAIN HANDLER (IMPORTANT)
-function handleLandClick(land, marker = null) {
+// 🔥 MAIN FUNCTION
+function handleLandClick(land, marker=null, poly=null){
 
     // Zoom
     if (land.lat && land.lon) {
         map.flyTo([land.lat, land.lon], 18);
     }
 
-    if (land.polygon && land.polygon.length > 0) {
-        let bounds = L.latLngBounds(
-            land.polygon.map(p => [p[0], p[1]])
-        );
-        map.fitBounds(bounds);
+    if (land.polygon) {
+        map.fitBounds(land.polygon.map(p => [p[0], p[1]]));
     }
 
     // Sidebar
@@ -122,10 +113,10 @@ function handleLandClick(land, marker = null) {
     showQR(land);
     loadNearby(land);
 
-    // ML Prediction
+    // Prediction
     fetch("/predict_price", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
         body: JSON.stringify({
             area_sqft: land.area,
             road_distance_km: 2,
@@ -135,63 +126,93 @@ function handleLandClick(land, marker = null) {
             year: 2024
         })
     })
-    .then(res => res.json())
-    .then(result => {
+    .then(res=>res.json())
+    .then(result=>{
 
-        // Sidebar price
+        let price = result.predicted_price || 0;
+
         document.getElementById("priceBox").innerHTML =
-            `<b>₹ ${result.predicted_price}</b>`;
+            `₹ ${price}`;
 
-        // Popup
-        if (marker) {
+        let color = getPriceColor(price);
+
+        if(marker){
             marker.bindPopup(`
-                <b>Land ID:</b> ${land.parcel_id}<br>
-                <b>Predicted Price:</b> ₹${result.predicted_price}
+                <b>${land.parcel_id}</b><br>
+                Price: ₹${price}
             `).openPopup();
         }
 
+        if(poly){
+            poly.setStyle({
+                color: color,
+                fillColor: color
+            });
+        }
+
     })
-    .catch(err => console.error(err));
+    .catch(err=>console.error(err));
 }
 
-// 🚀 FETCH DATA
+// 🚀 LOAD DATA + AUTO COLOR
 fetch("/api/land")
-.then(res => res.json())
-.then(data => {
+.then(res=>res.json())
+.then(data=>{
 
     allLands = data;
 
-    if (data.length > 0) {
-        map.setView([data[0].lat, data[0].lon], 14);
-    }
+    data.forEach(land=>{
 
-    data.forEach(land => {
+        let marker=null, poly=null;
 
         // Marker
-        if (land.lat && land.lon) {
+        if(land.lat && land.lon){
+            marker = L.marker([land.lat, land.lon]).addTo(map);
 
-            let marker = L.marker([land.lat, land.lon])
-                .addTo(map)
-                .bindPopup(`<b>Land ID:</b> ${land.parcel_id}`);
-
-            marker.on("click", function () {
-                handleLandClick(land, marker);
+            marker.on("click", function(){
+                handleLandClick(land, marker, poly);
             });
         }
 
         // Polygon
-        if (land.polygon && land.polygon.length > 0) {
-
-            let poly = L.polygon(land.polygon, {
-                color: getColor(land.type, land.status),
-                weight: 2,
+        if(land.polygon){
+            poly = L.polygon(land.polygon, {
+                color: "gray",
                 fillOpacity: 0.4
             }).addTo(map);
 
-            poly.on("click", function () {
-                handleLandClick(land);
+            poly.on("click", function(){
+                handleLandClick(land, marker, poly);
             });
         }
+
+        // 🔥 AUTO COLOR (without clicking)
+        fetch("/predict_price", {
+            method:"POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+                area_sqft: land.area,
+                road_distance_km: 2,
+                city_distance_km: 5,
+                nearby_school: "Yes",
+                nearby_hospital: "No",
+                year: 2024
+            })
+        })
+        .then(res=>res.json())
+        .then(result=>{
+
+            let price = result.predicted_price || 0;
+            let color = getPriceColor(price);
+
+            if(poly){
+                poly.setStyle({
+                    color: color,
+                    fillColor: color
+                });
+            }
+
+        });
 
     });
 
@@ -200,82 +221,31 @@ fetch("/api/land")
 // 📄 Details
 function showDetails(land){
     document.getElementById("details").innerHTML =
-        `<b>Parcel ID:</b> ${land.parcel_id}<br>
-         <b>Owner:</b> ${land.owner}<br>
-         <b>Type:</b> ${land.type}<br>
-         <b>Area:</b> ${land.area} sq ft<br>
-         <b>Survey:</b> ${land.survey}`;
+        `ID: ${land.parcel_id}<br>
+         Owner: ${land.owner}<br>
+         Area: ${land.area}`;
 }
 
 // 📱 QR
 function showQR(land){
-    document.getElementById("qrSection").innerHTML = `
-        <img src="/qr/${land.parcel_id}" width="150"><br>
-        <a href="/verify/${land.parcel_id}" target="_blank">Verify Property</a>
-    `;
-}
-
-// 📏 Distance
-function getDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-
-    const a =
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) *
-        Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
+    document.getElementById("qrSection").innerHTML =
+        `<img src="/qr/${land.parcel_id}" width="120">`;
 }
 
 // 📍 Nearby
 function loadNearby(land){
-
-    nearbyMarkers.forEach(m => map.removeLayer(m));
-    nearbyMarkers = [];
-
-    let html = "";
-    let found = false;
-
-    allLands.forEach(other => {
-
-        const distance = getDistance(
-            land.lat, land.lon,
-            other.lat, other.lon
-        );
-
-        if (distance < 1 && other.parcel_id !== land.parcel_id) {
-
-            found = true;
-
-            html += `Parcel: ${other.parcel_id} (${distance.toFixed(2)} km)<br>`;
-
-            let marker = L.marker([other.lat, other.lon]).addTo(map);
-            nearbyMarkers.push(marker);
-        }
-    });
-
-    if(!found){
-        html = "No nearby lands";
-    }
-
-    document.getElementById("nearby").innerHTML = html;
+    document.getElementById("nearby").innerHTML = "Loading...";
 }
 
 // 🔎 Search
 function searchLand(){
-    let id = document.getElementById("searchId").value.trim();
+    let id = document.getElementById("searchId").value;
+    let land = allLands.find(l=>l.parcel_id===id);
 
-    let found = allLands.find(l => l.parcel_id === id);
-
-    if(found){
-        handleLandClick(found);
-    } else {
-        alert("Parcel not found");
+    if(land){
+        handleLandClick(land);
+    }else{
+        alert("Not found");
     }
 }
 
