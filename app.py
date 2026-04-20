@@ -12,10 +12,18 @@ import json
 import sqlite3
 import joblib
 import pandas as pd
+from werkzeug.utils import secure_filename
 
 model = joblib.load("land_price_model.pkl")
 model_columns = joblib.load("model_columns.pkl")
 app = Flask(__name__)
+UPLOAD_FOLDER = "static/documents"
+ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
+
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 SECRET_KEY = "land_registry_secure"
 
@@ -42,6 +50,17 @@ def generate_qr(parcel_id):
     qr.save(filename)
 
     return filename
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def generate_file_hash(file_path):
+    hasher = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        buf = f.read()
+        hasher.update(buf)
+    return hasher.hexdigest()
 
 #user registration#
 @app.route('/register_user', methods=['POST'])
@@ -225,6 +244,22 @@ def verify_property(parcel_id):
         "status": "approved",
         "message": "Property eligible for transfer"
     }
+    cursor.execute("""
+SELECT document_id, document_type, verification_status
+FROM document
+WHERE parcel_id = ?
+""", (parcel_id,))
+
+documents = cursor.fetchall()
+
+doc_list = []
+for d in documents:
+    doc_list.append({
+        "document_id": d[0],
+        "document_type": d[1],
+        "status": d[2],
+        "url": f"/view_document/{d[0]}"
+    })
 
 #--transaction--#
 import hashlib
@@ -1354,10 +1389,18 @@ def verify_property_qr(parcel_id, hash_value):
         "tax_status":          row[14],
         "mortgage_status":     row[15],
     }
+    cursor.execute("""
+SELECT document_id, document_type
+FROM document
+WHERE parcel_id = ?
+""", (parcel_id,))
+
+documents = cursor.fetchall()
  
-    return render_template("property_dashboard.html",
-                           property=property_data,
-                           error=None)
+  return render_template("property_dashboard.html",
+                       property=property_data,
+                       documents=doc_list,
+                       error=None)
 
  
 ## ── 3. NEW: Regenerate QR for existing property ──
@@ -1609,6 +1652,164 @@ def predict_price():
 
     except Exception as e:
         return jsonify({"error": str(e)})
+
+@app.route("/upload_document", methods=["POST"])
+def upload_document():
+
+    parcel_id = request.form.get("parcel_id")
+    document_type = request.form.get("document_type")
+    uploaded_by = request.form.get("uploaded_by")
+
+    if "file" not in request.files:
+        return {"error": "No file provided"}, 400
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return {"error": "Empty filename"}, 400
+
+    if not allowed_file(file.filename):
+        return {"error": "Invalid file type"}, 400
+
+    document_id = "DOC" + str(int(datetime.now().timestamp()))
+
+    ext = file.filename.split(".")[-1]
+    filename = f"{document_id}.{ext}"
+
+    file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
+    file.save(file_path)
+
+    file_hash = generate_file_hash(file_path)
+
+    cursor.execute("""
+        INSERT INTO document
+        (document_id, parcel_id, document_type, file_path, file_hash, uploaded_by, uploaded_date, verification_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        document_id,
+        parcel_id,
+        document_type,
+        file_path,
+        file_hash,
+        uploaded_by,
+        datetime.now(),
+        "Pending"
+    ))
+
+    conn.commit()
+
+    return {
+        "message": "Document uploaded successfully",
+        "document_id": document_id
+    }
+
+@app.route("/documents/<parcel_id>", methods=["GET"])
+def get_documents(parcel_id):
+
+    cursor.execute("""
+        SELECT document_id, document_type, file_hash, verification_status
+        FROM document
+        WHERE parcel_id = ?
+    """, (parcel_id,))
+
+    rows = cursor.fetchall()
+
+    docs = []
+
+    for row in rows:
+        docs.append({
+            "document_id": row[0],
+            "document_type": row[1],
+            "file_hash": row[2],
+            "status": row[3],
+            "view_url": f"/view_document/{row[0]}"
+        })
+
+    return jsonify(docs)
+
+from flask import send_from_directory
+
+@app.route("/view_document/<document_id>")
+def view_document(document_id):
+
+    cursor.execute("""
+        SELECT file_path
+        FROM document
+        WHERE document_id = ?
+    """, (document_id,))
+
+    row = cursor.fetchone()
+
+    if not row:
+        return {"error": "Document not found"}, 404
+
+    file_path = row[0]
+
+    if not os.path.exists(file_path):
+        return {"error": "File missing"}, 404
+
+    folder = os.path.dirname(file_path)
+    filename = os.path.basename(file_path)
+
+    return send_from_directory(folder, filename)
+
+@app.route("/verify_document/<document_id>", methods=["PUT"])
+def verify_document(document_id):
+
+    data = request.json
+    user_id = data.get("user_id")
+
+    # check role
+    cursor.execute("""
+        SELECT role FROM users WHERE user_id = ?
+    """, (user_id,))
+    
+    user = cursor.fetchone()
+
+    if not user or user[0] != "admin":
+        return {"error": "Unauthorized"}, 403
+
+    cursor.execute("""
+        UPDATE document
+        SET verification_status = 'Verified'
+        WHERE document_id = ?
+    """, (document_id,))
+
+    conn.commit()
+
+    return {"message": "Document verified by admin"}
+
+@app.route("/validate_document/<document_id>", methods=["GET"])
+def validate_document(document_id):
+
+    cursor.execute("""
+        SELECT file_hash
+        FROM document
+        WHERE document_id = ?
+    """, (document_id,))
+
+    row = cursor.fetchone()
+
+    if not row:
+        return {"error": "Document not found"}
+
+    db_hash = row[0]
+
+    for file in os.listdir(UPLOAD_FOLDER):
+        full_path = os.path.join(UPLOAD_FOLDER, file)
+
+        if generate_file_hash(full_path) == db_hash:
+            return {
+                "status": "valid",
+                "message": "Document is authentic"
+            }
+
+    return {
+        "status": "tampered",
+        "message": "Document integrity compromised"
+    }
+    
     
 if __name__ == "__main__":
  app.run(host="0.0.0.0",port=500, debug=True)
