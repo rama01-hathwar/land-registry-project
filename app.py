@@ -1706,28 +1706,36 @@ def upload_document():
 @app.route("/documents/<parcel_id>", methods=["GET"])
 def get_documents(parcel_id):
 
-    cursor.execute("""
-        SELECT document_id, document_type, file_hash, verification_status
-        FROM document
-        WHERE parcel_id = ?
-    """, (parcel_id,))
+    import sqlite3
 
-    rows = cursor.fetchall()
+    try:
+        conn = sqlite3.connect("land.db")
+        cursor = conn.cursor()
 
-    docs = []
+        cursor.execute("""
+            SELECT document_id, document_type, verification_status
+            FROM document
+            WHERE parcel_id = ?
+        """, (parcel_id,))
 
-    for row in rows:
-        docs.append({
-            "document_id": row[0],
-            "document_type": row[1],
-            "file_hash": row[2],
-            "status": row[3],
-            "view_url": f"/view_document/{row[0]}"
-        })
+        rows = cursor.fetchall()
 
-    return jsonify(docs)
+        conn.close()
 
-from flask import send_from_directory
+        docs = []
+
+        for row in rows:
+            docs.append({
+                "document_id": row[0],
+                "document_type": row[1],
+                "status": row[2],
+                "view_url": f"/view_document/{row[0]}"
+            })
+
+        return jsonify(docs)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/view_document/<document_id>")
 def view_document(document_id):
