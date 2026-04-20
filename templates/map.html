@@ -1,267 +1,324 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="UTF-8">
-<title>GIS Land Registry System</title>
+    <meta charset="UTF-8">
+    <title>GIS Land Registry System</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
-<style>
-body { margin:0; font-family: Arial; }
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+        }
 
-#container { display: flex; height: 100vh; }
-#map { width: 75%; height: 100%; }
+        #container {
+            display: flex;
+            height: 100vh;
+        }
 
-#sidebar {
-    width: 25%;
-    padding: 15px;
-    background: #f4f4f4;
-    overflow-y: auto;
-}
+        #map {
+            width: 75%;
+            height: 100%;
+        }
 
-#priceBox {
-    font-size: 20px;
-    font-weight: bold;
-    color: green;
-}
+        #sidebar {
+            width: 25%;
+            padding: 15px;
+            background: #f4f4f4;
+            overflow-y: auto;
+        }
 
-/* 🔥 blinking effect */
-@keyframes blink {
-    0% { opacity: 1; }
-    50% { opacity: 0.2; }
-    100% { opacity: 1; }
-}
-.blink {
-    animation: blink 1s infinite;
-}
+        #priceBox {
+            font-size: 20px;
+            font-weight: bold;
+            color: green;
+        }
 
-/* Legend */
-#legend {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background: white;
-    padding: 10px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-}
-.legend-box {
-    width: 15px;
-    height: 15px;
-    display: inline-block;
-    margin-right: 5px;
-}
-</style>
+        /* 🔥 blinking effect */
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+
+        /* Legend */
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .legend-box {
+            width: 15px;
+            height: 15px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+    </style>
 </head>
 
 <body>
 
-<h2 style="text-align:center;">GIS Land Registry System</h2>
+    <h2 style="text-align:center;">GIS Land Registry System</h2>
 
-<div id="container">
-    <div id="map"></div>
+    <div id="container">
+        <div id="map"></div>
 
-    <div id="sidebar">
-        <h3>Search Parcel</h3>
-        <input type="text" id="searchId">
-        <button onclick="searchLand()">Search</button>
+        <div id="sidebar">
+            <h3>Search Parcel</h3>
+            <input type="text" id="searchId">
+            <button onclick="searchLand()">Search</button>
 
-        <h3>Land Details</h3>
-        <div id="details">Click a parcel</div>
+            <h3>Land Details</h3>
+            <div id="details">Click a parcel</div>
 
-        <h3>Predicted Price</h3>
-        <div id="priceBox">Click a parcel</div>
+            <h3>Predicted Price</h3>
+            <div id="priceBox">Click a parcel</div>
 
-        <h3>QR Code</h3>
-        <div id="qrSection"></div>
+            <h3>QR Code</h3>
+            <div id="qrSection"></div>
 
-        <h3>Nearby Lands</h3>
-        <div id="nearby"></div>
+            <h3>Nearby Lands</h3>
+            <div id="nearby"></div>
+
+            <h3>📄 Documents</h3>
+            <div id="documents">Click a parcel</div>
+        </div>
     </div>
-</div>
 
-<!-- Legend -->
-<div id="legend">
-    <b>Land Type</b><br>
-    <div><span class="legend-box" style="background:green"></span> Residential</div>
-    <div><span class="legend-box" style="background:red"></span> Commercial</div>
-    <div><span class="legend-box" style="background:orange"></span> Agricultural</div>
+    <!-- Legend -->
+    <div id="legend">
+        <b>Land Type</b><br>
+        <div><span class="legend-box" style="background:green"></span> Residential</div>
+        <div><span class="legend-box" style="background:red"></span> Commercial</div>
+        <div><span class="legend-box" style="background:orange"></span> Agricultural</div>
 
-    <hr>
-    <b>Status</b><br>
-    <div><span class="legend-box" style="background:yellow"></span> For Sale</div>
-    <div><span class="legend-box" style="background:black"></span> Disputed</div>
-</div>
+        <hr>
+        <b>Status</b><br>
+        <div><span class="legend-box" style="background:yellow"></span> For Sale</div>
+        <div><span class="legend-box" style="background:black"></span> Disputed</div>
+    </div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<script>
+    <script>
 
-// Map
-var map = L.map('map').setView([12.97, 77.75], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        // Map
+        var map = L.map('map').setView([12.97, 77.75], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-let allLands = [];
+        let allLands = [];
 
-// Land type color
-function getLandColor(type){
-    type = (type || "").toLowerCase();
+        // Land type color
+        function getLandColor(type) {
+            type = (type || "").toLowerCase();
 
-    if(type === "residential") return "green";
-    if(type === "commercial") return "red";
-    if(type === "agricultural") return "orange";
-    return "blue";
-}
+            if (type === "residential") return "green";
+            if (type === "commercial") return "red";
+            if (type === "agricultural") return "orange";
+            return "blue";
+        }
 
-// Distance
-function getDistance(lat1, lon1, lat2, lon2){
-    const R = 6371;
-    const dLat = (lat2-lat1)*Math.PI/180;
-    const dLon = (lon2-lon1)*Math.PI/180;
+        // Distance
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
 
-    const a =
-        Math.sin(dLat/2)**2 +
-        Math.cos(lat1*Math.PI/180) *
-        Math.cos(lat2*Math.PI/180) *
-        Math.sin(dLon/2)**2;
+            const a =
+                Math.sin(dLat / 2) ** 2 +
+                Math.cos(lat1 * Math.PI / 180) *
+                Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) ** 2;
 
-    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-}
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
 
-// MAIN CLICK
-function handleLandClick(land, marker=null){
+        // MAIN CLICK
+        function handleLandClick(land, marker = null) {
 
-    map.flyTo([land.lat, land.lon], 18);
+            map.flyTo([land.lat, land.lon], 18);
 
-    showDetails(land);
-    showQR(land);
-    loadNearby(land);
+            showDetails(land);
+            showQR(land);
+            loadNearby(land);
+            loadDocuments(land);
 
-    fetch("/predict_price", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({
-            area_sqft: land.area,
-            road_distance_km: 2,
-            city_distance_km: 5,
-            nearby_school:"Yes",
-            nearby_hospital:"No",
-            year:2024
-        })
-    })
-    .then(res=>res.json())
-    .then(result=>{
+            fetch("/predict_price", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    area_sqft: land.area,
+                    road_distance_km: 2,
+                    city_distance_km: 5,
+                    nearby_school: "Yes",
+                    nearby_hospital: "No",
+                    year: 2024
+                })
+            })
+                .then(res => res.json())
+                .then(result => {
 
-        let price = result.predicted_price || 0;
+                    let price = result.predicted_price || 0;
 
-        document.getElementById("priceBox").innerHTML = `₹ ${price}`;
+                    document.getElementById("priceBox").innerHTML = `₹ ${price}`;
 
-        if(marker){
-            marker.bindPopup(`
+                    if (marker) {
+                        marker.bindPopup(`
                 <b>${land.parcel_id}</b><br>
                 ₹${price}
             `).openPopup();
+                    }
+
+                });
         }
 
-    });
-}
+        // LOAD DATA
+        fetch("/api/land")
+            .then(res => res.json())
+            .then(data => {
 
-// LOAD DATA
-fetch("/api/land")
-.then(res=>res.json())
-.then(data=>{
+                allLands = data;
 
-    allLands = data;
+                data.forEach(land => {
 
-    data.forEach(land=>{
+                    let baseColor = getLandColor(land.type);
 
-        let baseColor = getLandColor(land.type);
+                    let style = {
+                        color: baseColor,
+                        fillColor: baseColor,
+                        fillOpacity: 0.4,
+                        weight: 2
+                    };
 
-        let style = {
-            color: baseColor,
-            fillColor: baseColor,
-            fillOpacity: 0.4,
-            weight: 2
-        };
+                    // 🔥 FOR SALE
+                    if (land.status === "for sale") {
+                        style.color = "yellow";
+                        style.dashArray = "5,5";
+                    }
 
-        // 🔥 FOR SALE
-        if(land.status === "for sale"){
-            style.color = "yellow";
-            style.dashArray = "5,5";
-        }
+                    // 🔥 DISPUTED
+                    if (land.status === "disputed") {
+                        style.color = "black";
+                    }
 
-        // 🔥 DISPUTED
-        if(land.status === "disputed"){
-            style.color = "black";
-        }
+                    let poly = L.polygon(land.polygon, style).addTo(map);
 
-        let poly = L.polygon(land.polygon, style).addTo(map);
+                    // 🔥 blinking for disputed
+                    if (land.status === "disputed") {
+                        let el = poly.getElement();
+                        if (el) el.classList.add("blink");
+                    }
 
-        // 🔥 blinking for disputed
-        if(land.status === "disputed"){
-            let el = poly.getElement();
-            if(el) el.classList.add("blink");
-        }
+                    let marker = L.marker([land.lat, land.lon]).addTo(map);
 
-        let marker = L.marker([land.lat, land.lon]).addTo(map);
+                    marker.on("click", () => {
+                        handleLandClick(land, marker);
+                    });
 
-        marker.on("click", ()=>{
-            handleLandClick(land, marker);
-        });
+                    poly.on("click", () => {
+                        handleLandClick(land, marker);
+                    });
 
-        poly.on("click", ()=>{
-            handleLandClick(land, marker);
-        });
+                });
 
-    });
+            });
 
-});
-
-// Sidebar
-function showDetails(land){
-    document.getElementById("details").innerHTML =
-        `ID: ${land.parcel_id}<br>
+        // Sidebar
+        function showDetails(land) {
+            document.getElementById("details").innerHTML =
+                `ID: ${land.parcel_id}<br>
          Owner: ${land.owner}<br>
          Type: ${land.type}<br>
          Status: ${land.status}<br>
          Area: ${land.area}`;
-}
-
-// QR
-function showQR(land){
-    document.getElementById("qrSection").innerHTML =
-        `<img src="/qr/${land.parcel_id}" width="120">`;
-}
-
-// Nearby
-function loadNearby(land){
-    let html="";
-    let found=false;
-
-    allLands.forEach(o=>{
-        if(o.parcel_id!==land.parcel_id){
-            let d=getDistance(land.lat,land.lon,o.lat,o.lon);
-            if(d<1){
-                found=true;
-                html+=`${o.parcel_id} (${d.toFixed(2)} km)<br>`;
-            }
         }
-    });
 
-    document.getElementById("nearby").innerHTML =
-        found?html:"No nearby lands";
-}
+        // QR
+        function showQR(land) {
+            document.getElementById("qrSection").innerHTML =
+                `<img src="/qr/${land.parcel_id}" width="120">`;
+        }
 
-// Search
-function searchLand(){
-    let id=document.getElementById("searchId").value;
-    let land=allLands.find(l=>l.parcel_id===id);
+        // Nearby
+        function loadNearby(land) {
+            let html = "";
+            let found = false;
 
-    if(land) handleLandClick(land);
-    else alert("Not found");
-}
+            allLands.forEach(o => {
+                if (o.parcel_id !== land.parcel_id) {
+                    let d = getDistance(land.lat, land.lon, o.lat, o.lon);
+                    if (d < 1) {
+                        found = true;
+                        html += `${o.parcel_id} (${d.toFixed(2)} km)<br>`;
+                    }
+                }
+            });
 
-</script>
+            document.getElementById("nearby").innerHTML =
+                found ? html : "No nearby lands";
+        }
+
+        // Search
+        function searchLand() {
+            let id = document.getElementById("searchId").value;
+            let land = allLands.find(l => l.parcel_id === id);
+
+            if (land) handleLandClick(land);
+            else alert("Not found");
+        }
+
+        function loadDocuments(land) {
+
+            fetch(`/documents/${land.parcel_id}`)
+                .then(res => res.json())
+                .then(docs => {
+
+                    let html = "";
+
+                    if (docs.length === 0) {
+                        html = "No documents available";
+                    } else {
+
+                        docs.forEach(doc => {
+                            html += `
+                    <div style="border:1px solid #ccc; padding:8px; margin-bottom:8px;">
+                        <b>${doc.document_type}</b><br>
+                        Status: ${doc.status}<br>
+                        <a href="${doc.view_url}" target="_blank">View</a>
+                    </div>
+                `;
+                        });
+
+                    }
+
+                    document.getElementById("documents").innerHTML = html;
+                })
+                .catch(err => {
+                    document.getElementById("documents").innerHTML = "Error loading documents";
+                });
+        }
+
+    </script>
 
 </body>
+
 </html>
