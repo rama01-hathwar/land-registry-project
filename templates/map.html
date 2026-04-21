@@ -304,6 +304,7 @@
         }
 
         function loadDocuments(land) {
+            console.log("Parcel ID:", land.parcel_id);
 
             fetch(`/documents/${land.parcel_id}`)
                 .then(res => res.json())
