@@ -1756,7 +1756,7 @@ def get_documents(land_id):
         return jsonify({"error": str(e)})
 
 
-@app.route("/view_document/<document_id>")
+@app.route("/view_documents/<document_id>")
 def view_document(document_id):
     return f"Viewing document {document_id}"
 
