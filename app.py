@@ -1745,15 +1745,20 @@ def get_documents(land_id):
         for d in docs:
             result.append({
                 "document_id": d[0],
-                "document_type": d[1],   # ✅ IMPORTANT
-                "status": d[2],          # ✅ IMPORTANT
-                "view_url": f"/view_document/{d[0]}"  # ✅ REQUIRED
+                "document_type": d[1],
+                "status": d[2],
+                "view_url": f"/view_document/{d[0]}"
             })
 
         return jsonify(result)
 
     except Exception as e:
         return jsonify({"error": str(e)})
+
+
+@app.route("/view_document/<document_id>")
+def view_document(document_id):
+    return f"Viewing document {document_id}"
 
 @app.route('/view_document/<doc_id>')
 def view_document(doc_id):
