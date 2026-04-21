@@ -303,37 +303,42 @@
             else alert("Not found");
         }
 
-        function loadDocuments(land) {
-            console.log("Parcel ID:", land.parcel_id);
+        function loadDocuments(landId) {
+    fetch(`/documents/${landId}`)
+        .then(response => response.json())
+        .then(data => {
+            let container = document.getElementById("documents");
 
-            fetch(`/documents/${land.parcel_id}`)
-                .then(res => res.json())
-                .then(docs => {
+            if (!data || data.length === 0) {
+                container.innerHTML = "<p>No documents found</p>";
+                return;
+            }
 
-                    let html = "";
+            let html = "<ul>";
 
-                    if (docs.length === 0) {
-                        html = "No documents available";
-                    } else {
-
-                        docs.forEach(doc => {
-                            html += `
-                    <div style="border:1px solid #ccc; padding:8px; margin-bottom:8px;">
-                        <b>${doc.document_type}</b><br>
-                        Status: ${doc.status}<br>
-                        <a href="${doc.view_url}" target="_blank">View</a>
-                    </div>
+            data.forEach(doc => {
+                html += `
+                    <li>
+                        📄 ${doc.document_type} 
+                        (${doc.status})
+                        <br>
+                        <a href="https://land-registry-project.onrender.com${doc.view_url}" target="_blank">
+                            View Document
+                        </a>
+                    </li>
                 `;
-                        });
+            });
 
-                    }
+            html += "</ul>";
 
-                    document.getElementById("documents").innerHTML = html;
-                })
-                .catch(err => {
-                    document.getElementById("documents").innerHTML = "Error loading documents";
-                });
-        }
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("documents").innerHTML =
+                "<p style='color:red;'>Error loading documents</p>";
+        });
+}
 
         function uploadDocument(){
 
