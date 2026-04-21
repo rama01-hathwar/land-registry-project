@@ -1830,6 +1830,7 @@ init_document_table()
 
 @app.route("/generate_documents")
 def generate_documents():
+    print("new document code running")
 
     try:
         conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
