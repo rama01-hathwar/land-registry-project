@@ -1724,39 +1724,26 @@ def upload_document():
         "document_id": document_id
     }
 
-@app.route("/documents/<parcel_id>", methods=["GET"])
+@app.route('/documents/<parcel_id>')
 def get_documents(parcel_id):
-
-    import sqlite3
-
     try:
-        conn = sqlite3.connect("land.db")
+        conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT document_id, document_type, verification_status
-            FROM document
-            WHERE parcel_id = ?
-        """, (parcel_id,))
+        cursor.execute(
+            "SELECT * FROM document WHERE parcel_id = %s",
+            (parcel_id,)
+        )
 
-        rows = cursor.fetchall()
+        data = cursor.fetchall()
 
+        cursor.close()
         conn.close()
 
-        docs = []
-
-        for row in rows:
-            docs.append({
-                "document_id": row[0],
-                "document_type": row[1],
-                "status": row[2],
-                "view_url": f"/view_document/{row[0]}"
-            })
-
-        return jsonify(docs)
+        return str(data)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return "ERROR: " + str(e)
 
 @app.route("/view_document/<document_id>")
 def view_document(document_id):
@@ -1926,7 +1913,7 @@ def check_documents():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM document LIMIT 20")
+    cursor.execute("SELECT * FROM document LIMIT 10")
     data = cursor.fetchall()
 
     cursor.close()
