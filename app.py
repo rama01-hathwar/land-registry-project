@@ -1847,14 +1847,18 @@ def generate_documents():
         conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
         cursor = conn.cursor()
 
-        # ✅ Use correct table
         cursor.execute("SELECT land_id FROM gis_land_data")
         lands = cursor.fetchall()
+
+        if not lands:
+            return "No lands found ❌"
 
         count = 1
 
         for land in lands:
             parcel_id = land[0]
+
+            print("Inserting for:", parcel_id)  # DEBUG
 
             doc_id = f"DOC{count:03}"
 
@@ -1877,7 +1881,7 @@ def generate_documents():
         conn.commit()
         conn.close()
 
-        return "Documents generated successfully"
+        return f"Inserted {count-1} documents ✅"
 
     except Exception as e:
         return f"Error: {str(e)}"
