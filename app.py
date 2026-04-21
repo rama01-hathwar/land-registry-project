@@ -1848,6 +1848,7 @@ def generate_documents():
             land_id = land[0]
 
             doc_id = f"DOC{count:03}"
+            status=random.choice(["verified","pebding","Rejected"])
 
             cursor.execute("""
                 INSERT INTO document 
@@ -1855,12 +1856,13 @@ def generate_documents():
                 VALUES (%s,%s,%s,%s,%s,NOW(),%s)
                 ON CONFLICT (document_id) DO NOTHING
             """, (
+                
                 doc_id,
                 land_id,   # ✅ map land_id → parcel_id
                 "Sale Deed",
                 f"hash{count}",
                 "U001",
-                "Verified"
+                status
             ))
 
             count += 1
