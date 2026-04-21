@@ -1920,6 +1920,19 @@ def check_lands():
     conn.close()
 
     return str(rows)
+
+@app.route('/check_documents')
+def check_documents():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM document LIMIT 20")
+    data = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return str(data)
     
     
 if __name__ == "__main__":
