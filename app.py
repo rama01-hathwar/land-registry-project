@@ -1849,6 +1849,7 @@ def generate_documents():
 
             doc_id = f"DOC{count:03}"
             status=random.choice(["verified","pebding","Rejected"])
+            doc_type=random.choice(["Sale Deed","Tax Receipt","Mortgage Deed","Transfer Deed","Lease Agreement"])
 
             cursor.execute("""
                 INSERT INTO document 
@@ -1859,7 +1860,7 @@ def generate_documents():
                 
                 doc_id,
                 land_id,   # ✅ map land_id → parcel_id
-                "Sale Deed",
+                doc_type,
                 f"hash{count}",
                 "U001",
                 status
