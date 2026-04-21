@@ -1726,25 +1726,33 @@ def upload_document():
 
 @app.route('/documents/<land_id>')
 def get_documents(land_id):
-
     try:
         conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
         cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT * FROM document WHERE parcel_id = %s",
-            (land_id,)
-        )
+        cursor.execute("""
+            SELECT document_id, document_type, verification_status
+            FROM documents
+            WHERE parcel_id = %s
+        """, (land_id,))
 
-        data = cursor.fetchall()
+        docs = cursor.fetchall()
 
         cursor.close()
         conn.close()
 
-        return str(data)
+        result = []
+        for d in docs:
+            result.append({
+                "document_id": d[0],
+                "type": d[1],
+                "status": d[2]
+            })
+
+        return jsonify(result)
 
     except Exception as e:
-        return "Error: " + str(e)
+        return jsonify({"error": str(e)})
 
 @app.route("/view_document/<document_id>")
 def view_document(document_id):
