@@ -1762,29 +1762,34 @@ def view_document(document_id):
 
 
 
-@app.route("/view_document/<document_id>")
-def view_document(document_id):
+from flask import send_from_directory
 
-    cursor.execute("""
-        SELECT file_path
-        FROM document
-        WHERE document_id = ?
-    """, (document_id,))
+@app.route('/view_document/<doc_id>')
+def view_document(doc_id):
+    try:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+        cursor = conn.cursor()
 
-    row = cursor.fetchone()
+        cursor.execute("""
+            SELECT file_hash
+            FROM documents
+            WHERE document_id = %s
+        """, (doc_id,))
 
-    if not row:
-        return {"error": "Document not found"}, 404
+        row = cursor.fetchone()
 
-    file_path = row[0]
+        cursor.close()
+        conn.close()
 
-    if not os.path.exists(file_path):
-        return {"error": "File missing"}, 404
+        if not row:
+            return "Document not found ❌"
 
-    folder = os.path.dirname(file_path)
-    filename = os.path.basename(file_path)
+        filename = row[0]
 
-    return send_from_directory(folder, filename)
+        return send_from_directory("static/documents", filename)
+
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 @app.route("/verify_document/<document_id>", methods=["PUT"])
 def verify_document(document_id):
