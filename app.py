@@ -1848,8 +1848,18 @@ def generate_documents():
             land_id = land[0]
 
             doc_id = f"DOC{count:03}"
-            status=random.choice(["verified","pebding","Rejected"])
-            doc_type=random.choice(["Sale Deed","Tax Receipt","Mortgage Deed","Transfer Deed","Lease Agreement"])
+            status=random.choice([
+                "verified",
+                "pebding",
+                "Rejected"
+            ])
+            doc_type=random.choice([
+                "Sale Deed",
+                "Tax Receipt",
+                "Mortgage Deed",
+                "Transfer Deed",
+                "Lease Agreement"
+            ])
 
             cursor.execute("""
                 INSERT INTO document 
