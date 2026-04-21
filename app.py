@@ -1757,7 +1757,7 @@ def get_documents(land_id):
 
 
 @app.route("/view/<document_id>")
-def view_document(document_id):
+def view_document_simple(document_id):
     return f"Viewing document {document_id}"
 
 
@@ -1799,7 +1799,7 @@ def verify_document(document_id):
 
     # check role
     cursor.execute("""
-        SELECT role FROM users WHERE user_id = ?
+        SELECT role FROM users WHERE user_id = %s
     """, (user_id,))
     
     user = cursor.fetchone()
