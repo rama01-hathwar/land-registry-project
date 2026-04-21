@@ -1836,7 +1836,11 @@ def generate_documents():
         conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
         cursor = conn.cursor()
 
-        # keep using land_id (correct for your table)
+        # 🔥 CLEAR OLD DATA FIRST
+        cursor.execute("DELETE FROM document")
+        conn.commit()
+        print("Old documents deleted")
+
         cursor.execute("SELECT land_id FROM gis_land_data")
         lands = cursor.fetchall()
 
@@ -1849,12 +1853,12 @@ def generate_documents():
             land_id = land[0]
 
             doc_id = f"DOC{count:03}"
-            status=random.choice([
+            status = random.choice([
                 "verified",
-                "pebding",
-                "Rejected"
+                "pending",   # ✅ fixed spelling
+                "rejected"
             ])
-            doc_type=random.choice([
+            doc_type = random.choice([
                 "Sale Deed",
                 "Tax Receipt",
                 "Mortgage Deed",
@@ -1866,11 +1870,9 @@ def generate_documents():
                 INSERT INTO document 
                 (document_id, parcel_id, document_type, file_hash, uploaded_by, uploaded_date, verification_status)
                 VALUES (%s,%s,%s,%s,%s,NOW(),%s)
-                ON CONFLICT (document_id) DO NOTHING
             """, (
-                
                 doc_id,
-                land_id,   # ✅ map land_id → parcel_id
+                land_id,
                 doc_type,
                 f"hash{count}",
                 "U001",
@@ -1886,7 +1888,6 @@ def generate_documents():
 
     except Exception as e:
         return f"Error: {str(e)}"
-
 @app.route("/create_document_table")
 def create_document_table():
 
