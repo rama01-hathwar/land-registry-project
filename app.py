@@ -1910,16 +1910,27 @@ def check_lands():
 
 @app.route('/check_documents')
 def check_documents():
-    conn = get_db_connection()
-    cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM document LIMIT 10")
-    data = cursor.fetchall()
+    try:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+        cursor = conn.cursor()
 
-    cursor.close()
-    conn.close()
+        # ✅ CORRECT QUERY
+        cursor.execute("""
+            SELECT d.document_id, d.parcel_id, d.document_type, d.verification_status
+            FROM document d
+        """)
 
-    return str(data)
+        data = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return str(data)
+
+    except Exception as e:
+        import traceback
+        return f"<prep>{traceback.format_exec()}</prep>"
     
     
 if __name__ == "__main__":
