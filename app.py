@@ -1724,15 +1724,16 @@ def upload_document():
         "document_id": document_id
     }
 
-@app.route('/documents/<parcel_id>')
-def get_documents(parcel_id):
+@app.route('/documents/<land_id>')
+def get_documents(land_id):
+
     try:
-        conn = get_db_connection()
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
         cursor = conn.cursor()
 
         cursor.execute(
             "SELECT * FROM document WHERE parcel_id = %s",
-            (parcel_id,)
+            (land_id,)
         )
 
         data = cursor.fetchall()
@@ -1743,7 +1744,7 @@ def get_documents(parcel_id):
         return str(data)
 
     except Exception as e:
-        return "ERROR: " + str(e)
+        return "Error: " + str(e)
 
 @app.route("/view_document/<document_id>")
 def view_document(document_id):
@@ -1834,6 +1835,7 @@ def generate_documents():
         conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
         cursor = conn.cursor()
 
+        # keep using land_id (correct for your table)
         cursor.execute("SELECT land_id FROM gis_land_data")
         lands = cursor.fetchall()
 
@@ -1843,9 +1845,7 @@ def generate_documents():
         count = 1
 
         for land in lands:
-            parcel_id = land[0]
-
-            print("Inserting for:", parcel_id)  # DEBUG
+            land_id = land[0]
 
             doc_id = f"DOC{count:03}"
 
@@ -1856,7 +1856,7 @@ def generate_documents():
                 ON CONFLICT (document_id) DO NOTHING
             """, (
                 doc_id,
-                parcel_id,
+                land_id,   # ✅ map land_id → parcel_id
                 "Sale Deed",
                 f"hash{count}",
                 "U001",
