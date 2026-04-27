@@ -1,197 +1,112 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>LandChain Ultimate</title>
+<title>LandChain Dashboard</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="/static/css/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
-<style>
-.fade{animation:fade .4s}
-@keyframes fade{from{opacity:0}to{opacity:1}}
-
-.badge{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600}
-.green{background:#dcfce7;color:#166534}
-.yellow{background:#fef9c3;color:#854d0e}
-.red{background:#fee2e2;color:#991b1b}
-</style>
 
 </head>
 
-<body id="body" class="bg-gray-100">
+<body class="bg-gray-100">
 
-<div class="flex h-screen">
+<div class="flex">
 
 <!-- SIDEBAR -->
-<div class="w-64 bg-white shadow-lg p-5 overflow-y-auto">
+<div class="w-64 sidebar p-5">
 
-<h2 class="text-2xl font-bold text-blue-600 mb-6">LandChain</h2>
+<h2 class="text-xl mb-6 font-bold">LandChain</h2>
 
-<input placeholder="Search..." class="border p-2 w-full mb-4 rounded">
-
-<ul class="space-y-2 text-sm">
-
-<li onclick="show('dashboard',this)" class="menu bg-blue-100 p-2 rounded cursor-pointer">Dashboard</li>
-<li onclick="show('access',this)" class="menu p-2 cursor-pointer">Access Control</li>
-<li onclick="show('transfer',this)" class="menu p-2 cursor-pointer">Transfer</li>
-<li onclick="show('history',this)" class="menu p-2 cursor-pointer">History</li>
-<li onclick="show('documents',this)" class="menu p-2 cursor-pointer">Documents</li>
-<li onclick="show('tax',this)" class="menu p-2 cursor-pointer">Tax</li>
-<li onclick="show('mortgage',this)" class="menu p-2 cursor-pointer">Mortgage</li>
-<li onclick="show('fraud',this)" class="menu p-2 cursor-pointer">Fraud</li>
-<li onclick="show('dispute',this)" class="menu p-2 cursor-pointer">Dispute</li>
-<li onclick="show('gis',this)" class="menu p-2 cursor-pointer">GIS</li>
-<li onclick="show('qr',this)" class="menu p-2 cursor-pointer">QR</li>
-<li onclick="show('ml',this)" class="menu p-2 cursor-pointer">ML</li>
-<li onclick="show('logs',this)" class="menu p-2 cursor-pointer">Logs</li>
-<li onclick="show('blockchain',this)" class="menu p-2 cursor-pointer">Blockchain</li>
-
+<ul class="space-y-2">
+<li onclick="show('dashboard',this)" class="menu bg-blue-500">Dashboard</li>
+<li onclick="show('gis',this)" class="menu">GIS</li>
+<li onclick="show('transfer',this)" class="menu">Transfer</li>
+<li onclick="show('history',this)" class="menu">History</li>
+<li onclick="show('documents',this)" class="menu">Documents</li>
+<li onclick="show('tax',this)" class="menu">Tax</li>
+<li onclick="show('mortgage',this)" class="menu">Mortgage</li>
+<li onclick="show('fraud',this)" class="menu">Fraud</li>
+<li onclick="show('dispute',this)" class="menu">Dispute</li>
+<li onclick="show('ml',this)" class="menu">ML</li>
+<li onclick="show('logs',this)" class="menu">Logs</li>
+<li onclick="show('blockchain',this)" class="menu">Blockchain</li>
 </ul>
 
 </div>
 
 <!-- MAIN -->
-<div class="flex-1 p-6 overflow-y-auto">
+<div class="flex-1 p-6">
 
-<!-- TOPBAR -->
-<div class="flex justify-between mb-6">
-
-<div class="flex gap-4 items-center">
-<h1 class="text-2xl font-semibold">Dashboard</h1>
-</div>
-
-<div class="flex gap-4">
-
-<button onclick="toggleDark()" class="bg-gray-200 px-3 py-1 rounded">🌙</button>
-<div class="bg-white px-3 py-1 rounded shadow">🔔</div>
-<div class="bg-white px-3 py-1 rounded shadow">Admin</div>
-
-</div>
-
-</div>
+<h1 class="text-xl mb-4 font-bold">
+Dashboard (<span id="role"></span>)
+</h1>
 
 <!-- DASHBOARD -->
 <div id="dashboard" class="module fade">
 
 <div class="grid grid-cols-4 gap-4">
 
-<div class="bg-white p-4 rounded shadow">
-<p>Total Properties</p><h2 class="text-xl font-bold">12,847</h2>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<p>Transfers</p><h2 class="text-xl font-bold">234</h2>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<p>Revenue</p><h2 class="text-xl font-bold text-green-600">₹4.2Cr</h2>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<p>Fraud Alerts</p><h2 class="text-xl font-bold text-red-500">6</h2>
-</div>
+<div class="card blue">Properties<br><b>120</b></div>
+<div class="card green">Transfers<br><b>45</b></div>
+<div class="card orange">Revenue<br><b>₹4Cr</b></div>
+<div class="card red">Fraud<br><b>2</b></div>
 
 </div>
 
-<div class="grid grid-cols-2 gap-6 mt-6">
+<canvas id="chart" class="mt-6"></canvas>
 
-<div class="bg-white p-4 rounded shadow">
-<canvas id="c1"></canvas>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<canvas id="c2"></canvas>
-</div>
-
-</div>
-
-</div>
-
-<!-- ACCESS -->
-<div id="access" class="module hidden">
-<table class="w-full bg-white">
-<tr><th>User</th><th>Status</th></tr>
-<tr><td>Amit</td><td><span class="badge green">Active</span></td></tr>
-<tr><td>Priya</td><td><span class="badge yellow">Pending</span></td></tr>
-</table>
-</div>
-
-<!-- TRANSFER -->
-<div id="transfer" class="module hidden">
-<div class="bg-white p-4 rounded shadow">
-Parcel L001 → Transfer Pending
-</div>
-</div>
-
-<!-- HISTORY -->
-<div id="history" class="module hidden">
-
-<div class="bg-white p-5 rounded shadow">
-
-<div class="border-l-4 border-blue-500 pl-4 mb-4">
-Rama → Shyam
-</div>
-
-<div class="border-l-4 border-green-500 pl-4">
-Shyam → Raj
-</div>
-
-</div>
-
-</div>
-
-<!-- DOCUMENTS -->
-<div id="documents" class="module hidden">
-
-<div class="bg-white p-4 rounded shadow">
-Sale Deed <span class="badge green">Verified</span>
-</div>
-
-</div>
-
-<!-- TAX -->
-<div id="tax" class="module hidden">
-
-<table class="w-full bg-white">
-<tr><th>Parcel</th><th>Status</th></tr>
-<tr><td>L001</td><td><span class="badge green">Paid</span></td></tr>
-</table>
-
-</div>
-
-<!-- MORTGAGE -->
-<div id="mortgage" class="module hidden">
-<div class="bg-white p-4">Loan Active</div>
-</div>
-
-<!-- FRAUD -->
-<div id="fraud" class="module hidden">
-
-<input id="fraudId" class="border p-2">
-<button onclick="checkFraud()" class="bg-red-500 text-white px-3 py-2">Check</button>
-
-<table class="w-full mt-3 bg-white">
-<tbody id="fraudTable"></tbody>
-</table>
-
-</div>
-
-<!-- DISPUTE -->
-<div id="dispute" class="module hidden">
-<div class="bg-white p-4">Boundary dispute active</div>
 </div>
 
 <!-- GIS -->
 <div id="gis" class="module hidden">
-<div id="map" class="h-96"></div>
+<div id="map" style="height:300px;"></div>
 </div>
 
-<!-- QR -->
-<div id="qr" class="module hidden">
-<input id="qrId" class="border p-2">
-<button onclick="loadQR()">Generate</button>
-<div id="qrImage"></div>
+<!-- TRANSFER -->
+<div id="transfer" class="module hidden">
+<button onclick="transferProperty()" class="bg-blue-500 text-white px-3 py-2">
+Transfer Property
+</button>
+</div>
+
+<!-- HISTORY -->
+<div id="history" class="module hidden">
+<div id="historyBox"></div>
+<button onclick="loadHistory()">Load History</button>
+</div>
+
+<!-- DOCUMENTS -->
+<div id="documents" class="module hidden">
+<div id="docBox"></div>
+<button onclick="loadDocs()">Load Docs</button>
+</div>
+
+<!-- TAX -->
+<div id="tax" class="module hidden">
+<div id="taxBox"></div>
+<button onclick="loadTax()">Load Tax</button>
+</div>
+
+<!-- MORTGAGE -->
+<div id="mortgage" class="module hidden">
+<div id="mortgageBox"></div>
+<button onclick="loadMortgage()">Load Mortgage</button>
+</div>
+
+<!-- FRAUD -->
+<div id="fraud" class="module hidden">
+<input id="fraudId">
+<button onclick="checkFraud()">Check</button>
+<table><tbody id="fraudTable"></tbody></table>
+</div>
+
+<!-- DISPUTE -->
+<div id="dispute" class="module hidden">
+<div id="disputeBox"></div>
+<button onclick="loadDispute()">Load Dispute</button>
 </div>
 
 <!-- ML -->
@@ -199,12 +114,11 @@ Sale Deed <span class="badge green">Verified</span>
 <input id="area">
 <button onclick="predict()">Predict</button>
 <div id="result"></div>
-<canvas id="mlChart"></canvas>
 </div>
 
 <!-- LOGS -->
 <div id="logs" class="module hidden">
-<button onclick="loadLogs()">Load</button>
+<button onclick="loadLogs()">Load Logs</button>
 <table><tbody id="logTable"></tbody></table>
 </div>
 
@@ -215,32 +129,16 @@ Sale Deed <span class="badge green">Verified</span>
 </div>
 
 </div>
-
 </div>
 
 <script src="/static/js/app.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-
-// Charts
-new Chart(document.getElementById("c1"),{
+new Chart(document.getElementById("chart"),{
 type:"doughnut",
 data:{labels:["Res","Com"],datasets:[{data:[60,40]}]}
 })
-
-new Chart(document.getElementById("c2"),{
-type:"line",
-data:{labels:["Jan","Feb"],datasets:[{data:[10,20]}]}
-})
-
-// Dark mode
-function toggleDark(){
-let b=document.getElementById("body")
-b.classList.toggle("bg-gray-900")
-b.classList.toggle("text-white")
-}
-
 </script>
 
 </body>
