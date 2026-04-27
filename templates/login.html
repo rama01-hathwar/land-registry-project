@@ -1,41 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Login</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<title>LandChain Login</title>
+<link rel="stylesheet" href="/static/style.css">
 </head>
 
-<body class="bg-gradient-to-r from-indigo-600 via-blue-500 to-purple-600 flex items-center justify-center h-screen">
+<body class="login-body">
 
-<div class="bg-white/20 backdrop-blur-lg p-8 rounded-2xl shadow-2xl w-96 text-white">
+<div class="login-box">
+    <h1>LandChain</h1>
+    <p>Blockchain Land Registry System</p>
 
-<h2 class="text-3xl font-bold text-center mb-2">LandChain</h2>
-<p class="text-center mb-6">Smart Land Registry</p>
+    <input type="text" placeholder="Email">
+    <input type="password" placeholder="Password">
 
-<input class="w-full p-2 mb-3 rounded text-black" placeholder="User ID">
+    <select>
+        <option>Admin</option>
+        <option>Registrar</option>
+        <option>Landowner</option>
+        <option>Verifier</option>
+        <option>Bank</option>
+    </select>
 
-<input type="password" class="w-full p-2 mb-3 rounded text-black" placeholder="Password">
-
-<select id="role" class="w-full p-2 mb-4 rounded text-black">
-<option value="admin">Admin</option>
-<option value="registrar">Registrar</option>
-<option value="bank">Bank</option>
-<option value="landowner">Land Owner</option>
-</select>
-
-<button onclick="login()" class="w-full bg-yellow-400 text-black font-bold py-2 rounded hover:bg-yellow-300">
-Login
-</button>
-
+    <button onclick="location.href='/dashboard'">Sign In</button>
 </div>
-
-<script>
-function login(){
-    let role = document.getElementById("role").value;
-    localStorage.setItem("role", role);
-    window.location.href = "/dashboard";
-}
-</script>
 
 </body>
 </html>
