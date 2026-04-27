@@ -1,207 +1,83 @@
-/* ---------------- NAVIGATION ---------------- */
+let allMarkers = [];
+
+/* NAVIGATION */
 function show(id, el){
 
-    // Hide all modules
-    document.querySelectorAll(".module").forEach(m => {
-        m.classList.add("hidden");
-    });
+    document.querySelectorAll(".module").forEach(m => m.classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
 
-    // Show selected module
-    let active = document.getElementById(id);
-    if(active){
-        active.classList.remove("hidden");
+    document.querySelectorAll(".menu").forEach(m => m.classList.remove("bg-blue-500"));
+    if(el) el.classList.add("bg-blue-500");
+
+    if(id === "gis"){
+        setTimeout(()=>{
+            if(window.map){
+                window.map.invalidateSize();
+            } else {
+                loadMap();
+            }
+        },300);
     }
 
-    // Highlight sidebar
-    document.querySelectorAll(".menu").forEach(m => {
-        m.classList.remove("bg-blue-500");
-    });
-
-    if(el){
-        el.classList.add("bg-blue-500");
-    }
-}
-
-
-/* ---------------- ROLE DISPLAY ---------------- */
-window.onload = function(){
-
-    let role = localStorage.getItem("role") || "admin";
-
-    let roleBox = document.getElementById("role") || document.getElementById("roleDisplay");
-
-    if(roleBox){
-        roleBox.innerText = role.toUpperCase();
-    }
-
-    // Optional role-based hiding
-    if(role === "bank"){
-        hideModule("fraud");
-    }
-
-    if(role === "landowner"){
-        hideModule("blockchain");
-    }
-
-};
-
-
-/* ---------------- ROLE HIDE ---------------- */
-function hideModule(id){
-    let el = document.getElementById(id);
-    if(el){
-        el.style.display = "none";
+    if(id === "dashboard"){
+        loadChart();
     }
 }
 
+/* MAP */
+function loadMap(){
 
-/* ---------------- FRAUD ---------------- */
-function checkFraud(){
-
-    let id = document.getElementById("fraudId").value;
-
-    fetch(`/fraud_check/${id}`)
-    .then(res => res.json())
-    .then(data => {
-
-        document.getElementById("fraudTable").innerHTML = `
-            <tr>
-                <td>${data.parcel_id}</td>
-                <td>${data.risk_level}</td>
-            </tr>
-        `;
-    })
-    .catch(err => console.log(err));
-}
-
-
-/* ---------------- ML PREDICTION ---------------- */
-function predict(){
-
-    let area = document.getElementById("area").value;
-
-    fetch("/predict_price", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-            area_sqft: area,
-            road_distance_km: 2,
-            city_distance_km: 5,
-            nearby_school: "Yes",
-            nearby_hospital: "No",
-            year: 2024
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-
-        document.getElementById("result").innerHTML =
-            "₹ " + data.predicted_price;
-
-    })
-    .catch(err => console.log(err));
-}
-
-
-/* ---------------- QR ---------------- */
-function loadQR(){
-
-    let id = document.getElementById("qrId").value;
-
-    document.getElementById("qrImage").innerHTML =
-        `<img src="/qr/${id}" width="150">`;
-}
-
-
-/* ---------------- LOGS ---------------- */
-function loadLogs(){
-
-    fetch("/get_login_activity")
-    .then(res => res.json())
-    .then(data => {
-
-        let html = "";
-
-        data.forEach(log => {
-            html += `
-            <tr>
-                <td>${log.user_id}</td>
-                <td>${log.action_type}</td>
-            </tr>`;
-        });
-
-        document.getElementById("logTable").innerHTML = html;
-
-    })
-    .catch(err => console.log(err));
-}
-
-
-/* ---------------- BLOCKCHAIN ---------------- */
-function loadBlockchain(){
-
-    fetch("/get_blockchain")
-    .then(res => res.json())
-    .then(data => {
-
-        let html = "";
-
-        data.forEach(b => {
-            html += `
-            <tr>
-                <td>${b.block_number}</td>
-                <td>${b.confirmation_status}</td>
-            </tr>`;
-        });
-
-        document.getElementById("blockTable").innerHTML = html;
-
-    })
-    .catch(err => console.log(err));
-}
-
-
-/* ---------------- DARK MODE ---------------- */
-function toggleDark(){
-
-    document.body.classList.toggle("bg-gray-900");
-    document.body.classList.toggle("text-white");
-
-}
-
-
-/* ---------------- MAP (SAFE LOAD) ---------------- */
-setTimeout(() => {
-
-    let mapDiv = document.getElementById("map");
-
-    if(!mapDiv) return;
-
-    let map = L.map('map').setView([12.97, 77.75], 12);
+    window.map = L.map('map').setView([12.97,77.59], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-    .addTo(map);
+    .addTo(window.map);
 
     fetch("/api/land")
-    .then(res => res.json())
-    .then(data => {
+    .then(res=>res.json())
+    .then(data=>{
 
-        data.forEach(land => {
+        data.forEach(land=>{
 
-            let marker = L.marker([land.lat, land.lon]).addTo(map);
+            let color="blue", type="normal";
 
-            marker.on("click", () => {
+            if(land.type==="Commercial"){color="red"; type="dispute";}
+            else if(land.type==="Residential"){color="green"; type="sale";}
 
-                if(document.getElementById("details")){
-                    document.getElementById("details").innerHTML =
-                        `Parcel: ${land.parcel_id}`;
-                }
-
+            let icon=L.icon({
+                iconUrl:`https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`,
+                iconSize:[30,30]
             });
 
+            let marker=L.marker([land.lat, land.lon],{icon}).addTo(window.map);
+
+            marker.type=type;
+
+            marker.bindPopup(`${land.parcel_id}<br>${land.owner}`);
+
+            allMarkers.push(marker);
         });
 
-    })
-    .catch(err => console.log(err));
+    });
+}
 
-}, 500);
+/* FILTER */
+function filterMap(type){
+    allMarkers.forEach(m=>window.map.removeLayer(m));
+    allMarkers.forEach(m=>{
+        if(type==="all"||m.type===type) m.addTo(window.map);
+    });
+}
+
+/* CHART */
+function loadChart(){
+    new Chart(document.getElementById("chart"),{
+        type:'bar',
+        data:{
+            labels:["2019","2020","2021","2022","2023"],
+            datasets:[{
+                label:"Prices",
+                data:[40,50,60,70,90]
+            }]
+        }
+    });
+}
