@@ -1256,7 +1256,11 @@ def haversine(lat1, lon1, lat2, lon2):
 
 @app.route("/")
 def home():
-    return render_template("map.html")
+    return render_template("login.html")
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
 
 
 @app.route('/api/land')
