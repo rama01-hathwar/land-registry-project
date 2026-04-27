@@ -1,102 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>LandChain Dashboard</title>
+<title>LandChain Dashboard</title>
 
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+.fade-in{animation:fadeIn 0.4s}
+@keyframes fadeIn{
+from{opacity:0;transform:translateY(10px)}
+to{opacity:1;transform:translateY(0)}
+}
+</style>
+
 </head>
 
-<body>
+<body class="bg-slate-100">
 
-<div class="container">
+<div class="flex h-screen">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-        <h2>LandChain</h2>
+<!-- SIDEBAR -->
+<div class="w-64 bg-slate-900 text-white p-5">
+    <h2 class="text-2xl mb-6 font-bold">LandChain</h2>
 
-        <ul>
-            <li onclick="showModule('dashboard')">Dashboard</li>
-            <li onclick="showModule('gis')">GIS</li>
-            <li onclick="showModule('ml')">ML Prediction</li>
-            <li onclick="showModule('fraud')">Fraud</li>
-            <li onclick="showModule('qr')">QR</li>
-            <li onclick="showModule('logs')">Logs</li>
-            <li onclick="showModule('blockchain')">Blockchain</li>
-        </ul>
-    </div>
+    <ul class="space-y-3">
+        <li class="menu bg-blue-500 p-2 rounded cursor-pointer" onclick="showModule('dashboard',this)">Dashboard</li>
+        <li class="menu p-2 rounded cursor-pointer" onclick="showModule('gis',this)">GIS</li>
+        <li class="menu p-2 rounded cursor-pointer" onclick="showModule('ml',this)">ML</li>
+        <li class="menu p-2 rounded cursor-pointer" onclick="showModule('fraud',this)">Fraud</li>
+        <li class="menu p-2 rounded cursor-pointer" onclick="showModule('qr',this)">QR</li>
+        <li class="menu p-2 rounded cursor-pointer" onclick="showModule('logs',this)">Logs</li>
+        <li class="menu p-2 rounded cursor-pointer" onclick="showModule('blockchain',this)">Blockchain</li>
+    </ul>
+</div>
 
-    <!-- MAIN -->
-    <div class="main">
+<!-- MAIN -->
+<div class="flex-1 p-6 overflow-y-auto">
 
-        <!-- DASHBOARD -->
-        <div id="dashboard" class="module">
-            <h2>Dashboard</h2>
-            <div class="cards">
-                <div class="card">Total Properties</div>
-                <div class="card">Revenue</div>
-                <div class="card">Transfers</div>
-            </div>
-        </div>
+<!-- DASHBOARD -->
+<div id="dashboard" class="module fade-in">
 
-        <!-- GIS MODULE -->
-        <div id="gis" class="module" style="display:none;">
+<div class="grid grid-cols-3 gap-6">
+<div class="bg-blue-500 text-white p-6 rounded-xl">Properties <h2 class="text-2xl">120</h2></div>
+<div class="bg-green-500 text-white p-6 rounded-xl">Transfers <h2 class="text-2xl">45</h2></div>
+<div class="bg-red-500 text-white p-6 rounded-xl">Fraud <h2 class="text-2xl">6</h2></div>
+</div>
 
-            <h2>GIS & Geo Tagging</h2>
+<div class="grid grid-cols-2 gap-6 mt-6">
+<div class="bg-white p-4 rounded shadow">
+<canvas id="propertyChart"></canvas>
+</div>
 
-            <!-- 🔥 YOUR MAP CODE (from map.html) -->
-            <div id="map" style="height:400px;"></div>
+<div class="bg-white p-4 rounded shadow">
+<canvas id="transactionChart"></canvas>
+</div>
+</div>
 
-            <div id="details"></div>
-            <div id="priceBox"></div>
-            <div id="qrSection"></div>
-            <div id="nearby"></div>
-            <div id="documents"></div>
+</div>
 
-        </div>
+<!-- GIS -->
+<div id="gis" class="module hidden">
+<h2 class="mb-3 text-xl">GIS Map</h2>
+<div id="map" class="h-96 rounded shadow mb-4"></div>
 
-        <!-- ML MODULE -->
-        <div id="ml" class="module" style="display:none;">
-            <h2>ML Prediction</h2>
+<div class="grid grid-cols-3 gap-4">
+<div id="details" class="bg-white p-3 rounded shadow"></div>
+<div id="priceBox" class="bg-white p-3 rounded shadow"></div>
+<div id="qrSection" class="bg-white p-3 rounded shadow"></div>
+</div>
+</div>
 
-            <input id="area" placeholder="Area"><br>
-            <button onclick="predict()">Predict</button>
+<!-- ML -->
+<div id="ml" class="module hidden">
+<h2>ML Prediction</h2>
+<input id="area" class="border p-2 rounded" placeholder="Area">
+<button onclick="predict()" class="bg-blue-500 text-white px-3 py-2 rounded">Predict</button>
 
-            <div id="result"></div>
-        </div>
+<div id="result"></div>
+<canvas id="mlChart"></canvas>
+</div>
 
-        <!-- FRAUD -->
-        <div id="fraud" class="module" style="display:none;">
-            <h2>Fraud Check</h2>
-            <input id="fraudId" placeholder="Parcel ID">
-            <button onclick="checkFraud()">Check</button>
-            <div id="fraudResult"></div>
-        </div>
+<!-- FRAUD -->
+<div id="fraud" class="module hidden">
+<input id="fraudId" placeholder="Parcel ID" class="border p-2">
+<button onclick="checkFraud()" class="bg-red-500 text-white px-3 py-2">Check</button>
+<table class="w-full bg-white mt-3">
+<thead><tr><th>Parcel</th><th>Risk</th></tr></thead>
+<tbody id="fraudTable"></tbody>
+</table>
+</div>
 
-        <!-- QR -->
-        <div id="qr" class="module" style="display:none;">
-            <h2>QR</h2>
-            <input id="qrId" placeholder="Parcel ID">
-            <button onclick="loadQR()">Generate</button>
-            <div id="qrImage"></div>
-        </div>
+<!-- QR -->
+<div id="qr" class="module hidden">
+<input id="qrId" placeholder="Parcel ID" class="border p-2">
+<button onclick="loadQR()" class="bg-blue-500 text-white px-3 py-2">Generate</button>
+<div id="qrImage"></div>
+</div>
 
-        <!-- LOGS -->
-        <div id="logs" class="module" style="display:none;">
-            <h2>Activity Logs</h2>
-            <button onclick="loadLogs()">Load</button>
-            <div id="logData"></div>
-        </div>
+<!-- LOGS -->
+<div id="logs" class="module hidden">
+<button onclick="loadLogs()" class="bg-blue-500 text-white px-3 py-2">Load</button>
+<table class="w-full bg-white mt-3">
+<tbody id="logTable"></tbody>
+</table>
+</div>
 
-        <!-- BLOCKCHAIN -->
-        <div id="blockchain" class="module" style="display:none;">
-            <h2>Blockchain Explorer</h2>
-            <button onclick="loadBlockchain()">Load</button>
-            <div id="blockData"></div>
-        </div>
+<!-- BLOCKCHAIN -->
+<div id="blockchain" class="module hidden">
+<button onclick="loadBlockchain()" class="bg-purple-500 text-white px-3 py-2">Load</button>
+<table class="w-full bg-white mt-3">
+<tbody id="blockTable"></tbody>
+</table>
+</div>
 
-    </div>
-
+</div>
 </div>
 
 <script src="/static/js/app.js"></script>
