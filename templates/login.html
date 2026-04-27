@@ -2,26 +2,27 @@
 <html>
 <head>
     <title>LandChain Login</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="login-body">
 
-<div class="login-box">
-    <h2>LandChain</h2>
-    <p>Blockchain Land Registry System</p>
+<body class="bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center h-screen">
 
-    <input type="text" placeholder="Email"><br>
-    <input type="password" placeholder="Password"><br>
+<div class="bg-white p-8 rounded-xl shadow-xl w-80 text-center">
+    <h2 class="text-2xl font-bold mb-2">LandChain</h2>
+    <p class="text-gray-500 mb-4">Land Registry System</p>
 
-    <select>
+    <input class="border p-2 w-full mb-3 rounded" placeholder="Email">
+    <input type="password" class="border p-2 w-full mb-3 rounded" placeholder="Password">
+
+    <select class="border p-2 w-full mb-4 rounded">
         <option>Admin</option>
         <option>Registrar</option>
         <option>Landowner</option>
-        <option>Verifier</option>
-        <option>Bank</option>
-    </select><br>
+    </select>
 
-    <button onclick="login()">Sign In</button>
+    <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 w-full rounded">
+        Login
+    </button>
 </div>
 
 <script>
