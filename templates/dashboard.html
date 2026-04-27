@@ -1,71 +1,95 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>LandChain Dashboard</title>
+<title>LandChain Ultimate</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
+<style>
+.fade{animation:fade .4s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.badge{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.green{background:#dcfce7;color:#166534}
+.yellow{background:#fef9c3;color:#854d0e}
+.red{background:#fee2e2;color:#991b1b}
+</style>
+
 </head>
 
-<body class="bg-gray-100">
+<body id="body" class="bg-gray-100">
 
 <div class="flex h-screen">
 
 <!-- SIDEBAR -->
 <div class="w-64 bg-white shadow-lg p-5 overflow-y-auto">
 
-    <h2 class="text-2xl font-bold text-blue-600 mb-6">LandChain</h2>
+<h2 class="text-2xl font-bold text-blue-600 mb-6">LandChain</h2>
 
-    <ul class="space-y-2 text-gray-700 text-sm">
+<input placeholder="Search..." class="border p-2 w-full mb-4 rounded">
 
-        <li onclick="showModule('dashboard',this)" class="menu bg-blue-100 p-2 rounded cursor-pointer">📊 Dashboard</li>
-        <li onclick="showModule('access',this)" class="menu p-2 cursor-pointer">🔐 Access Control</li>
-        <li onclick="showModule('transfer',this)" class="menu p-2 cursor-pointer">🔁 Ownership Transfer</li>
-        <li onclick="showModule('history',this)" class="menu p-2 cursor-pointer">📜 Ownership History</li>
-        <li onclick="showModule('documents',this)" class="menu p-2 cursor-pointer">📁 Document Storage</li>
-        <li onclick="showModule('tax',this)" class="menu p-2 cursor-pointer">💰 Revenue & Tax</li>
-        <li onclick="showModule('mortgage',this)" class="menu p-2 cursor-pointer">🏦 Mortgage & Loans</li>
-        <li onclick="showModule('fraud',this)" class="menu p-2 cursor-pointer">🚨 Fraud Detection</li>
-        <li onclick="showModule('dispute',this)" class="menu p-2 cursor-pointer">⚖️ Dispute & Eligibility</li>
-        <li onclick="showModule('gis',this)" class="menu p-2 cursor-pointer">🗺 GIS & Geo Tagging</li>
-        <li onclick="showModule('qr',this)" class="menu p-2 cursor-pointer">📷 QR Verification</li>
-        <li onclick="showModule('ml',this)" class="menu p-2 cursor-pointer">🧠 ML Prediction</li>
-        <li onclick="showModule('logs',this)" class="menu p-2 cursor-pointer">📊 Activity Logs</li>
-        <li onclick="showModule('blockchain',this)" class="menu p-2 cursor-pointer">🔗 Blockchain Explorer</li>
+<ul class="space-y-2 text-sm">
 
-    </ul>
+<li onclick="show('dashboard',this)" class="menu bg-blue-100 p-2 rounded cursor-pointer">Dashboard</li>
+<li onclick="show('access',this)" class="menu p-2 cursor-pointer">Access Control</li>
+<li onclick="show('transfer',this)" class="menu p-2 cursor-pointer">Transfer</li>
+<li onclick="show('history',this)" class="menu p-2 cursor-pointer">History</li>
+<li onclick="show('documents',this)" class="menu p-2 cursor-pointer">Documents</li>
+<li onclick="show('tax',this)" class="menu p-2 cursor-pointer">Tax</li>
+<li onclick="show('mortgage',this)" class="menu p-2 cursor-pointer">Mortgage</li>
+<li onclick="show('fraud',this)" class="menu p-2 cursor-pointer">Fraud</li>
+<li onclick="show('dispute',this)" class="menu p-2 cursor-pointer">Dispute</li>
+<li onclick="show('gis',this)" class="menu p-2 cursor-pointer">GIS</li>
+<li onclick="show('qr',this)" class="menu p-2 cursor-pointer">QR</li>
+<li onclick="show('ml',this)" class="menu p-2 cursor-pointer">ML</li>
+<li onclick="show('logs',this)" class="menu p-2 cursor-pointer">Logs</li>
+<li onclick="show('blockchain',this)" class="menu p-2 cursor-pointer">Blockchain</li>
+
+</ul>
+
 </div>
 
 <!-- MAIN -->
 <div class="flex-1 p-6 overflow-y-auto">
 
-<!-- DASHBOARD -->
-<div id="dashboard" class="module">
+<!-- TOPBAR -->
+<div class="flex justify-between mb-6">
 
-<h1 class="text-2xl font-semibold mb-4">Dashboard</h1>
+<div class="flex gap-4 items-center">
+<h1 class="text-2xl font-semibold">Dashboard</h1>
+</div>
+
+<div class="flex gap-4">
+
+<button onclick="toggleDark()" class="bg-gray-200 px-3 py-1 rounded">🌙</button>
+<div class="bg-white px-3 py-1 rounded shadow">🔔</div>
+<div class="bg-white px-3 py-1 rounded shadow">Admin</div>
+
+</div>
+
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="module fade">
 
 <div class="grid grid-cols-4 gap-4">
 
 <div class="bg-white p-4 rounded shadow">
-<p>Total Properties</p>
-<h2 class="text-xl font-bold">12,847</h2>
+<p>Total Properties</p><h2 class="text-xl font-bold">12,847</h2>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<p>Pending Transfers</p>
-<h2 class="text-xl font-bold">234</h2>
+<p>Transfers</p><h2 class="text-xl font-bold">234</h2>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<p>Revenue</p>
-<h2 class="text-xl font-bold text-green-600">₹4.2 Cr</h2>
+<p>Revenue</p><h2 class="text-xl font-bold text-green-600">₹4.2Cr</h2>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<p>Mortgages</p>
-<h2 class="text-xl font-bold">1,089</h2>
+<p>Fraud Alerts</p><h2 class="text-xl font-bold text-red-500">6</h2>
 </div>
 
 </div>
@@ -73,65 +97,81 @@
 <div class="grid grid-cols-2 gap-6 mt-6">
 
 <div class="bg-white p-4 rounded shadow">
-<canvas id="chart1"></canvas>
+<canvas id="c1"></canvas>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<canvas id="chart2"></canvas>
+<canvas id="c2"></canvas>
 </div>
 
 </div>
 
 </div>
 
-<!-- ACCESS CONTROL -->
+<!-- ACCESS -->
 <div id="access" class="module hidden">
-<h2 class="text-xl mb-4">Access Control</h2>
-<table class="w-full bg-white rounded shadow">
-<tr><th>User</th><th>Role</th><th>Status</th></tr>
-<tr><td>Amit</td><td>Admin</td><td class="text-green-600">Active</td></tr>
-<tr><td>Priya</td><td>Verifier</td><td class="text-yellow-500">Pending</td></tr>
+<table class="w-full bg-white">
+<tr><th>User</th><th>Status</th></tr>
+<tr><td>Amit</td><td><span class="badge green">Active</span></td></tr>
+<tr><td>Priya</td><td><span class="badge yellow">Pending</span></td></tr>
 </table>
 </div>
 
 <!-- TRANSFER -->
 <div id="transfer" class="module hidden">
-<h2>Ownership Transfer</h2>
-<div class="bg-white p-4 rounded shadow">Transfer records will display here</div>
+<div class="bg-white p-4 rounded shadow">
+Parcel L001 → Transfer Pending
+</div>
 </div>
 
 <!-- HISTORY -->
 <div id="history" class="module hidden">
-<h2>Ownership History</h2>
-<div class="bg-white p-4 rounded shadow">Timeline history UI</div>
+
+<div class="bg-white p-5 rounded shadow">
+
+<div class="border-l-4 border-blue-500 pl-4 mb-4">
+Rama → Shyam
+</div>
+
+<div class="border-l-4 border-green-500 pl-4">
+Shyam → Raj
+</div>
+
+</div>
+
 </div>
 
 <!-- DOCUMENTS -->
 <div id="documents" class="module hidden">
-<h2>Document Storage</h2>
-<div class="bg-white p-4 rounded shadow">Upload + list documents</div>
+
+<div class="bg-white p-4 rounded shadow">
+Sale Deed <span class="badge green">Verified</span>
+</div>
+
 </div>
 
 <!-- TAX -->
 <div id="tax" class="module hidden">
-<h2>Revenue & Tax</h2>
-<div class="bg-white p-4 rounded shadow">Tax table here</div>
+
+<table class="w-full bg-white">
+<tr><th>Parcel</th><th>Status</th></tr>
+<tr><td>L001</td><td><span class="badge green">Paid</span></td></tr>
+</table>
+
 </div>
 
 <!-- MORTGAGE -->
 <div id="mortgage" class="module hidden">
-<h2>Mortgage & Loans</h2>
-<div class="bg-white p-4 rounded shadow">Loan data here</div>
+<div class="bg-white p-4">Loan Active</div>
 </div>
 
 <!-- FRAUD -->
 <div id="fraud" class="module hidden">
-<h2>Fraud Detection</h2>
 
 <input id="fraudId" class="border p-2">
 <button onclick="checkFraud()" class="bg-red-500 text-white px-3 py-2">Check</button>
 
-<table class="mt-4 w-full bg-white">
+<table class="w-full mt-3 bg-white">
 <tbody id="fraudTable"></tbody>
 </table>
 
@@ -139,49 +179,39 @@
 
 <!-- DISPUTE -->
 <div id="dispute" class="module hidden">
-<h2>Dispute & Eligibility</h2>
-<div class="bg-white p-4 rounded shadow">Dispute cards UI</div>
+<div class="bg-white p-4">Boundary dispute active</div>
 </div>
 
 <!-- GIS -->
 <div id="gis" class="module hidden">
-<h2>GIS Map</h2>
-<div id="map" class="h-96 rounded shadow"></div>
+<div id="map" class="h-96"></div>
 </div>
 
 <!-- QR -->
 <div id="qr" class="module hidden">
-<h2>QR Verification</h2>
 <input id="qrId" class="border p-2">
-<button onclick="loadQR()" class="bg-blue-500 text-white px-3 py-2">Generate</button>
+<button onclick="loadQR()">Generate</button>
 <div id="qrImage"></div>
 </div>
 
 <!-- ML -->
 <div id="ml" class="module hidden">
-<h2>ML Prediction</h2>
-<input id="area" class="border p-2">
-<button onclick="predict()" class="bg-orange-500 text-white px-3 py-2">Predict</button>
+<input id="area">
+<button onclick="predict()">Predict</button>
 <div id="result"></div>
 <canvas id="mlChart"></canvas>
 </div>
 
 <!-- LOGS -->
 <div id="logs" class="module hidden">
-<h2>Activity Logs</h2>
-<button onclick="loadLogs()" class="bg-blue-500 text-white px-3 py-2">Load</button>
-<table class="mt-4 w-full bg-white">
-<tbody id="logTable"></tbody>
-</table>
+<button onclick="loadLogs()">Load</button>
+<table><tbody id="logTable"></tbody></table>
 </div>
 
 <!-- BLOCKCHAIN -->
 <div id="blockchain" class="module hidden">
-<h2>Blockchain Explorer</h2>
-<button onclick="loadBlockchain()" class="bg-purple-500 text-white px-3 py-2">Load</button>
-<table class="mt-4 w-full bg-white">
-<tbody id="blockTable"></tbody>
-</table>
+<button onclick="loadBlockchain()">Load</button>
+<table><tbody id="blockTable"></tbody></table>
 </div>
 
 </div>
@@ -192,15 +222,25 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-new Chart(document.getElementById("chart1"),{
+
+// Charts
+new Chart(document.getElementById("c1"),{
 type:"doughnut",
-data:{labels:["Res","Com","Agri"],datasets:[{data:[50,30,20]}]}
+data:{labels:["Res","Com"],datasets:[{data:[60,40]}]}
 })
 
-new Chart(document.getElementById("chart2"),{
+new Chart(document.getElementById("c2"),{
 type:"line",
-data:{labels:["Jan","Feb","Mar"],datasets:[{data:[5,10,15]}]}
+data:{labels:["Jan","Feb"],datasets:[{data:[10,20]}]}
 })
+
+// Dark mode
+function toggleDark(){
+let b=document.getElementById("body")
+b.classList.toggle("bg-gray-900")
+b.classList.toggle("text-white")
+}
+
 </script>
 
 </body>
