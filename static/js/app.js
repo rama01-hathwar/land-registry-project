@@ -12,7 +12,7 @@ function show(id, el){
 
     el.classList.add("active");
 
-    // LOAD MODULE DATA
+    if(id==="dashboard") loadChart();
     if(id==="gis") loadMap();
     if(id==="fraud") loadFraud();
     if(id==="history") loadHistory();
@@ -32,7 +32,7 @@ function loadMap(){
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    fetch("/api/land")
+    fetch(window.location.origin + "/api/land")
     .then(res=>res.json())
     .then(data=>{
         data.forEach(l=>{
