@@ -1,47 +1,80 @@
-body { margin:0; font-family:Segoe UI; }
-.hidden {
-    display: none;
-}
+body { margin:0; font-family: Arial; }
+
 /* LOGIN */
 .login-body {
-background:linear-gradient(135deg,#4f46e5,#06b6d4);
-display:flex;justify-content:center;align-items:center;height:100vh;
+background: linear-gradient(135deg,#4f46e5,#06b6d4);
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
+
 .login-card {
-background:white;padding:30px;border-radius:15px;width:300px;text-align:center;
+background:white;
+padding:30px;
+border-radius:12px;
+width:300px;
+text-align:center;
 }
-.login-card input, select { width:100%;padding:10px;margin:10px 0; }
 
-/* SIDEBAR */
-.sidebar {
-width:240px;background:#0f172a;color:white;height:100vh;padding:20px;
+.login-card input, select {
+width:100%;
+padding:10px;
+margin:10px 0;
 }
-.menu { padding:10px;margin-bottom:8px;cursor:pointer;border-radius:6px; }
-.menu:hover { background:#1e293b; }
-.menu.active { background:#2563eb; }
 
-/* CONTENT */
-.content { flex:1;padding:20px;background:#f1f5f9; }
+/* LAYOUT */
 .main { display:flex; }
 
-/* TOPBAR */
-.topbar { display:flex;justify-content:space-between;margin-bottom:20px; }
+.sidebar {
+width:260px;
+background:#0f172a;
+color:white;
+padding:20px;
+height:100vh;
+}
+
+.menu {
+padding:10px;
+margin-bottom:5px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.menu:hover { background:#1e293b; }
+
+.menu.active { background:#2563eb; }
+
+.logout { color:red; }
+
+.content {
+flex:1;
+padding:20px;
+background:#f1f5f9;
+}
+
+.hidden { display:none; }
 
 /* CARDS */
-.cards { display:grid;grid-template-columns:repeat(4,1fr);gap:15px; }
-.card { color:white;padding:20px;border-radius:12px; }
-.blue{background:#3b82f6;} .green{background:#22c55e;}
-.orange{background:#f59e0b;} .red{background:#ef4444;}
+.cards {
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:10px;
+}
 
-/* TABLE */
-.table { width:100%;background:white;border-radius:10px; }
-.table td,th { padding:10px;border-bottom:1px solid #ddd; }
+.card {
+padding:20px;
+color:white;
+border-radius:10px;
+}
 
-/* BADGE */
-.badge { padding:3px 8px;border-radius:12px;color:white; }
-.badge.green{background:green;}
-.badge.red{background:red;}
-.badge.yellow{background:orange;}
+.blue { background:#3b82f6; }
+.green { background:#22c55e; }
+.orange { background:#f59e0b; }
+.red { background:#ef4444; }
 
 /* MAP */
-#map { height:500px; margin-top:10px; }
+#map {
+height:500px;
+margin-top:10px;
+}
