@@ -29,22 +29,18 @@ def get_land():
         conn = get_db()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT parcel_id, owner_name, land_use_type, area_sq_ft, latitude, longitude
-            FROM gis_land_data
-        """)
-
+        cursor.execute("SELECT * FROM gis_land_data")
         rows = cursor.fetchall()
 
         data = []
         for r in rows:
             data.append({
-                "parcel_id": r[0],
-                "owner": r[1],
-                "type": r[2],
-                "area": r[3],
-                "lat": r[4],
-                "lon": r[5]
+                "parcel_id": r[0],   # land_id
+                "owner": r[3],       # village (temporary)
+                "type": r[4],        # taluk (temporary)
+                "area": 1000,        # dummy (you don’t have area column)
+                "lat": r[7],         # latitude
+                "lon": 77.59         # dummy longitude (you don’t have it)
             })
 
         return jsonify(data)
