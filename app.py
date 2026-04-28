@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template, send_file
+from flask import Flask, jsonify, request, render_template, send_file,session, redirect
 import psycopg2
 import os
 import json
@@ -7,6 +7,7 @@ import datetime
 import random
 import qrcode
 from io import BytesIO
+
 
 
 app = Flask(__name__)
@@ -284,7 +285,7 @@ def blockchain():
 # ---------------- QR ----------------
 @app.route('/qr/<parcel_id>')
 def qr(parcel_id):
-    url = f"https://land-registry-project.onrender.com/{parcel_id}"
+    url = f"https://land-registry-project.onrender.com/verify/{parcel_id}"
 
     img = qrcode.make(url)
     buffer = BytesIO()
