@@ -2,34 +2,55 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Login</title>
+<title>LandChain Login</title>
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
 <body class="login-body">
 
-<div class="login-card">
-    <h1>LandChain</h1>
-    <p>Blockchain Land Registry</p>
+<div class="login-container">
 
-    <input id="username" placeholder="Username">
+    <div class="login-card glass">
 
-    <select id="role">
-        <option value="admin">Admin</option>
-        <option value="registrar">Registrar</option>
-        <option value="bank">Bank</option>
-        <option value="landowner">Landowner</option>
-        <option value="verifier">Verifier</option>
-    </select>
+        <h1>LandChain</h1>
+        <p>Blockchain Land Registry</p>
 
-    <button onclick="login()">Login</button>
+        <input id="username" placeholder="Username">
+        <input id="password" type="password" placeholder="Password">
+
+        <select id="role">
+            <option value="admin">Admin</option>
+            <option value="registrar">Registrar</option>
+            <option value="bank">Bank</option>
+            <option value="landowner">Landowner</option>
+            <option value="verifier">Verifier</option>
+        </select>
+
+        <button onclick="login()">Login</button>
+
+    </div>
+
 </div>
 
 <script>
 function login(){
-    let role = document.getElementById("role").value;
-    localStorage.setItem("role", role);
-    window.location.href="/dashboard";
+fetch("/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+username:document.getElementById("username").value,
+password:document.getElementById("password").value,
+role:document.getElementById("role").value
+})
+})
+.then(r=>r.json())
+.then(d=>{
+if(d.message){
+window.location.href="/dashboard";
+}else{
+alert("Invalid login");
+}
+});
 }
 </script>
 
