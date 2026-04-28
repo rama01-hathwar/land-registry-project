@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
 <title>Dashboard</title>
 
 <link rel="stylesheet" href="/static/css/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="/static/js/app.js"></script>
 
@@ -19,86 +19,65 @@
 
 <!-- SIDEBAR -->
 <div class="sidebar">
-    <h2>LandChain</h2>
 
-    <div class="menu active" onclick="show('dashboard',this)">Dashboard</div>
-    <div class="menu" onclick="show('gis',this)">GIS</div>
-    <div class="menu role-admin" onclick="show('access',this)">Access</div>
-    <div class="menu role-admin role-registrar" onclick="show('transfer',this)">Transfer</div>
-    <div class="menu" onclick="show('documents',this)">Documents</div>
-    <div class="menu role-bank" onclick="show('mortgage',this)">Mortgage</div>
-    <div class="menu role-admin" onclick="show('fraud',this)">Fraud</div>
-    <div class="menu" onclick="show('logs',this)">Logs</div>
+<h2>LandChain</h2>
+<p class="sub">Blockchain Land Registry</p>
+
+<div class="section">Modules</div>
+
+<div class="menu active" onclick="show('dashboard', this)">Dashboard</div>
+<div class="menu" onclick="show('access', this)">Access Control</div>
+<div class="menu" onclick="show('transfer', this)">Ownership Transfer</div>
+<div class="menu" onclick="show('history', this)">Ownership History</div>
+<div class="menu" onclick="show('documents', this)">Document Storage</div>
+<div class="menu" onclick="show('tax', this)">Revenue & Tax</div>
+<div class="menu" onclick="show('mortgage', this)">Mortgage & Loans</div>
+<div class="menu" onclick="show('fraud', this)">Fraud Detection</div>
+<div class="menu" onclick="show('dispute', this)">Dispute & Eligibility</div>
+<div class="menu" onclick="show('gis', this)">GIS & Geo-Tagging</div>
+<div class="menu" onclick="show('qr', this)">QR Verification</div>
+<div class="menu" onclick="show('ml', this)">ML Prediction</div>
+<div class="menu" onclick="show('logs', this)">Activity Logs</div>
+<div class="menu" onclick="show('blockchain', this)">Blockchain Explorer</div>
+
+<div class="menu logout" onclick="logout()">Logout</div>
+
 </div>
 
 <!-- CONTENT -->
 <div class="content">
 
-<!-- TOPBAR -->
-<div class="topbar">
-    <h1>Dashboard</h1>
-    <div class="user" id="roleDisplay"></div>
-</div>
+<h1>Dashboard</h1>
 
-<!-- DASHBOARD -->
 <div id="dashboard" class="module">
-
 <div class="cards">
 <div class="card blue">Properties<br><b>12,847</b></div>
 <div class="card green">Transfers<br><b>234</b></div>
 <div class="card orange">Revenue<br><b>₹4.2Cr</b></div>
 <div class="card red">Fraud<br><b>6</b></div>
 </div>
-
-<canvas id="chart" height="100"></canvas>
-
 </div>
 
-<!-- GIS -->
+<div id="access" class="module hidden">Access Control</div>
+<div id="transfer" class="module hidden">Ownership Transfer</div>
+<div id="history" class="module hidden">Ownership History</div>
+<div id="documents" class="module hidden">Document Storage</div>
+<div id="tax" class="module hidden">Revenue & Tax</div>
+<div id="mortgage" class="module hidden">Mortgage & Loans</div>
+<div id="fraud" class="module hidden">Fraud Detection</div>
+<div id="dispute" class="module hidden">Dispute & Eligibility</div>
+
 <div id="gis" class="module hidden">
-
-<div class="filters">
-<button onclick="filterMap('all')">All</button>
-<button onclick="filterMap('sale')">Sale</button>
-<button onclick="filterMap('dispute')">Dispute</button>
+    <div id="map"></div>
 </div>
 
-<div id="map"></div>
+<div id="qr" class="module hidden">QR Verification</div>
+<div id="ml" class="module hidden">ML Prediction</div>
+<div id="logs" class="module hidden">Activity Logs</div>
+<div id="blockchain" class="module hidden">Blockchain Explorer</div>
 
 </div>
 
-<!-- TABLE EXAMPLE -->
-<div id="transfer" class="module hidden">
-<table class="table">
-<tr><th>Parcel</th><th>Owner</th><th>Status</th></tr>
-<tr><td>L001</td><td>Rama</td><td><span class="badge green">Approved</span></td></tr>
-<tr><td>L002</td><td>Kiran</td><td><span class="badge yellow">Pending</span></td></tr>
-</table>
-</div>
-
-<div id="documents" class="module hidden">
-<table class="table">
-<tr><th>Doc</th><th>Status</th></tr>
-<tr><td>Sale Deed</td><td><span class="badge green">Verified</span></td></tr>
-<tr><td>Tax</td><td><span class="badge red">Rejected</span></td></tr>
-</table>
-</div>
-
-<div id="mortgage" class="module hidden">
-<table class="table">
-<tr><th>Parcel</th><th>Bank</th><th>Status</th></tr>
-<tr><td>L003</td><td>SBI</td><td><span class="badge red">Active</span></td></tr>
-</table>
-</div>
-
-<div id="fraud" class="module hidden">
-<table class="table">
-<tr><th>Parcel</th><th>Risk</th></tr>
-<tr><td>L004</td><td><span class="badge red">High</span></td></tr>
-</table>
-</div>
-
-</div>
 </div>
 
 </body>
