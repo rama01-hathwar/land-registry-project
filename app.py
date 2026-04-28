@@ -183,6 +183,20 @@ def blockchain():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+#--------------login------------------#
+@app.route("/login", methods=["POST"])
+def login():
+    try:
+        data = request.json
+
+        session["role"] = data.get("role")
+        session["user"] = data.get("username")
+
+        return jsonify({"status": "success"})
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
