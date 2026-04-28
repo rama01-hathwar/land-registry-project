@@ -130,28 +130,26 @@ def transfer_property():
 # ---------------- HISTORY ----------------
 @app.route('/owner_history/<parcel_id>')
 def owner_history(parcel_id):
-    conn = get_db()
-    cursor = conn.cursor()
+    try:
+        conn = sqlite3.connect("land.db")
+        cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT from_owner, to_owner, timestamp
-        FROM transfer
-        WHERE parcel_id=%s
-        ORDER BY timestamp ASC
-    """, (parcel_id,))
+        cursor.execute("SELECT * FROM ownership_history WHERE parcel_id=?", (parcel_id,))
+        rows = cursor.fetchall()
 
-    rows = cursor.fetchall()
-    conn.close()
+        result = []
+        for r in rows:
+            result.append({
+                "from": r[1],
+                "to": r[2],
+                "date": r[3]
+            })
 
-    history = []
-    for r in rows:
-        history.append({
-            "from": r[0],
-            "to": r[1],
-            "time": str(r[2])
-        })
+        conn.close()
+        return jsonify(result)
 
-    return jsonify(history)
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 # ---------------- DOCUMENTS ----------------
 @app.route('/documents/<parcel_id>')
@@ -181,52 +179,49 @@ def documents(parcel_id):
 # ---------------- TAX ----------------
 @app.route('/tax/<parcel_id>')
 def tax(parcel_id):
-    conn = get_db()
-    cursor = conn.cursor()
+    try:
+        conn = sqlite3.connect("land.db")
+        cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT tax_amount, payment_status
-        FROM tax
-        WHERE parcel_id=%s
-        LIMIT 1
-    """, (parcel_id,))
+        cursor.execute("SELECT * FROM tax WHERE parcel_id=?", (parcel_id,))
+        row = cursor.fetchone()
 
-    row = cursor.fetchone()
-    conn.close()
+        conn.close()
 
-    if not row:
-        return jsonify({"amount": 0, "status": "None"})
+        if row:
+            return jsonify({
+                "amount": row[1],
+                "status": row[2]
+            })
+        else:
+            return jsonify({"amount": 0, "status": "No Data"})
 
-    return jsonify({
-        "amount": row[0],
-        "status": row[1]
-    })
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 # ---------------- MORTGAGE ----------------
 @app.route('/mortgage/<parcel_id>')
-@require_role(["bank","admin"])
 def mortgage(parcel_id):
-    conn = get_db()
-    cursor = conn.cursor()
+    try:
+        conn = sqlite3.connect("land.db")
+        cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT bank_name, loan_amount, mortgage_status
-        FROM mortgage
-        WHERE parcel_id=%s
-        LIMIT 1
-    """, (parcel_id,))
+        cursor.execute("SELECT * FROM mortgage WHERE parcel_id=?", (parcel_id,))
+        row = cursor.fetchone()
 
-    row = cursor.fetchone()
-    conn.close()
+        conn.close()
 
-    if not row:
-        return jsonify({"status": "No mortgage"})
+        if row:
+            return jsonify({
+                "bank": row[1],
+                "amount": row[2],
+                "status": row[3]
+            })
+        else:
+            return jsonify({"status": "No Mortgage"})
 
-    return jsonify({
-        "bank": row[0],
-        "amount": row[1],
-        "status": row[2]
-    })
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 # ---------------- DISPUTE ----------------
 @app.route('/dispute/<parcel_id>')
