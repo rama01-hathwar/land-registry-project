@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>LandChain Login</title>
+<title>Login</title>
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
@@ -10,19 +10,16 @@
 
 <div class="login-card">
     <h1>LandChain</h1>
-    <p>Smart Land Registry</p>
+    <p>Blockchain Land Registry</p>
 
-    <input placeholder="Username">
-
-    <input type="password" placeholder="Password">
+    <input id="username" placeholder="Username">
 
     <select id="role">
         <option value="admin">Admin</option>
         <option value="registrar">Registrar</option>
         <option value="bank">Bank</option>
-        <option value="landowner">Land Owner</option>
+        <option value="landowner">Landowner</option>
         <option value="verifier">Verifier</option>
-        <option value="officer">Gov Officer</option>
     </select>
 
     <button onclick="login()">Login</button>
@@ -32,7 +29,7 @@
 function login(){
     let role = document.getElementById("role").value;
     localStorage.setItem("role", role);
-    window.location.href = "/dashboard";
+    window.location.href="/dashboard";
 }
 </script>
 
