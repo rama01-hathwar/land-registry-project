@@ -1,5 +1,7 @@
 body { margin:0; font-family:Segoe UI; }
-
+.hidden {
+    display: none;
+}
 /* LOGIN */
 .login-body {
 background:linear-gradient(135deg,#4f46e5,#06b6d4);
