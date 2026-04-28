@@ -68,7 +68,7 @@ def get_land():
 
 # ---------------- FRAUD ----------------
 @app.route('/fraud_check/<parcel_id>')
-@require_role(["admin"])
+# @require_role(["admin"])
 def fraud_check(parcel_id):
     conn = get_db()
     cursor = conn.cursor()
