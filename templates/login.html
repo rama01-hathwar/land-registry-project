@@ -34,22 +34,26 @@
 
 <script>
 function login(){
+
 fetch("/login",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-username:document.getElementById("username").value,
-password:document.getElementById("password").value,
-role:document.getElementById("role").value
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+        username: document.getElementById("username").value,
+        role: document.getElementById("role").value
+    })
 })
+.then(res=>{
+    if(!res.ok) throw new Error("Login failed");
+    return res.json();
 })
-.then(r=>r.json())
-.then(d=>{
-if(d.message){
-window.location.href="/dashboard";
-}else{
-alert("Invalid login");
-}
+.then(data=>{
+    if(data.status === "success"){
+        window.location.href = "/dashboard";
+    }
+})
+.catch(err=>{
+    alert("Login failed");
 });
 }
 </script>
