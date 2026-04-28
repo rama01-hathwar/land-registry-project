@@ -1,10 +1,29 @@
+function safeFetch(url, callback){
+    fetch(window.location.origin + url)
+    .then(res=>{
+        if(!res.ok) throw new Error("API error");
+        return res.json();
+    })
+    .then(data=>{
+        if(data.error){
+            console.error(data.error);
+            return;
+        }
+        callback(data);
+    })
+    .catch(err=>{
+        console.error("Fetch error:", err);
+    });
+}
+
+// ---------------- NAV ----------------
 function show(id, el){
 
     document.querySelectorAll(".module").forEach(m=>{
-        m.classList.add("hidden");
+        m.style.display = "none";
     });
 
-    document.getElementById(id).classList.remove("hidden");
+    document.getElementById(id).style.display = "block";
 
     document.querySelectorAll(".menu").forEach(m=>{
         m.classList.remove("active");
@@ -12,11 +31,9 @@ function show(id, el){
 
     el.classList.add("active");
 
-    if(id==="dashboard") loadChart();
     if(id==="gis") loadMap();
     if(id==="fraud") loadFraud();
     if(id==="history") loadHistory();
-    if(id==="documents") loadDocuments();
     if(id==="tax") loadTax();
     if(id==="mortgage") loadMortgage();
     if(id==="dispute") loadDispute();
@@ -32,35 +49,25 @@ function loadMap(){
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    fetch(window.location.origin + "/api/land")
-    .then(r => {
-    if(!r.ok) throw new Error("API failed");
-    return r.json();
-})
-    .then(data=>{
+    safeFetch("/api/land", data=>{
         data.forEach(l=>{
             L.marker([l.lat,l.lon])
             .addTo(map)
-            .bindPopup(`<b>${l.parcel_id}</b><br>${l.owner}`);
+            .bindPopup(l.parcel_id);
         });
     });
 }
 
-// ---------------- FRAUD ----------------
+// ---------------- MODULES ----------------
 function loadFraud(){
-    fetch("/fraud_check/L001")
-    .then(r=>r.json())
-    .then(d=>{
+    safeFetch("/fraud_check/L001", d=>{
         document.getElementById("fraud").innerHTML =
-        `<div class="card red">${d.parcel_id} - ${d.risk_level}</div>`;
+        `${d.parcel_id} - ${d.risk_level}`;
     });
 }
 
-// ---------------- HISTORY ----------------
 function loadHistory(){
-    fetch("/owner_history/L001")
-    .then(r=>r.json())
-    .then(data=>{
+    safeFetch("/owner_history/L001", data=>{
         let html="";
         data.forEach(h=>{
             html += `<div>${h.from} → ${h.to}</div>`;
@@ -69,81 +76,43 @@ function loadHistory(){
     });
 }
 
-// ---------------- DOCUMENTS ----------------
-function loadDocuments(){
-    fetch("/documents/L001")
-    .then(r=>r.json())
-    .then(data=>{
-        let html="";
-        data.forEach(d=>{
-            html += `<div>${d.type} - ${d.status}</div>`;
-        });
-        document.getElementById("documents").innerHTML = html;
-    });
-}
-
-// ---------------- TAX ----------------
 function loadTax(){
-    fetch("/tax/L001")
-    .then(r=>r.json())
-    .then(d=>{
+    safeFetch("/tax/L001", d=>{
         document.getElementById("tax").innerHTML =
-        `<div>Amount: ${d.amount} | Status: ${d.status}</div>`;
+        `Amount: ${d.amount}`;
     });
 }
 
-// ---------------- MORTGAGE ----------------
 function loadMortgage(){
-    fetch("/mortgage/L001")
-    .then(r=>r.json())
-    .then(d=>{
+    safeFetch("/mortgage/L001", d=>{
         document.getElementById("mortgage").innerHTML =
-        `<div>${d.bank} - ${d.amount} - ${d.status}</div>`;
+        `${d.bank || ""} ${d.amount || ""}`;
     });
 }
 
-// ---------------- DISPUTE ----------------
 function loadDispute(){
-    fetch("/dispute/L001")
-    .then(r=>r.json())
-    .then(d=>{
+    safeFetch("/dispute/L001", d=>{
         document.getElementById("dispute").innerHTML =
-        `<div>${d.issue} - ${d.status}</div>`;
+        `${d.issue || d.status}`;
     });
 }
 
-// ---------------- LOGS ----------------
 function loadLogs(){
-    fetch("/get_login_activity")
-    .then(r=>r.json())
-    .then(data=>{
+    safeFetch("/get_login_activity", data=>{
         let html="";
         data.forEach(l=>{
-            html += `<div>${l.user_id} - ${l.action_type}</div>`;
+            html += `<div>${l.user_id}</div>`;
         });
         document.getElementById("logs").innerHTML = html;
     });
 }
 
-// ---------------- BLOCKCHAIN ----------------
 function loadBlockchain(){
-    fetch("/get_blockchain")
-    .then(r=>r.json())
-    .then(data=>{
+    safeFetch("/get_blockchain", data=>{
         let html="";
         data.forEach(b=>{
-            html += `<div>Block ${b.block_number} - ${b.confirmation_status}</div>`;
+            html += `<div>Block ${b.block_number}</div>`;
         });
         document.getElementById("blockchain").innerHTML = html;
     });
-}
-
-// ---------------- LOGOUT ----------------
-function logout(){
-    localStorage.clear();
-    window.location.href="/";
-}
-
-function loadChart(){
-    console.log("Chart loaded");
 }
