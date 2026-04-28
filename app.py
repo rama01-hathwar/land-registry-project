@@ -131,22 +131,21 @@ def transfer_property():
 @app.route('/owner_history/<parcel_id>')
 def owner_history(parcel_id):
     try:
-        conn = sqlite3.connect("land.db")
+        conn = get_db()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM ownership_history WHERE parcel_id=?", (parcel_id,))
+        cursor.execute("""
+            SELECT from_owner, to_owner, transfer_date
+            FROM ownership_history
+            WHERE parcel_id=%s
+        """, (parcel_id,))
+
         rows = cursor.fetchall()
 
-        result = []
-        for r in rows:
-            result.append({
-                "from": r[1],
-                "to": r[2],
-                "date": r[3]
-            })
-
-        conn.close()
-        return jsonify(result)
+        return jsonify([
+            {"from": r[0], "to": r[1], "date": str(r[2])}
+            for r in rows
+        ])
 
     except Exception as e:
         return jsonify({"error": str(e)})
@@ -180,19 +179,19 @@ def documents(parcel_id):
 @app.route('/tax/<parcel_id>')
 def tax(parcel_id):
     try:
-        conn = sqlite3.connect("land.db")
+        conn = get_db()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM tax WHERE parcel_id=?", (parcel_id,))
+        cursor.execute("""
+            SELECT amount, status
+            FROM tax
+            WHERE parcel_id=%s
+        """, (parcel_id,))
+
         row = cursor.fetchone()
 
-        conn.close()
-
         if row:
-            return jsonify({
-                "amount": row[1],
-                "status": row[2]
-            })
+            return jsonify({"amount": row[0], "status": row[1]})
         else:
             return jsonify({"amount": 0, "status": "No Data"})
 
@@ -203,19 +202,22 @@ def tax(parcel_id):
 @app.route('/mortgage/<parcel_id>')
 def mortgage(parcel_id):
     try:
-        conn = sqlite3.connect("land.db")
+        conn = get_db()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM mortgage WHERE parcel_id=?", (parcel_id,))
-        row = cursor.fetchone()
+        cursor.execute("""
+            SELECT bank_name, amount, status
+            FROM mortgage
+            WHERE parcel_id=%s
+        """, (parcel_id,))
 
-        conn.close()
+        row = cursor.fetchone()
 
         if row:
             return jsonify({
-                "bank": row[1],
-                "amount": row[2],
-                "status": row[3]
+                "bank": row[0],
+                "amount": row[1],
+                "status": row[2]
             })
         else:
             return jsonify({"status": "No Mortgage"})
