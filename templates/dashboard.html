@@ -3,11 +3,12 @@
 <head>
 
 <meta charset="UTF-8">
-<title>Dashboard</title>
+<title>LandChain Dashboard</title>
 
 <link rel="stylesheet" href="/static/css/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="/static/js/app.js"></script>
 
@@ -15,32 +16,27 @@
 
 <body>
 
-<div class="main">
+<div class="app">
 
 <!-- SIDEBAR -->
 <div class="sidebar">
 
 <h2>LandChain</h2>
-<p class="sub">Blockchain Land Registry</p>
 
-<div class="section">Modules</div>
-
-<div class="menu active" onclick="show('dashboard', this)">Dashboard</div>
-<div class="menu" onclick="show('access', this)">Access Control</div>
-<div class="menu" onclick="show('transfer', this)">Ownership Transfer</div>
-<div class="menu" onclick="show('history', this)">Ownership History</div>
-<div class="menu" onclick="show('documents', this)">Document Storage</div>
-<div class="menu" onclick="show('tax', this)">Revenue & Tax</div>
-<div class="menu" onclick="show('mortgage', this)">Mortgage & Loans</div>
-<div class="menu" onclick="show('fraud', this)">Fraud Detection</div>
-<div class="menu" onclick="show('dispute', this)">Dispute & Eligibility</div>
-<div class="menu" onclick="show('gis', this)">GIS & Geo-Tagging</div>
-<div class="menu" onclick="show('qr', this)">QR Verification</div>
-<div class="menu" onclick="show('ml', this)">ML Prediction</div>
-<div class="menu" onclick="show('logs', this)">Activity Logs</div>
-<div class="menu" onclick="show('blockchain', this)">Blockchain Explorer</div>
-
-<div class="menu logout" onclick="logout()">Logout</div>
+<div class="menu active" onclick="show('dashboard',this)">Dashboard</div>
+<div class="menu" onclick="show('access',this)">Access Control</div>
+<div class="menu" onclick="show('transfer',this)">Ownership Transfer</div>
+<div class="menu" onclick="show('history',this)">Ownership History</div>
+<div class="menu" onclick="show('documents',this)">Document Storage</div>
+<div class="menu" onclick="show('tax',this)">Revenue & Tax</div>
+<div class="menu" onclick="show('mortgage',this)">Mortgage & Loans</div>
+<div class="menu" onclick="show('fraud',this)">Fraud Detection</div>
+<div class="menu" onclick="show('dispute',this)">Dispute & Eligibility</div>
+<div class="menu" onclick="show('gis',this)">GIS & Geo Tagging</div>
+<div class="menu" onclick="show('qr',this)">QR Verification</div>
+<div class="menu" onclick="show('ml',this)">ML Prediction</div>
+<div class="menu" onclick="show('logs',this)">Activity Logs</div>
+<div class="menu" onclick="show('blockchain',this)">Blockchain Explorer</div>
 
 </div>
 
@@ -49,32 +45,51 @@
 
 <h1>Dashboard</h1>
 
+<!-- DASHBOARD -->
 <div id="dashboard" class="module">
+
 <div class="cards">
 <div class="card blue">Properties<br><b>12,847</b></div>
 <div class="card green">Transfers<br><b>234</b></div>
 <div class="card orange">Revenue<br><b>₹4.2Cr</b></div>
-<div class="card red">Fraud<br><b>6</b></div>
+<div class="card red">Fraud Alerts<br><b>6</b></div>
 </div>
+
+<div class="chart-box">
+<canvas id="mainChart"></canvas>
 </div>
+
+</div>
+
+<!-- ALL MODULES -->
 
 <div id="access" class="module hidden">Access Control</div>
+
 <div id="transfer" class="module hidden">Ownership Transfer</div>
-<div id="history" class="module hidden">Ownership History</div>
-<div id="documents" class="module hidden">Document Storage</div>
-<div id="tax" class="module hidden">Revenue & Tax</div>
-<div id="mortgage" class="module hidden">Mortgage & Loans</div>
-<div id="fraud" class="module hidden">Fraud Detection</div>
-<div id="dispute" class="module hidden">Dispute & Eligibility</div>
+
+<div id="history" class="module hidden"></div>
+
+<div id="documents" class="module hidden"></div>
+
+<div id="tax" class="module hidden"></div>
+
+<div id="mortgage" class="module hidden"></div>
+
+<div id="fraud" class="module hidden"></div>
+
+<div id="dispute" class="module hidden"></div>
 
 <div id="gis" class="module hidden">
-    <div id="map"></div>
+<div id="map" style="height:500px;"></div>
 </div>
 
 <div id="qr" class="module hidden">QR Verification</div>
+
 <div id="ml" class="module hidden">ML Prediction</div>
-<div id="logs" class="module hidden">Activity Logs</div>
-<div id="blockchain" class="module hidden">Blockchain Explorer</div>
+
+<div id="logs" class="module hidden"></div>
+
+<div id="blockchain" class="module hidden"></div>
 
 </div>
 
