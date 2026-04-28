@@ -3,28 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <title>LandChain Login</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/css/style.css">
 </head>
 
 <body class="login-body">
 
-<div class="login-box">
+<div class="login-card">
     <h1>LandChain</h1>
-    <p>Blockchain Land Registry System</p>
+    <p>Smart Land Registry</p>
 
-    <input type="text" placeholder="Email">
+    <input placeholder="Username">
+
     <input type="password" placeholder="Password">
 
-    <select>
-        <option>Admin</option>
-        <option>Registrar</option>
-        <option>Landowner</option>
-        <option>Verifier</option>
-        <option>Bank</option>
+    <select id="role">
+        <option value="admin">Admin</option>
+        <option value="registrar">Registrar</option>
+        <option value="bank">Bank</option>
+        <option value="landowner">Land Owner</option>
+        <option value="verifier">Verifier</option>
+        <option value="officer">Gov Officer</option>
     </select>
 
-    <button onclick="location.href='/dashboard'">Sign In</button>
+    <button onclick="login()">Login</button>
 </div>
+
+<script>
+function login(){
+    let role = document.getElementById("role").value;
+    localStorage.setItem("role", role);
+    window.location.href = "/dashboard";
+}
+</script>
 
 </body>
 </html>
