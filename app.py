@@ -8,11 +8,25 @@ import random
 import qrcode
 from io import BytesIO
 
+
 app = Flask(__name__)
+app.secret_key = "supersecretkey"
+
 
 # ---------------- DB CONNECTION ----------------
 def get_db():
     return psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+
+#----------------------------------------------------
+def require_role(roles):
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            if session.get("role") not in roles:
+                return jsonify({"error": "Unauthorized"}), 403
+            return f(*args, **kwargs)
+        wrapper.__name__ = f.__name__
+        return wrapper
+    return decorator
 
 # ---------------- BASIC ROUTES ----------------
 @app.route("/")
@@ -25,6 +39,7 @@ def dashboard():
 
 # ---------------- GIS ----------------
 @app.route('/api/land')
+@require_role(["admin","bank","registrar","landowner","verifier"])
 def get_land():
     try:
         conn = get_db()
@@ -52,6 +67,7 @@ def get_land():
 
 # ---------------- FRAUD ----------------
 @app.route('/fraud_check/<parcel_id>')
+@require_role(["admin"])
 def fraud_check(parcel_id):
     conn = get_db()
     cursor = conn.cursor()
@@ -84,6 +100,7 @@ def fraud_check(parcel_id):
 
 # ---------------- TRANSFER ----------------
 @app.route('/transfer_property', methods=['POST'])
+@require_role(["registrar","admin"])
 def transfer_property():
     data = request.json
 
@@ -186,6 +203,7 @@ def tax(parcel_id):
 
 # ---------------- MORTGAGE ----------------
 @app.route('/mortgage/<parcel_id>')
+@require_role(["bank","admin"])
 def mortgage(parcel_id):
     conn = get_db()
     cursor = conn.cursor()
@@ -266,7 +284,7 @@ def blockchain():
 # ---------------- QR ----------------
 @app.route('/qr/<parcel_id>')
 def qr(parcel_id):
-    url = f"https://https://land-registry-project.onrender.com/{parcel_id}"
+    url = f"https://land-registry-project.onrender.com/{parcel_id}"
 
     img = qrcode.make(url)
     buffer = BytesIO()
@@ -298,6 +316,17 @@ def predict():
     pred = model.predict(df)
 
     return jsonify({"predicted_price": float(pred[0])})
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+
+    session["role"] = data.get("role")
+    session["user"] = data.get("username")
+
+    return jsonify({"message": "success"})
+
+
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
