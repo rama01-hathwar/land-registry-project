@@ -33,7 +33,10 @@ function loadMap(){
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     fetch(window.location.origin + "/api/land")
-    .then(res=>res.json())
+    .then(r => {
+    if(!r.ok) throw new Error("API failed");
+    return r.json();
+})
     .then(data=>{
         data.forEach(l=>{
             L.marker([l.lat,l.lon])
