@@ -103,7 +103,7 @@ def register_user():
     cursor.execute("""
         INSERT INTO users
         (user_id, full_name, wallet_address, mobile_number, email, role, kyc_status, password_hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (user_id, full_name, wallet_address, mobile_number, email, role, kyc_status, password_hash))
 
     conn.commit()
@@ -120,7 +120,7 @@ def verify_kyc(user_id):
     cursor.execute("""
     UPDATE users
     SET kyc_status = 'verified'
-    WHERE user_id = ?
+    WHERE user_id = %s
     """, (user_id))
 
     conn.commit()
@@ -148,7 +148,7 @@ def get_property(parcel_id):
 
     cursor.execute(
         
-        "SELECT * FROM property WHERE parcel_id = ?",
+        "SELECT * FROM property WHERE parcel_id = %s",
         (parcel_id,)
     )
 
@@ -187,7 +187,7 @@ def add_property():
         (parcel_id, owner_id, survey_number, khata_number, village, taluk, district,
          state, land_type, area_sqft, registration_date, current_market_value,
          geo_latitude, geo_longitude, tax_status, mortgage_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         parcel_id, owner_id, survey_number, khata_number, village, taluk, district,
         state, land_type, area_sqft, registration_date, current_market_value,
@@ -208,7 +208,7 @@ def verify_property(parcel_id):
     # Check dispute
     cursor.execute("""
         SELECT * FROM dispute
-        WHERE parcel_id = ? AND status != 'Resolved'
+        WHERE parcel_id = %s AND status != 'Resolved'
     """, (parcel_id,))
     
     dispute = cursor.fetchone()
@@ -222,7 +222,7 @@ def verify_property(parcel_id):
     # Check fraud
     cursor.execute("""
         SELECT risk_score FROM fraud_detection
-        WHERE parcel_id = ?
+        WHERE parcel_id = %s
     """, (parcel_id,))
     
     fraud = cursor.fetchone()
@@ -236,7 +236,7 @@ def verify_property(parcel_id):
     # Check tax
     cursor.execute("""
         SELECT tax_status FROM tax
-        WHERE parcel_id = ?
+        WHERE parcel_id = %s
     """, (parcel_id,))
     
     tax = cursor.fetchone()
@@ -250,7 +250,7 @@ def verify_property(parcel_id):
     # Check mortgage
     cursor.execute("""
         SELECT status FROM mortgage
-        WHERE parcel_id = ? AND mortgage_status='Active'
+        WHERE parcel_id = %s AND mortgage_status='Active'
     """, (parcel_id,))
     
     mortgage = cursor.fetchone()
@@ -288,7 +288,7 @@ def transfer_property():
     # --------------------------------
     cursor.execute("""
         SELECT COUNT(*) FROM dispute
-        WHERE parcel_id = ? AND status != 'Resolved'
+        WHERE parcel_id = %s AND status != 'Resolved'
     """, (parcel_id,))
 
     dispute_count = cursor.fetchone()[0]
@@ -301,7 +301,7 @@ def transfer_property():
     cursor.execute("""
     SELECT mortgage_status
     FROM mortgage
-    WHERE parcel_id = ? AND mortgage_status = 'Active'
+    WHERE parcel_id = %s AND mortgage_status = 'Active'
 """, (parcel_id,))
 
     mortgage = cursor.fetchone()
@@ -315,7 +315,7 @@ def transfer_property():
     # --------------------------------
     cursor.execute("""
         SELECT * FROM property_tax
-        WHERE parcel_id = ? AND payment_status != 'Paid'
+        WHERE parcel_id = %s AND payment_status != 'Paid'
     """, (parcel_id,))
 
     tax = cursor.fetchone()
@@ -328,7 +328,7 @@ def transfer_property():
     cursor.execute("""
     SELECT confirmation_status
     FROM blockchain
-    WHERE transaction_hash = ?
+    WHERE transaction_hash = %s
     """, (transaction_hash,))
 
     blockchain = cursor.fetchone()
@@ -354,7 +354,7 @@ def transfer_property():
 
     cursor.execute("""
         SELECT owner_id FROM property
-        WHERE parcel_id = ?
+        WHERE parcel_id = %s
     """, (parcel_id,))
 
     owner = cursor.fetchone()
@@ -372,7 +372,7 @@ def transfer_property():
     cursor.execute("""
         SELECT TOP 1 transaction_hash
         FROM transfer
-        WHERE parcel_id = ?
+        WHERE parcel_id = %s
         ORDER BY timestamp DESC
     """, (parcel_id,))
 
@@ -407,8 +407,8 @@ def transfer_property():
 
     cursor.execute("""
         UPDATE property
-        SET owner_id = ?
-        WHERE parcel_id = ?
+        SET owner_id = %s
+        WHERE parcel_id = %s
     """, (buyer_id, parcel_id))
 
     # -----------------------------------
@@ -420,7 +420,7 @@ def transfer_property():
         (transaction_id, parcel_id, from_owner, to_owner, transaction_type,
         transaction_hash, block_number, timestamp, sale_amount)
 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """,
     (transaction_id, parcel_id, seller_id, buyer_id, "Transfer",
      transaction_hash, block_number, timestamp, sale_amount))
@@ -447,7 +447,7 @@ def owner_history(parcel_id):
         sale_amount,
         timestamp
     FROM [transfer]
-    WHERE parcel_id = ?
+    WHERE parcel_id = %s
     ORDER BY timestamp ASC
     """, (parcel_id,))
 
@@ -473,7 +473,7 @@ def fraud_check(parcel_id):
     cursor.execute("""
     SELECT duplicate_survey, multiple_claim, abnormal_transfer
     FROM fraud_detection
-    WHERE parcel_id = ?
+    WHERE parcel_id = %s
     """, (parcel_id,))
 
     result = cursor.fetchone()
@@ -533,7 +533,7 @@ def file_dispute():
         INSERT INTO dispute
         (dispute_id, parcel_id, dispute_type, reported_by, description, status,
          created_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (dispute_id, parcel_id, dispute_type, reported_by, description, status,
     created_date))
 
@@ -551,7 +551,7 @@ def get_disputes(parcel_id):
     cursor.execute("""
     SELECT dispute_id, dispute_type, reported_by, description, status, created_date
     FROM dispute
-    WHERE parcel_id = ?
+    WHERE parcel_id = %s
     """, (parcel_id,))
 
     rows = cursor.fetchall()
@@ -578,7 +578,7 @@ def resolve_dispute(dispute_id):
     UPDATE dispute
     SET status = 'Resolved',
         resolved_date = GETDATE()
-    WHERE dispute_id = ?
+    WHERE dispute_id = %s
     """, (dispute_id,))
 
     conn.commit()
@@ -596,7 +596,7 @@ def generate_tax(parcel_id):
 
     # 1️⃣ Get market value of the property
     cursor.execute(
-        "SELECT current_market_value FROM property WHERE parcel_id = ?",
+        "SELECT current_market_value FROM property WHERE parcel_id = %s",
         (parcel_id,)
     )
 
@@ -617,7 +617,7 @@ def generate_tax(parcel_id):
     cursor.execute("""
         SELECT tax_id
         FROM tax
-        WHERE parcel_id = ? AND tax_year = ?
+        WHERE parcel_id = %s AND tax_year = %s
     """, (parcel_id, year))
 
     existing_tax = cursor.fetchone()
@@ -634,7 +634,7 @@ def generate_tax(parcel_id):
     cursor.execute("""
         INSERT INTO tax
         (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
-        VALUES (?, ?, ?, ?, 0, NULL, 'Pending')
+        VALUES (%s, %s, %s, %s, 0, NULL, 'Pending')
     """, (tax_id, parcel_id, year, tax_amount))
 
     conn.commit()
@@ -655,7 +655,7 @@ def get_tax(parcel_id):
     cursor.execute("""
         SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status
         FROM tax
-        WHERE parcel_id = ?
+        WHERE parcel_id = %s
     """, (parcel_id,))
 
     tax = cursor.fetchall()
@@ -683,7 +683,7 @@ def get_pending_tax(parcel_id):
     cursor.execute("""
         SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status
         FROM tax
-        WHERE parcel_id = ?
+        WHERE parcel_id = %s
     """, (parcel_id,))
 
     tax = cursor.fetchall()
@@ -715,8 +715,8 @@ def pay_tax():
 
     cursor.execute("""
         UPDATE tax
-        SET tax_paid = ?, payment_date = ?, payment_status = 'Paid'
-        WHERE tax_id = ?
+        SET tax_paid = %s, payment_date = %s, payment_status = 'Paid'
+        WHERE tax_id = %s
     """, (tax_paid, datetime.now(), tax_id))
 
     conn.commit()
@@ -734,7 +734,7 @@ def pending_tax(parcel_id):
     cursor.execute("""
         SELECT tax_id, tax_year, tax_amount, tax_paid, payment_status
         FROM tax
-        WHERE parcel_id = ?
+        WHERE parcel_id = %s
         AND payment_status != 'Paid'
     """, (parcel_id,))
 
@@ -777,7 +777,7 @@ def add_mortgage():
     cursor.execute("""
     SELECT mortgage_id
     FROM mortgage
-    WHERE parcel_id = ? AND mortgage_status = 'Active'
+    WHERE parcel_id = %s AND mortgage_status = 'Active'
     """, (parcel_id,))
 
     existing = cursor.fetchone()
@@ -796,7 +796,7 @@ def add_mortgage():
     INSERT INTO mortgage
     (mortgage_id, parcel_id, owner_id, bank_name, loan_amount,
     interest_rate, start_date, end_date, mortgage_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Active')
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Active')
     """, (mortgage_id, parcel_id, owner_id, bank_name,
           loan_amount, interest_rate, start_date, end_date))
 
@@ -819,7 +819,7 @@ def get_mortgage(parcel_id):
 
     cursor.execute("""
     SELECT * FROM mortgage
-    WHERE parcel_id = ?
+    WHERE parcel_id = %s
     """, (parcel_id,))
 
     rows = cursor.fetchall()
@@ -854,7 +854,7 @@ def check_mortgage(parcel_id):
     cursor.execute("""
     SELECT mortgage_status
     FROM mortgage
-    WHERE parcel_id = ?
+    WHERE parcel_id = %s
     """, (parcel_id,))
 
     status = cursor.fetchone()
@@ -884,7 +884,7 @@ def close_mortgage():
     cursor.execute("""
     UPDATE mortgage
     SET mortgage_status = 'Closed'
-    WHERE mortgage_id = ?
+    WHERE mortgage_id = %s
     """, (mortgage_id,))
 
     conn.commit()
@@ -906,7 +906,7 @@ def check_property_mortgage(parcel_id):
     cursor.execute("""
     SELECT mortgage_id
     FROM mortgage
-    WHERE parcel_id = ? AND mortgage_status = 'Active'
+    WHERE parcel_id = %s AND mortgage_status = 'Active'
     """, (parcel_id,))
 
     mortgage = cursor.fetchone()
@@ -940,7 +940,7 @@ def login_activity():
     cursor.execute("""
     SELECT TOP 1 ip_address
     FROM login_activity
-    WHERE user_id = ?
+    WHERE user_id = %s
     ORDER BY timestamp DESC
     """, (user_id,))
 
@@ -959,7 +959,7 @@ def login_activity():
     cursor.execute("""
     INSERT INTO login_activity
     (user_id, action_type, parcel_id, description, timestamp, ip_address)
-    VALUES (?, ?, ?, ?, GETDATE(), ?)
+    VALUES (%s, %s, %s, %s, GETDATE(), %s)
     """, (user_id, action_type, parcel_id, description, ip_address))
 
     conn.commit()
@@ -986,7 +986,7 @@ def log_activity():
     cursor.execute("""
     INSERT INTO login_activity
     (user_id, action_type, parcel_id, description, timestamp, ip_address)
-    VALUES (?, ?, ?, ?, GETDATE(), ?)
+    VALUES (%s, %s, %s, %s, GETDATE(), %s)
     """, (user_id, action_type, parcel_id, description, ip_address))
 
     conn.commit()
@@ -1028,7 +1028,7 @@ def user_activity(user_id):
 
     cursor.execute("""
     SELECT * FROM login_activity
-    WHERE user_id = ?
+    WHERE user_id = %s
     """, (user_id,))
 
     rows = cursor.fetchall()
@@ -1062,7 +1062,7 @@ def filter_login_activity():
     cursor.execute("""
         SELECT * 
         FROM login_activity
-        WHERE CAST(timestamp AS DATE) BETWEEN ? AND ?
+        WHERE CAST(timestamp AS DATE) BETWEEN %s AND %s
     """, (start_date, end_date))
 
     rows = cursor.fetchall()
@@ -1122,7 +1122,7 @@ def add_blockchain_transaction():
     cursor.execute("""
     INSERT INTO blockchain
     (block_id, block_number, gas_fee, confirmation_status, timestamp, transaction_hash, previous_hash)
-    VALUES (?, ?, ?, ?, GETDATE(), ?, ?)
+    VALUES (%s, %s, %s, %s, GETDATE(), %s, %s)
     """, (block_id, block_number, gas_fee, confirmation_status, transaction_hash, previous_hash))
 
     conn.commit()
@@ -1168,7 +1168,7 @@ def check_blockchain(transaction_hash):
     cursor.execute("""
     SELECT confirmation_status
     FROM blockchain
-    WHERE transaction_hash = ?
+    WHERE transaction_hash = %s
     """, (transaction_hash,))
 
     result = cursor.fetchone()
@@ -1194,7 +1194,7 @@ def confirm_blockchain():
     cursor.execute("""
     UPDATE blockchain
     SET confirmation_status = 'Confirmed'
-    WHERE transaction_hash = ?
+    WHERE transaction_hash = %s
     """, (transaction_hash,))
 
     conn.commit()
@@ -1369,7 +1369,7 @@ def verify_property_qr(parcel_id, hash_value):
                                property=None,
                                documents=[])
 
-    cursor.execute("SELECT * FROM property WHERE parcel_id = ?", (parcel_id,))
+    cursor.execute("SELECT * FROM property WHERE parcel_id = %s", (parcel_id,))
     row = cursor.fetchone()
 
     if not row:
@@ -1402,7 +1402,7 @@ def verify_property_qr(parcel_id, hash_value):
     cursor.execute("""
         SELECT document_id, document_type, verification_status
         FROM document
-        WHERE parcel_id = ?
+        WHERE parcel_id = %s
     """, (parcel_id,))
 
     documents = cursor.fetchall()
@@ -1428,7 +1428,7 @@ def verify_property_qr(parcel_id, hash_value):
 @app.route('/regenerate_qr/<parcel_id>', methods=['POST'])
 def regenerate_qr(parcel_id):
  
-    cursor.execute("SELECT parcel_id FROM property WHERE parcel_id = ?", (parcel_id,))
+    cursor.execute("SELECT parcel_id FROM property WHERE parcel_id = %s", (parcel_id,))
     row = cursor.fetchone()
  
     if not row:
@@ -1451,7 +1451,7 @@ def add_land():
 
     cursor.execute("""
     INSERT INTO gis_land_data (land_id, owner_name, latitude, longitude)
-    VALUES (?, ?, ?, ?)
+    VALUES (%s, %s, %s, %s)
     """, (data['land_id'], data['owner_name'], data['latitude'], data['longitude']))
 
     conn.commit()
@@ -1705,7 +1705,7 @@ def upload_document():
     cursor.execute("""
         INSERT INTO document
         (document_id, parcel_id, document_type, file_path, file_hash, uploaded_by, uploaded_date, verification_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         document_id,
         parcel_id,
@@ -1810,7 +1810,7 @@ def verify_document(document_id):
     cursor.execute("""
         UPDATE document
         SET verification_status = 'Verified'
-        WHERE document_id = ?
+        WHERE document_id = %s
     """, (document_id,))
 
     conn.commit()
@@ -1823,7 +1823,7 @@ def validate_document(document_id):
     cursor.execute("""
         SELECT file_hash
         FROM document
-        WHERE document_id = ?
+        WHERE document_id = %s
     """, (document_id,))
 
     row = cursor.fetchone()
