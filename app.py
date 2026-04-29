@@ -436,6 +436,9 @@ def transfer_property():
 #--Owner History---#
 @app.route('/owner_history/<parcel_id>', methods=['GET'])
 def owner_history(parcel_id):
+    try:
+        conn=get_db_connection()
+        cur=conn.cursor()
 
     cursor.execute("""
     SELECT 
@@ -452,6 +455,10 @@ def owner_history(parcel_id):
     """, (parcel_id,))
 
     rows = cursor.fetchall()
+    cur.close()
+    conn.close()
+    if not rows:
+        return jsonify({"error":"No history found"})
 
     history = []
 
@@ -465,6 +472,10 @@ def owner_history(parcel_id):
             "sale_amount": row[5],
             "timestamp": str(row[6])
         })
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
         
  #--Fraud Detection--#
 @app.route('/fraud_check/<parcel_id>', methods=['GET'])
