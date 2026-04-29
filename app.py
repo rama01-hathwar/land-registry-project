@@ -1340,7 +1340,7 @@ return render_template("property_dashboard.html",
                        documents=doc_list,
                        error=None)
 
-── 3. NEW: Regenerate QR for existing property ──
+─# 3. NEW: Regenerate QR for existing property #──
 
 @app.route('/regenerate_qr/<parcel_id>', methods=['POST'])def regenerate_qr(parcel_id):
 
@@ -1615,7 +1615,11 @@ return {
     "document_id": document_id
 }
 
-@app.route('/documents/<land_id>')def get_documents(land_id):try:conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')cursor = conn.cursor()
+@app.route('/documents/<land_id>')
+def get_documents(land_id):
+    try:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+        cursor = conn.cursor()
 
     cursor.execute("""
         SELECT document_id, document_type, verification_status
@@ -1642,13 +1646,19 @@ return {
 except Exception as e:
     return jsonify({"error": str(e)})
 
-@app.route("/view/<document_id>")def view_document_simple(document_id):return f"Viewing document {document_id}"
+@app.route("/view/<document_id>")
+def view_document_simple(document_id):
+    return f"Viewing document {document_id}"
 
 
 
 from flask import send_from_directory
 
-@app.route('/view_document/<doc_id>')def view_document(doc_id):try:conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')cursor = conn.cursor()
+@app.route('/view_document/<doc_id>')
+def view_document(doc_id):
+    try:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+        cursor = conn.cursor()
 
     cursor.execute("""
         SELECT file_hash
@@ -1671,7 +1681,8 @@ from flask import send_from_directory
 except Exception as e:
     return f"Error: {str(e)}"
 
-@app.route("/verify_document/<document_id>", methods=["PUT"])def verify_document(document_id):
+@app.route("/verify_document/<document_id>", methods=["PUT"])
+def verify_document(document_id):
 
 data = request.json
 user_id = data.get("user_id")
@@ -1696,7 +1707,8 @@ conn.commit()
 
 return {"message": "Document verified by admin"}
 
-@app.route("/validate_document/<document_id>", methods=["GET"])def validate_document(document_id):
+@app.route("/validate_document/<document_id>", methods=["GET"])
+def validate_document(document_id):
 
 cursor.execute("""
     SELECT file_hash
@@ -1727,7 +1739,9 @@ return {
 
 init_document_table()
 
-@app.route("/generate_documents")def generate_documents():print("new document code running")
+@app.route("/generate_documents")
+def generate_documents():
+    print("new document code running")
 
 try:
     conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
@@ -1786,7 +1800,8 @@ try:
 except Exception as e:
     return f"Error: {str(e)}"
 
-@app.route("/create_document_table")def create_document_table():
+@app.route("/create_document_table")
+def create_document_table():
 
 conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
 cursor = conn.cursor()
@@ -1808,7 +1823,10 @@ conn.close()
 
 return "Table created"
 
-@app.route("/check_lands")def check_lands():conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')cursor = conn.cursor()
+@app.route("/check_lands")
+def check_lands():
+    conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+    cursor = conn.cursor()
 
 cursor.execute("SELECT land_id FROM gis_land_data LIMIT 10")
 rows = cursor.fetchall()
@@ -1817,7 +1835,8 @@ conn.close()
 
 return str(rows)
 
-@app.route('/check_documents')def check_documents():
+@app.route('/check_documents')
+def check_documents():
 
 try:
     conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
