@@ -433,46 +433,49 @@ def transfer_property():
         "transaction_hash": transaction_hash
     }
 
-#--Owner History---#
+# --- Owner History --- #
 @app.route('/owner_history/<parcel_id>', methods=['GET'])
 def owner_history(parcel_id):
     try:
-        conn=get_db_connection()
-        cur=conn.cursor()
+        conn = get_db_connection()
+        cur = conn.cursor()
 
-    cursor.execute("""
-    SELECT 
-        transaction_id,
-        parcel_id,
-        from_owner,
-        to_owner,
-        transaction_type,
-        sale_amount,
-        timestamp
-    FROM [transfer]
-    WHERE parcel_id = %s
-    ORDER BY timestamp ASC
-    """, (parcel_id,))
+        cur.execute("""
+            SELECT 
+                transaction_id,
+                parcel_id,
+                from_owner,
+                to_owner,
+                transaction_type,
+                sale_amount,
+                timestamp
+            FROM transfer
+            WHERE parcel_id = %s
+            ORDER BY timestamp ASC
+        """, (parcel_id,))
 
-    rows = cursor.fetchall()
-    cur.close()
-    conn.close()
-    if not rows:
-        return jsonify({"error":"No history found"})
+        rows = cur.fetchall()
 
-    history = []
+        cur.close()
+        conn.close()
 
-    for row in rows:
-        history.append({
-            "transaction_id": row[0],
-            "parcel_id": row[1],
-            "previous_owner": row[2],
-            "new_owner": row[3],
-            "transaction_type": row[4],
-            "sale_amount": row[5],
-            "timestamp": str(row[6])
-        })
-        return jsonify(result)
+        if not rows:
+            return jsonify({"error": "No history found"})
+
+        history = []
+
+        for row in rows:
+            history.append({
+                "transaction_id": row[0],
+                "parcel_id": row[1],
+                "previous_owner": row[2],
+                "new_owner": row[3],
+                "transaction_type": row[4],
+                "sale_amount": row[5],
+                "timestamp": str(row[6])
+            })
+
+        return jsonify(history)
 
     except Exception as e:
         return jsonify({"error": str(e)})
