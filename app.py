@@ -14,6 +14,12 @@ import joblib
 import pandas as pd
 from werkzeug.utils import secure_filename
 
+def get_db_connection():
+    return psycopg2.connect(
+        os.environ.get("DATABASE_URL"),
+        sslmode='require'
+    )
+
 def init_document_table():
     import sqlite3
 
@@ -438,85 +444,64 @@ def transfer_property():
 def owner_history(parcel_id):
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
+        cursor = conn.cursor()
 
-        cur.execute("""
-            SELECT 
-                transaction_id,
-                parcel_id,
-                from_owner,
-                to_owner,
-                transaction_type,
-                sale_amount,
-                timestamp
+        cursor.execute("""
+            SELECT from_owner, to_owner
             FROM transfer
             WHERE parcel_id = %s
             ORDER BY timestamp ASC
         """, (parcel_id,))
 
-        rows = cur.fetchall()
+        rows = cursor.fetchall()
 
-        cur.close()
+        cursor.close()
         conn.close()
 
-        if not rows:
-            return jsonify({"error": "No history found"})
-
-        history = []
-
+        result = []
         for row in rows:
-            history.append({
-                "transaction_id": row[0],
-                "parcel_id": row[1],
-                "previous_owner": row[2],
-                "new_owner": row[3],
-                "transaction_type": row[4],
-                "sale_amount": row[5],
-                "timestamp": str(row[6])
+            result.append({
+                "from": row[0],
+                "to": row[1]
             })
 
-        return jsonify(history)
+        return jsonify(result)
 
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return {"error": str(e)}
         
  #--Fraud Detection--#
 @app.route('/fraud_check/<parcel_id>', methods=['GET'])
 def fraud_check(parcel_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    cursor.execute("""
-    SELECT duplicate_survey, multiple_claim, abnormal_transfer
-    FROM fraud_detection
-    WHERE parcel_id = %s
-    """, (parcel_id,))
+        cursor.execute("""
+            SELECT duplicate_survey, multiple_claim, abnormal_transfer
+            FROM fraud_detection
+            WHERE parcel_id = %s
+        """, (parcel_id,))
 
-    result = cursor.fetchone()
+        result = cursor.fetchone()
 
-    if result:
+        cursor.close()
+        conn.close()
 
-        duplicate_flag = int(result[0])
-        multiple_flag = int(result[1])
-        abnormal_flag = int(result[2])
+        if not result:
+            return {"message": "No fraud record"}
 
-        flag_sum = duplicate_flag + multiple_flag + abnormal_flag
+        score = sum(map(int, result))
 
-        if flag_sum == 0:
-            risk_level = "Low"
-        elif flag_sum == 1:
-            risk_level = "Medium"
-        else:
-            risk_level = "High"
+        risk = "Low" if score == 0 else "Medium" if score == 1 else "High"
 
         return {
             "parcel_id": parcel_id,
-            "duplicate_survey": duplicate_flag,
-            "multiple_claim": multiple_flag,
-            "abnormal_transfer": abnormal_flag,
-            "risk_level": risk_level
+            "risk_level": risk
         }
 
-    else:
-        return {"message": "No fraud record found"}
+    except Exception as e:
+        return {"error": str(e)}
     
     #--File Dispue--#
 import random
@@ -526,6 +511,34 @@ dispute_id = "D" + str(random.randint(100,999))
 #--Dispute---#
 import random
 import datetime
+
+@app.route('/dispute/<parcel_id>', methods=['GET'])
+def dispute(parcel_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT description, status
+            FROM dispute
+            WHERE parcel_id = %s
+        """, (parcel_id,))
+
+        row = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if not row:
+            return {}
+
+        return {
+            "issue": row[0],
+            "status": row[1]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.route('/file_dispute', methods=['POST'])
 def file_dispute():
@@ -664,6 +677,7 @@ def generate_tax(parcel_id):
 @app.route('/tax/<parcel_id>', methods=['GET'])
 def get_tax(parcel_id):
     try:
+        conn = get_db_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -672,13 +686,14 @@ def get_tax(parcel_id):
             WHERE parcel_id = %s
         """, (parcel_id,))
 
-        tax = cursor.fetchall()
+        rows = cursor.fetchall()
 
-        print("DEBUG TAX:", tax)   # 👈 ADD THIS
+        cursor.close()
+        conn.close()
 
-        results = []
-        for row in tax:
-            results.append({
+        result = []
+        for row in rows:
+            result.append({
                 "tax_id": row[0],
                 "tax_year": row[1],
                 "tax_amount": row[2],
@@ -687,12 +702,10 @@ def get_tax(parcel_id):
                 "payment_status": row[5]
             })
 
-        return jsonify(results)
+        return jsonify(result)
 
     except Exception as e:
-        print("ERROR:", str(e))   # 👈 ADD THIS
-        return jsonify({"error": str(e)}), 500
-
+        return jsonify({"error": str(e)})
 #---Check pending tax---#
 @app.route('/pending_tax/<parcel_id>', methods=['GET'])
 def get_pending_tax(parcel_id):
@@ -831,34 +844,33 @@ def add_mortgage():
 # 2 Get Mortgage Details
 # ---------------------------------
 
-@app.route('/get_mortgage/<parcel_id>', methods=['GET'])
-def get_mortgage(parcel_id):
+@app.route('/mortgage/<parcel_id>', methods=['GET'])
+def mortgage(parcel_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    cursor = conn.cursor()
+        cursor.execute("""
+            SELECT bank_name, loan_amount
+            FROM mortgage
+            WHERE parcel_id = %s
+        """, (parcel_id,))
 
-    cursor.execute("""
-    SELECT * FROM mortgage
-    WHERE parcel_id = %s
-    """, (parcel_id,))
+        row = cursor.fetchone()
 
-    rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
-    result = []
+        if not row:
+            return {}
 
-    for row in rows:
-        result.append({
-            "mortgage_id":row[0],
-            "parcel_id":row[1],
-            "owner_id":row[2],
-            "bank_name":row[3],
-            "loan_amount":row[4],
-            "interest_rate":row[5],
-            "start_date":str(row[6]),
-            "end_date":str(row[7]),
-            "mortgage_status":row[8]
-        })
+        return {
+            "bank": row[0],
+            "amount": row[1]
+        }
 
-    return jsonify(result)
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ---------------------------------
@@ -1017,27 +1029,21 @@ def log_activity():
 #---Get All Login Activity----#
 @app.route('/get_login_activity', methods=['GET'])
 def get_login_activity():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    cursor = conn.cursor()
+        cursor.execute("SELECT user_id FROM login_activity")
 
-    cursor.execute("SELECT * FROM login_activity")
+        rows = cursor.fetchall()
 
-    rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
-    result = []
+        return [{"user_id": r[0]} for r in rows]
 
-    for row in rows:
-        result.append({
-            "login_id": row[0],
-            "user_id": row[1],
-            "action_type": row[2],
-            "parcel_id": row[3],
-            "description": row[4],
-            "timestamp": str(row[5]),
-            "ip_address": row[6]
-        })
-
-    return jsonify(result)
+    except Exception as e:
+        return {"error": str(e)}
 
 #---Get Activity By User--#
 @app.route('/user_activity/<user_id>', methods=['GET'])
@@ -1157,26 +1163,21 @@ def add_blockchain_transaction():
 #--Get All Blockchain Records---#
 @app.route('/get_blockchain', methods=['GET'])
 def get_blockchain():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    cursor = conn.cursor()
+        cursor.execute("SELECT block_number FROM blockchain")
 
-    cursor.execute("SELECT * FROM blockchain")
+        rows = cursor.fetchall()
 
-    rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
-    result = []
+        return [{"block_number": r[0]} for r in rows]
 
-    for row in rows:
-        result.append({
-            "block_id": row[0],
-            "block_number": row[1],
-            "gas_fee": row[2],
-            "confirmation_status": row[3],
-            "timestamp": str(row[4]),
-            "transaction_hash": row[5]
-        })
-
-    return jsonify(result)
+    except Exception as e:
+        return {"error": str(e)}
 
 #----Check Transaction Status---#
 @app.route('/check_blockchain/<transaction_hash>', methods=['GET'])
