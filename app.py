@@ -1340,9 +1340,10 @@ return render_template("property_dashboard.html",
                        documents=doc_list,
                        error=None)
 
-─# 3. NEW: Regenerate QR for existing property #──
+# 3. NEW: Regenerate QR for existing property #─
 
-@app.route('/regenerate_qr/<parcel_id>', methods=['POST'])def regenerate_qr(parcel_id):
+@app.route('/regenerate_qr/<parcel_id>', methods=['POST'])
+def regenerate_qr(parcel_id):
 
 cursor.execute("SELECT parcel_id FROM property WHERE parcel_id = ?", (parcel_id,))
 row = cursor.fetchone()
@@ -1358,7 +1359,8 @@ return jsonify({
     "qr_path":   filename
 })
 
-@app.route('/add_land', methods=['POST'])def add_land():data = request.json
+@app.route('/add_land', methods=['POST'])
+def add_land():data = request.json
 
 conn = sqlite3.connect("land.db")
 cursor = conn.cursor()
@@ -1373,7 +1375,8 @@ conn.close()
 
 return jsonify({"message": "Land added successfully"})
 
-@app.route('/add-test-data')def add_test_data():import osimport psycopg2
+@app.route('/add-test-data')
+def add_test_data():import osimport psycopg2
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 conn = psycopg2.connect(DATABASE_URL)
@@ -1391,7 +1394,8 @@ conn.close()
 
 return "Data inserted successfully!"
 
-@app.route('/init-db')def init_db():import osimport psycopg2
+@app.route('/init-db')
+def init_db():import osimport psycopg2
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -1416,7 +1420,9 @@ conn.close()
 
 return "Table created successfully"
 
-@app.route('/generate-data')def generate_data():import osimport psycopg2import random
+@app.route('/generate-data')
+def generate_data():
+    import osimport psycopg2import random
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -1467,7 +1473,10 @@ return "✅ 100 realistic land records generated!"
 
 import osimport psycopg2import qrcode
 
-@app.route('/generate-qr')def generate_qr():try:DATABASE_URL = os.environ.get("DATABASE_URL")
+@app.route('/generate-qr')
+def generate_qr():
+    try:
+        DATABASE_URL = os.environ.get("DATABASE_URL")
 
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     cursor = conn.cursor()
@@ -1496,9 +1505,13 @@ import osimport psycopg2import qrcode
 except Exception as e:
     return f"Error: {str(e)}"
 
-import qrcodefrom io import BytesIOfrom flask import send_file
+import qrcodefrom io
+import BytesIOfrom flask
+import send_file
 
-@app.route('/qr/<parcel_id>')def generate_qr_dynamically(parcel_id):url = f"https://land-registry-project.onrender.com/verify/{parcel_id}"
+@app.route('/qr/<parcel_id>')
+def generate_qr_dynamically(parcel_id):
+    url = f"https://land-registry-project.onrender.com/verify/{parcel_id}"
 
 img = qrcode.make(url)
 
@@ -1508,7 +1521,8 @@ buffer.seek(0)
 
 return send_file(buffer, mimetype='image/png')
 
-@app.route('/verify/<parcel_id>')def verify(parcel_id):
+@app.route('/verify/<parcel_id>')
+def verify(parcel_id):
 
 import psycopg2, os
 
@@ -1534,7 +1548,8 @@ return f"""
 
 ---------------- ML PRICE PREDICTION ----------------
 
-@app.route('/predict_price', methods=['POST'])def predict_price():try:data = request.json
+@app.route('/predict_price', methods=['POST'])
+def predict_price():try:data = request.json
 
     input_data = {
         'area_sqft': data['area_sqft'],
