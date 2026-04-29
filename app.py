@@ -649,30 +649,35 @@ def generate_tax(parcel_id):
 #--Get tax details---#
 @app.route('/tax/<parcel_id>', methods=['GET'])
 def get_tax(parcel_id):
+    try:
+        cursor = conn.cursor()
 
-    cursor = conn.cursor()
+        cursor.execute("""
+            SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status
+            FROM tax
+            WHERE parcel_id = %s
+        """, (parcel_id,))
 
-    cursor.execute("""
-        SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status
-        FROM tax
-        WHERE parcel_id = %s
-    """, (parcel_id,))
+        tax = cursor.fetchall()
 
-    tax = cursor.fetchall()
+        print("DEBUG TAX:", tax)   # 👈 ADD THIS
 
-    results = []
+        results = []
+        for row in tax:
+            results.append({
+                "tax_id": row[0],
+                "tax_year": row[1],
+                "tax_amount": row[2],
+                "tax_paid": row[3],
+                "payment_date": str(row[4]),
+                "payment_status": row[5]
+            })
 
-    for row in tax:
-        results.append({
-            "tax_id": row[0],
-            "tax_year": row[1],
-            "tax_amount": row[2],
-            "tax_paid": row[3],
-            "payment_date": str(row[4]),
-            "payment_status": row[5]
-        })
+        return jsonify(results)
 
-    return jsonify(results)
+    except Exception as e:
+        print("ERROR:", str(e))   # 👈 ADD THIS
+        return jsonify({"error": str(e)}), 500
 
 #---Check pending tax---#
 @app.route('/pending_tax/<parcel_id>', methods=['GET'])
