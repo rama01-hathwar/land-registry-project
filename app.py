@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 
 def get_db_connection():
     return psycopg2.connect(
-        os.environ.get("DATABASE_URL"),
+        os.environ.get("postgresql://land_db_new_user:vQzqufMNJ9TFnLSxNcCE4uST8W4nkDuZ@dpg-d7ppcjfaqgkc738k4hd0-a.oregon-postgres.render.com/land_db_new"),
         sslmode='require'
     )
 
