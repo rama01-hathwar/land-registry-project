@@ -960,7 +960,7 @@ def check_property_mortgage(parcel_id):
 
 #----Login Activity---#
 @app.route('/login_activity', methods=['POST'])
-def login_activity():
+def login_activity_post():
 
     data = request.json
 
@@ -970,14 +970,16 @@ def login_activity():
     description = "User logged into system"
     ip_address = data['ip_address']
 
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     # Get last login IP
     cursor.execute("""
-    SELECT TOP 1 ip_address
-    FROM login_activity
-    WHERE user_id = %s
-    ORDER BY timestamp DESC
+        SELECT ip_address
+        FROM login_activity
+        WHERE user_id = %s
+        ORDER BY timestamp DESC
+        LIMIT 1
     """, (user_id,))
 
     last_login = cursor.fetchone()
@@ -986,50 +988,54 @@ def login_activity():
 
     if last_login:
         last_ip = last_login[0]
-
         if last_ip != ip_address:
             suspicious = True
             description = "Suspicious login detected (Different IP)"
 
     # Insert login activity
     cursor.execute("""
-    INSERT INTO login_activity
-    (user_id, action_type, parcel_id, description, timestamp, ip_address)
-    VALUES (%s, %s, %s, %s, GETDATE(), %s)
+        INSERT INTO login_activity
+        (user_id, action_type, parcel_id, description, timestamp, ip_address)
+        VALUES (%s, %s, %s, %s, NOW(), %s)
     """, (user_id, action_type, parcel_id, description, ip_address))
 
     conn.commit()
+    cursor.close()
+    conn.close()
 
     return jsonify({
         "message": "Login activity recorded",
         "suspicious_login": suspicious
     })
 
-#------Record Login Activity---#
+
+#------Record Activity---#
 @app.route('/log_activity', methods=['POST'])
 def log_activity():
 
     data = request.json
 
-    user_id = data['user_id']
-    action_type = data['action_type']
-    parcel_id = data.get('parcel_id')
-    description = data['description']
-    ip_address = data['ip_address']
-
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-    INSERT INTO login_activity
-    (user_id, action_type, parcel_id, description, timestamp, ip_address)
-    VALUES (%s, %s, %s, %s, GETDATE(), %s)
-    """, (user_id, action_type, parcel_id, description, ip_address))
+        INSERT INTO login_activity
+        (user_id, action_type, parcel_id, description, timestamp, ip_address)
+        VALUES (%s, %s, %s, %s, NOW(), %s)
+    """, (
+        data['user_id'],
+        data['action_type'],
+        data.get('parcel_id'),
+        data['description'],
+        data['ip_address']
+    ))
 
     conn.commit()
+    cursor.close()
+    conn.close()
 
-    return jsonify({
-        "message": "Activity logged successfully"
-    })
+    return jsonify({"message": "Activity logged successfully"})
+
 
 #---Get All Login Activity----#
 @app.route('/get_login_activity', methods=['GET'])
@@ -1050,22 +1056,19 @@ def get_login_activity():
         cursor.close()
         conn.close()
 
-        data = []
-        for r in rows:
-            data.append({
-                "user_id": r[0],
-                "action_type": r[1],
-                "time": str(r[2])
-            })
-
-        return data
+        return [{
+            "user_id": r[0],
+            "action_type": r[1],
+            "time": str(r[2])
+        } for r in rows]
 
     except Exception as e:
         return {"error": str(e)}
 
-#-------------------------#
+
+#---Get Activity by Land----#
 @app.route('/login_activity/<land_id>', methods=['GET'])
-def login_activity(land_id):
+def get_login_activity_by_land(land_id):
     try:
         parcel_id = convert_land_to_parcel(land_id)
 
@@ -1083,15 +1086,11 @@ def login_activity(land_id):
         cursor.close()
         conn.close()
 
-        data = []
-        for r in rows:
-            data.append({
-                "user_id": r[0],
-                "action_type": r[1],
-                "time": str(r[2])
-            })
-
-        return data
+        return [{
+            "user_id": r[0],
+            "action_type": r[1],
+            "time": str(r[2])
+        } for r in rows]
 
     except Exception as e:
         return {"error": str(e)}
