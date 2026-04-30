@@ -440,17 +440,18 @@ def transfer_property():
     }
 
 # --- Owner History --- #
-@app.route('/owner_history/<parcel_id>', methods=['GET'])
-def owner_history(parcel_id):
+@app.route('/owner_history/<land_id>', methods=['GET'])
+def owner_history(land_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        parcel_id = land_id.replace("L", "P")
 
         cursor.execute("""
             SELECT from_owner, to_owner
             FROM transfer
             WHERE parcel_id = %s
-            ORDER BY timestamp ASC
         """, (parcel_id,))
 
         rows = cursor.fetchall()
@@ -458,46 +459,47 @@ def owner_history(parcel_id):
         cursor.close()
         conn.close()
 
-        result = []
-        for row in rows:
-            result.append({
-                "from": row[0],
-                "to": row[1]
+        if not rows:
+            return []
+
+        data = []
+        for r in rows:
+            data.append({
+                "from": r[0],
+                "to": r[1]
             })
 
-        return jsonify(result)
+        return data
 
     except Exception as e:
         return {"error": str(e)}
         
  #--Fraud Detection--#
-@app.route('/fraud_check/<parcel_id>', methods=['GET'])
-def fraud_check(parcel_id):
+@app.route('/fraud_check/<land_id>', methods=['GET'])
+def fraud_check(land_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        parcel_id = land_id.replace("L", "P")
+
         cursor.execute("""
-            SELECT duplicate_survey, multiple_claim, abnormal_transfer
+            SELECT risk_score
             FROM fraud_detection
             WHERE parcel_id = %s
         """, (parcel_id,))
 
-        result = cursor.fetchone()
+        row = cursor.fetchone()
 
         cursor.close()
         conn.close()
 
-        if not result:
-            return {"message": "No fraud record"}
-
-        score = sum(map(int, result))
-
-        risk = "Low" if score == 0 else "Medium" if score == 1 else "High"
+        if not row:
+            return {}
 
         return {
-            "parcel_id": parcel_id,
-            "risk_level": risk
+            "parcel_id": land_id,
+            "risk_level": row[0]
         }
 
     except Exception as e:
@@ -512,11 +514,13 @@ dispute_id = "D" + str(random.randint(100,999))
 import random
 import datetime
 
-@app.route('/dispute/<parcel_id>', methods=['GET'])
-def dispute(parcel_id):
+@app.route('/dispute/<land_id>', methods=['GET'])
+def dispute(land_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        parcel_id = land_id.replace("L", "P")
 
         cursor.execute("""
             SELECT description, status
@@ -674,38 +678,35 @@ def generate_tax(parcel_id):
     })
 
 #--Get tax details---#
-@app.route('/tax/<parcel_id>', methods=['GET'])
-def get_tax(parcel_id):
+@app.route('/tax/<land_id>', methods=['GET'])
+def tax(land_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        parcel_id = land_id.replace("L", "P")
+
         cursor.execute("""
-            SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status
+            SELECT tax_amount, payment_status
             FROM tax
             WHERE parcel_id = %s
         """, (parcel_id,))
 
-        rows = cursor.fetchall()
+        row = cursor.fetchone()
 
         cursor.close()
         conn.close()
 
-        result = []
-        for row in rows:
-            result.append({
-                "tax_id": row[0],
-                "tax_year": row[1],
-                "tax_amount": row[2],
-                "tax_paid": row[3],
-                "payment_date": str(row[4]),
-                "payment_status": row[5]
-            })
+        if not row:
+            return {}
 
-        return jsonify(result)
+        return {
+            "amount": row[0],
+            "status": row[1]
+        }
 
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return {"error": str(e)}
 #---Check pending tax---#
 @app.route('/pending_tax/<parcel_id>', methods=['GET'])
 def get_pending_tax(parcel_id):
@@ -844,11 +845,13 @@ def add_mortgage():
 # 2 Get Mortgage Details
 # ---------------------------------
 
-@app.route('/mortgage/<parcel_id>', methods=['GET'])
-def mortgage(parcel_id):
+@app.route('/mortgage/<land_id>', methods=['GET'])
+def mortgage(land_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        parcel_id = land_id.replace("L", "P")
 
         cursor.execute("""
             SELECT bank_name, loan_amount
@@ -871,7 +874,6 @@ def mortgage(parcel_id):
 
     except Exception as e:
         return {"error": str(e)}
-
 
 # ---------------------------------
 # 3 Check Mortgage Status
@@ -1033,14 +1035,25 @@ def get_login_activity():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT user_id FROM login_activity")
+        cursor.execute("""
+            SELECT user_id, action_type
+            FROM login_activity
+            LIMIT 50
+        """)
 
         rows = cursor.fetchall()
 
         cursor.close()
         conn.close()
 
-        return [{"user_id": r[0]} for r in rows]
+        data = []
+        for r in rows:
+            data.append({
+                "user_id": r[0],
+                "action_type": r[1]
+            })
+
+        return data
 
     except Exception as e:
         return {"error": str(e)}
@@ -1167,14 +1180,25 @@ def get_blockchain():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT block_number FROM blockchain")
+        cursor.execute("""
+            SELECT block_number, confirmation_status
+            FROM blockchain
+            LIMIT 50
+        """)
 
         rows = cursor.fetchall()
 
         cursor.close()
         conn.close()
 
-        return [{"block_number": r[0]} for r in rows]
+        data = []
+        for r in rows:
+            data.append({
+                "block_number": r[0],
+                "confirmation_status": r[1]
+            })
+
+        return data
 
     except Exception as e:
         return {"error": str(e)}
@@ -1744,36 +1768,39 @@ def upload_document():
         "document_id": document_id
     }
 
-@app.route('/documents/<land_id>')
-def get_documents(land_id):
+@app.route('/documents/<land_id>', methods=['GET'])
+def documents(land_id):
     try:
-        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+        conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT document_id, document_type, verification_status
-            FROM documents
-            WHERE parcel_id = %s
-        """, (land_id,))
+        parcel_id = land_id.replace("L", "P")
 
-        docs = cursor.fetchall()
+        cursor.execute("""
+            SELECT document_type, verification_status
+            FROM document
+            WHERE parcel_id = %s
+        """, (parcel_id,))
+
+        rows = cursor.fetchall()
 
         cursor.close()
         conn.close()
 
-        result = []
-        for d in docs:
-            result.append({
-                "document_id": d[0],
-                "document_type": d[1],
-                "status": d[2],
-                "view_url": f"/view_document/{d[0]}"
+        if not rows:
+            return []
+
+        data = []
+        for r in rows:
+            data.append({
+                "type": r[0],
+                "status": r[1]
             })
 
-        return jsonify(result)
+        return data
 
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return {"error": str(e)}
 
 
 @app.route("/view/<document_id>")
