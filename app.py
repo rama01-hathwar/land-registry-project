@@ -44,6 +44,9 @@ def init_document_table():
 model = joblib.load("land_price_model.pkl")
 model_columns = joblib.load("model_columns.pkl")
 app = Flask(__name__)
+
+def convert_land_to_parcel(land_id):
+    return land_id.replace("L", "P")
 UPLOAD_FOLDER = "static/documents"
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
 
@@ -443,15 +446,16 @@ def transfer_property():
 @app.route('/owner_history/<land_id>', methods=['GET'])
 def owner_history(land_id):
     try:
+        parcel_id = convert_land_to_parcel(land_id)
+
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        parcel_id = land_id.replace("L", "P")
-
         cursor.execute("""
-            SELECT from_owner, to_owner
+            SELECT from_owner, to_owner, transaction_type, timestamp
             FROM transfer
             WHERE parcel_id = %s
+            ORDER BY timestamp DESC
         """, (parcel_id,))
 
         rows = cursor.fetchall()
@@ -459,14 +463,13 @@ def owner_history(land_id):
         cursor.close()
         conn.close()
 
-        if not rows:
-            return []
-
         data = []
         for r in rows:
             data.append({
                 "from": r[0],
-                "to": r[1]
+                "to": r[1],
+                "type": r[2],
+                "date": str(r[3])
             })
 
         return data
@@ -476,12 +479,13 @@ def owner_history(land_id):
         
  #--Fraud Detection--#
 @app.route('/fraud_check/<land_id>', methods=['GET'])
-def fraud_check(land_id):
+@app.route('/fraud_check/<land_id>', methods=['GET'])
+def fraud(land_id):
     try:
+        parcel_id = convert_land_to_parcel(land_id)
+
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        parcel_id = land_id.replace("L", "P")
 
         cursor.execute("""
             SELECT risk_score
@@ -498,7 +502,6 @@ def fraud_check(land_id):
             return {}
 
         return {
-            "parcel_id": land_id,
             "risk_level": row[0]
         }
 
@@ -517,10 +520,10 @@ import datetime
 @app.route('/dispute/<land_id>', methods=['GET'])
 def dispute(land_id):
     try:
+        parcel_id = convert_land_to_parcel(land_id)
+
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        parcel_id = land_id.replace("L", "P")
 
         cursor.execute("""
             SELECT description, status
@@ -681,10 +684,10 @@ def generate_tax(parcel_id):
 @app.route('/tax/<land_id>', methods=['GET'])
 def tax(land_id):
     try:
+        parcel_id = convert_land_to_parcel(land_id)
+
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        parcel_id = land_id.replace("L", "P")
 
         cursor.execute("""
             SELECT tax_amount, payment_status
@@ -848,10 +851,10 @@ def add_mortgage():
 @app.route('/mortgage/<land_id>', methods=['GET'])
 def mortgage(land_id):
     try:
+        parcel_id = convert_land_to_parcel(land_id)
+
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        parcel_id = land_id.replace("L", "P")
 
         cursor.execute("""
             SELECT bank_name, loan_amount
@@ -1036,8 +1039,9 @@ def get_login_activity():
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT user_id, action_type
+            SELECT user_id, action_type, timestamp
             FROM login_activity
+            ORDER BY timestamp DESC
             LIMIT 50
         """)
 
@@ -1050,7 +1054,8 @@ def get_login_activity():
         for r in rows:
             data.append({
                 "user_id": r[0],
-                "action_type": r[1]
+                "action_type": r[1],
+                "time": str(r[2])
             })
 
         return data
@@ -1058,6 +1063,39 @@ def get_login_activity():
     except Exception as e:
         return {"error": str(e)}
 
+#-------------------------#
+@app.route('/login_activity/<land_id>', methods=['GET'])
+def login_activity(land_id):
+    try:
+        parcel_id = convert_land_to_parcel(land_id)
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT user_id, action_type, timestamp
+            FROM login_activity
+            WHERE parcel_id = %s
+        """, (parcel_id,))
+
+        rows = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        data = []
+        for r in rows:
+            data.append({
+                "user_id": r[0],
+                "action_type": r[1],
+                "time": str(r[2])
+            })
+
+        return data
+
+    except Exception as e:
+        return {"error": str(e)}
+        
 #---Get Activity By User--#
 @app.route('/user_activity/<user_id>', methods=['GET'])
 def user_activity(user_id):
@@ -1771,10 +1809,10 @@ def upload_document():
 @app.route('/documents/<land_id>', methods=['GET'])
 def documents(land_id):
     try:
+        parcel_id = convert_land_to_parcel(land_id)
+
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        parcel_id = land_id.replace("L", "P")
 
         cursor.execute("""
             SELECT document_type, verification_status
@@ -1786,9 +1824,6 @@ def documents(land_id):
 
         cursor.close()
         conn.close()
-
-        if not rows:
-            return []
 
         data = []
         for r in rows:
