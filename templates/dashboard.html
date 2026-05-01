@@ -1,99 +1,319 @@
 <!DOCTYPE html>
 <html>
 <head>
-
 <meta charset="UTF-8">
-<title>LandChain Dashboard</title>
+<title>LandChain System</title>
 
-<link rel="stylesheet" href="/static/css/style.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="/static/js/app.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
 
+<style>
+body {
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:#f5f7fb;
+}
+
+/* LOGIN */
+#login {
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);
+}
+.login-box {
+  background:white;
+  padding:30px;
+  border-radius:16px;
+  width:320px;
+}
+
+/* APP */
+#app { display:none; }
+
+/* SIDEBAR */
+.sidebar {
+  width:250px;
+  background:white;
+  height:100vh;
+  position:fixed;
+  padding:20px;
+  box-shadow:2px 0 10px rgba(0,0,0,0.05);
+}
+.sidebar a {
+  display:block;
+  padding:12px;
+  border-radius:10px;
+  margin:6px 0;
+  cursor:pointer;
+}
+.sidebar a:hover { background:#eef2ff; }
+
+/* MAIN */
+.main { margin-left:260px; }
+
+.topbar {
+  background:white;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+}
+
+/* CARDS */
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:15px;
+  padding:20px;
+}
+.card {
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.05);
+}
+
+/* BADGES */
+.badge {
+  padding:5px 10px;
+  border-radius:20px;
+}
+.green { background:#d4f8e8; color:#27ae60; }
+.red { background:#ffd6d6; color:#e74c3c; }
+.orange { background:#ffe8c2; color:#d97706; }
+
+/* INPUT */
+input,select {
+  padding:10px;
+  margin:5px;
+  border-radius:8px;
+  border:1px solid #ddd;
+}
+
+/* BUTTON */
+button {
+  padding:10px 15px;
+  background:#4f46e5;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+</style>
 </head>
 
 <body>
 
-<div class="app">
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <h2>LandChain</h2>
+    <input placeholder="Email">
+    <input type="password" placeholder="Password">
+    <select>
+      <option>Admin</option>
+      <option>Registrar</option>
+      <option>Landowner</option>
+      <option>Verifier</option>
+      <option>Bank</option>
+    </select>
+    <button onclick="start()">Login</button>
+  </div>
+</div>
 
-<!-- SIDEBAR -->
+<!-- APP -->
+<div id="app">
+
 <div class="sidebar">
-
 <h2>LandChain</h2>
 
-<div class="menu active" onclick="show('dashboard',this)">Dashboard</div>
-<div class="menu" onclick="show('access',this)">Access Control</div>
-<div class="menu" onclick="show('transfer',this)">Ownership Transfer</div>
-<div class="menu" onclick="show('history',this)">Ownership History</div>
-<div class="menu" onclick="show('documents',this)">Document Storage</div>
-<div class="menu" onclick="show('tax',this)">Revenue & Tax</div>
-<div class="menu" onclick="show('mortgage',this)">Mortgage & Loans</div>
-<div class="menu" onclick="show('fraud',this)">Fraud Detection</div>
-<div class="menu" onclick="show('dispute',this)">Dispute & Eligibility</div>
-<div class="menu" onclick="show('gis',this)">GIS & Geo Tagging</div>
-<div class="menu" onclick="show('qr',this)">QR Verification</div>
-<div class="menu" onclick="show('ml',this)">ML Prediction</div>
-<div class="menu" onclick="show('logs',this)">Activity Logs</div>
-<div class="menu" onclick="show('blockchain',this)">Blockchain Explorer</div>
+<a onclick="dashboard()">Dashboard</a>
+<a onclick="rbac()">Access Control</a>
+<a onclick="transfer()">Ownership Transfer</a>
+<a onclick="history()">Ownership History</a>
+<a onclick="documents()">Document Storage</a>
+<a onclick="tax()">Revenue & Tax</a>
+<a onclick="mortgage()">Mortgage & Loans</a>
+<a onclick="fraud()">Fraud Detection</a>
+<a onclick="gis()">GIS Map</a>
+<a onclick="qr()">QR Verification</a>
+<a onclick="ml()">ML Prediction</a>
+<a onclick="logs()">Activity Logs</a>
+<a onclick="blockchain()">Blockchain Explorer</a>
 
 </div>
 
-<!-- CONTENT -->
-<div class="content">
-
-<h1>Dashboard</h1>
-
-<!-- DASHBOARD -->
-<div id="dashboard" class="module">
-
-<div class="cards">
-<div class="card blue">Properties<br><b>12,847</b></div>
-<div class="card green">Transfers<br><b>234</b></div>
-<div class="card orange">Revenue<br><b>₹4.2Cr</b></div>
-<div class="card red">Fraud Alerts<br><b>6</b></div>
+<div class="main">
+<div class="topbar">
+<span class="badge green">Admin</span>
 </div>
 
-<div class="chart-box">
-<canvas id="mainChart"></canvas>
+<div id="content"></div>
 </div>
 
 </div>
 
-<!-- ALL MODULES -->
+<script>
 
-<div id="access" class="module hidden">Access Control</div>
+/* LOGIN */
+function start(){
+login.style.display="none";
+app.style.display="block";
+dashboard();
+}
 
-<div id="transfer" class="module hidden">Ownership Transfer</div>
-
-<div id="history" class="module hidden"></div>
-
-<div id="documents" class="module hidden"></div>
-
-<div id="tax" class="module hidden"></div>
-
-<div id="mortgage" class="module hidden"></div>
-
-<div id="fraud" class="module hidden"></div>
-
-<div id="dispute" class="module hidden"></div>
-
-<div id="gis" class="module hidden">
-<div id="map" style="height:500px;"></div>
+/* DASHBOARD */
+function dashboard(){
+fetch("/properties")
+.then(r=>r.json())
+.then(data=>{
+content.innerHTML=`
+<div class="grid">
+<div class="card">Total Properties: ${data.properties.length}</div>
+<div class="card">Pending Transfers</div>
+<div class="card">Revenue</div>
+<div class="card">Mortgages</div>
 </div>
 
-<div id="qr" class="module hidden">QR Verification</div>
-
-<div id="ml" class="module hidden">ML Prediction</div>
-
-<div id="logs" class="module hidden"></div>
-
-<div id="blockchain" class="module hidden"></div>
-
+<div style="padding:20px">
+<canvas id="chart"></canvas>
 </div>
+`;
 
-</div>
+new Chart(document.getElementById("chart"),{
+ type:"bar",
+ data:{
+  labels:["Jan","Feb","Mar"],
+  datasets:[{label:"Registrations",data:[10,20,15]}]
+ }
+});
+});
+}
+
+/* RBAC */
+function rbac(){
+content.innerHTML=`<div class="card">User Management + Permissions Matrix</div>`;
+}
+
+/* TRANSFER */
+function transfer(){
+content.innerHTML=`
+<div class="card">
+<input id="p" placeholder="Parcel">
+<input id="s" placeholder="Seller">
+<input id="b" placeholder="Buyer">
+<button onclick="sendTransfer()">Transfer</button>
+<div id="res"></div>
+</div>`;
+}
+function sendTransfer(){
+fetch("/transfer_property",{
+ method:"POST",
+ headers:{"Content-Type":"application/json"},
+ body:JSON.stringify({
+  parcel_id:p.value,
+  seller_id:s.value,
+  buyer_id:b.value
+ })
+})
+.then(r=>r.json())
+.then(d=> res.innerHTML=d.transaction_hash);
+}
+
+/* HISTORY */
+function history(){
+content.innerHTML=`
+<input id="hid">
+<button onclick="loadH()">Load</button>
+<div id="hres"></div>`;
+}
+function loadH(){
+fetch("/owner_history/"+hid.value)
+.then(r=>r.json())
+.then(d=>{
+hres.innerHTML=d.map(x=>`${x.from} → ${x.to}`).join("<br>");
+});
+}
+
+/* DOCUMENT */
+function documents(){
+content.innerHTML=`<div class="card">Upload & Verify Documents</div>`;
+}
+
+/* TAX */
+function tax(){
+content.innerHTML=`<div class="card">Tax Dashboard</div>`;
+}
+
+/* MORTGAGE */
+function mortgage(){
+content.innerHTML=`<div class="card">Mortgage Details</div>`;
+}
+
+/* FRAUD */
+function fraud(){
+content.innerHTML=`<div class="grid">
+<div class="card green">Low</div>
+<div class="card orange">Medium</div>
+<div class="card red">High</div>
+</div>`;
+}
+
+/* GIS */
+function gis(){
+content.innerHTML=`<iframe src="/" style="width:100%;height:600px;border:none;"></iframe>`;
+}
+
+/* QR */
+function qr(){
+content.innerHTML=`<img src="/qr/P001"><div class="badge green">Verified</div>`;
+}
+
+/* ML */
+function ml(){
+content.innerHTML=`
+<input id="area">
+<button onclick="predict()">Predict</button>
+<div id="mres"></div>`;
+}
+function predict(){
+fetch("/predict_price",{
+ method:"POST",
+ headers:{"Content-Type":"application/json"},
+ body:JSON.stringify({
+  area_sqft:area.value,
+  road_distance_km:2,
+  city_distance_km:5,
+  nearby_school:"Yes",
+  nearby_hospital:"No",
+  year:2024
+ })
+})
+.then(r=>r.json())
+.then(d=> mres.innerHTML=d.predicted_price);
+}
+
+/* LOGS */
+function logs(){
+fetch("/get_login_activity")
+.then(r=>r.json())
+.then(data=>{
+content.innerHTML=data.map(l=>`<div class="card">${l.user_id}</div>`).join("");
+});
+}
+
+/* BLOCKCHAIN */
+function blockchain(){
+fetch("/get_blockchain")
+.then(r=>r.json())
+.then(data=>{
+content.innerHTML=data.map(b=>`<div class="card">Block ${b.block_number}</div>`).join("");
+});
+}
+
+</script>
 
 </body>
 </html>
