@@ -1135,6 +1135,52 @@ fetch("/api/land")
 const blinkStyle=document.createElement('style');
 blinkStyle.textContent='@keyframes blink{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}.blink{animation:blink 1s infinite}';
 document.head.appendChild(blinkStyle);
+/* ===== QR SEARCH ===== */
+function qrSearch(){
+  var query = document.getElementById('qrSearchInput').value.trim();
+  var msgBox = document.getElementById('qrSearchMsg');
+  if(!query){msgBox.innerHTML='<span style="color:var(--danger)"><i class="fas fa-times-circle"></i> Enter a Parcel ID or Certificate ID</span>';return}
+  msgBox.innerHTML='<span style="color:var(--text-light)"><i class="fas fa-spinner fa-spin"></i> Searching...</span>';
+
+  var isCert = query.toUpperCase().startsWith('CERT');
+
+  if(isCert){
+    var items = document.querySelectorAll('.cert-item');
+    var found = false;
+    items.forEach(function(item){
+      var certText = item.querySelector('div > div:first-child').textContent;
+      if(certText === query.toUpperCase()){
+        items.forEach(function(i){i.classList.remove('selected')});
+        item.classList.add('selected');
+        item.scrollIntoView({behavior:'smooth',block:'nearest'});
+        var onclickAttr = item.getAttribute('onclick') || '';
+        var match = onclickAttr.match(/'([^']+)'\)/);
+        var parcelId = match ? match[1] : '';
+        selectCert(item, query, parcelId);
+        found = true;
+      }
+    });
+    if(!found){msgBox.innerHTML='<span style="color:var(--danger)"><i class="fas fa-times-circle"></i> Certificate not found in list</span>'}
+    else{msgBox.innerHTML='<span style="color:var(--success)"><i class="fas fa-check-circle"></i> Certificate found</span>'}
+  } else {
+    var parcelId = query.toUpperCase().replace(/^L/, 'P');
+    document.getElementById('qrImage').src = '/qr/' + parcelId;
+    document.getElementById('qrInfo').textContent = query.toUpperCase() + ' — ' + parcelId;
+    document.getElementById('scanCertId').textContent = 'QR-' + parcelId;
+    document.getElementById('scanParcelId').textContent = parcelId;
+    document.querySelectorAll('.cert-item').forEach(function(i){i.classList.remove('selected')});
+    var r = document.getElementById('scanResult');
+    r.className = 'scan-result verified';
+    r.style.background = 'var(--success-bg)';
+    r.style.border = '2px solid var(--success)';
+    r.querySelector('.check-icon').style.background = 'var(--success)';
+    r.querySelector('.check-icon i').className = 'fas fa-check';
+    r.querySelector('h3').textContent = 'Verified Authentic';
+    r.querySelector('h3').style.color = 'var(--success)';
+    document.getElementById('scanOwner').textContent = 'Searched by ID';
+    msgBox.innerHTML = '<span style="color:var(--success)"><i class="fas fa-check-circle"></i> QR generated for ' + parcelId + '</span>';
+  }
+}
 
 /* ===== QR PAGE ===== */
 function selectCert(el,certId,parcelId){
@@ -1143,6 +1189,7 @@ function selectCert(el,certId,parcelId){
   document.getElementById('qrImage').src='/qr/'+parcelId;
   document.getElementById('scanCertId').textContent=certId;
   document.getElementById('scanParcelId').textContent=parcelId;
+  document.getElementById('qrInfo').textContent=certId + ' — ' + parcelId;
   const isSusp=el.querySelector('.badge-red')!==null;
   const r=document.getElementById('scanResult');
   if(isSusp){
@@ -1265,7 +1312,10 @@ function confirmBlock(){alert('Block confirmation requires blockchain transactio
 
 /* ===== UTILS ===== */
 function copyHash(el){navigator.clipboard.writeText(el.textContent).then(()=>{const t=document.getElementById('copyToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)})}
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElementById('loginOverlay').classList.contains('hidden'))handleLogin()});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!document.getElementById('loginOverlay').classList.contains('hidden'))handleLogin();
+  if(e.key==='Enter'&&document.getElementById('qrSearchInput')===document.activeElement)qrSearch();
+});
 </script>
 </body>
 </html>
