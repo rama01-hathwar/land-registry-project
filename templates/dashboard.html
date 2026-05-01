@@ -2,18 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>LandChain System</title>
+<title>LandChain</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
 
 <style>
-body {
-  margin:0;
-  font-family:'Inter',sans-serif;
-  background:#f5f7fb;
-}
+body { margin:0; font-family:'Inter',sans-serif; background:#f5f7fb; }
 
 /* LOGIN */
 #login {
@@ -24,41 +19,30 @@ body {
   background:linear-gradient(135deg,#3b82f6,#6366f1);
 }
 .login-box {
-  background:white;
-  padding:30px;
-  border-radius:16px;
-  width:320px;
+  background:white; padding:30px; border-radius:16px; width:320px;
 }
-
-/* APP */
-#app { display:none; }
 
 /* SIDEBAR */
 .sidebar {
-  width:250px;
-  background:white;
-  height:100vh;
-  position:fixed;
-  padding:20px;
+  width:260px; position:fixed; height:100vh;
+  background:white; padding:20px; overflow-y:auto;
   box-shadow:2px 0 10px rgba(0,0,0,0.05);
 }
 .sidebar a {
-  display:block;
-  padding:12px;
-  border-radius:10px;
-  margin:6px 0;
-  cursor:pointer;
+  display:block; padding:12px; margin:5px 0;
+  border-radius:10px; cursor:pointer;
 }
 .sidebar a:hover { background:#eef2ff; }
+.active { background:#e0edff; }
 
 /* MAIN */
-.main { margin-left:260px; }
+.main { margin-left:260px; padding:20px; }
 
+/* TOPBAR */
 .topbar {
-  background:white;
-  padding:15px;
-  display:flex;
-  justify-content:space-between;
+  background:white; padding:15px;
+  display:flex; justify-content:space-between;
+  box-shadow:0 5px 20px rgba(0,0,0,0.05);
 }
 
 /* CARDS */
@@ -66,91 +50,85 @@ body {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
   gap:15px;
-  padding:20px;
 }
 .card {
-  background:white;
-  padding:20px;
+  background:white; padding:20px;
   border-radius:16px;
   box-shadow:0 5px 20px rgba(0,0,0,0.05);
+  transition:0.3s;
 }
+.card:hover { transform:translateY(-5px); }
 
 /* BADGES */
-.badge {
-  padding:5px 10px;
-  border-radius:20px;
-}
-.green { background:#d4f8e8; color:#27ae60; }
-.red { background:#ffd6d6; color:#e74c3c; }
-.orange { background:#ffe8c2; color:#d97706; }
+.green { background:#d4f8e8; color:#27ae60; padding:5px; border-radius:10px;}
+.red { background:#ffd6d6; color:#e74c3c; padding:5px; border-radius:10px;}
+.orange { background:#ffe8c2; color:#d97706; padding:5px; border-radius:10px;}
 
-/* INPUT */
-input,select {
-  padding:10px;
-  margin:5px;
-  border-radius:8px;
-  border:1px solid #ddd;
+/* DARK MODE */
+.dark { background:#1e1e2f; color:white; }
+.dark .card,.dark .sidebar,.dark .topbar { background:#2a2a40; color:white; }
+
+/* ALERT */
+#alertBox {
+ position:fixed; top:20px; right:20px; z-index:999;
 }
 
-/* BUTTON */
-button {
-  padding:10px 15px;
-  background:#4f46e5;
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
+/* LOADER */
+.loader {
+ width:40px; height:40px;
+ border:4px solid #ddd;
+ border-top:4px solid blue;
+ border-radius:50%;
+ animation:spin 1s linear infinite;
 }
+@keyframes spin { 100%{ transform:rotate(360deg); } }
 </style>
 </head>
 
 <body>
 
+<div id="alertBox"></div>
+
 <!-- LOGIN -->
 <div id="login">
   <div class="login-box">
     <h2>LandChain</h2>
-    <input placeholder="Email">
-    <input type="password" placeholder="Password">
-    <select>
-      <option>Admin</option>
-      <option>Registrar</option>
-      <option>Landowner</option>
-      <option>Verifier</option>
-      <option>Bank</option>
-    </select>
+    <input placeholder="Email"><br><br>
+    <input type="password" placeholder="Password"><br><br>
+
+    <select id="role">
+      <option value="admin">Admin</option>
+      <option value="registrar">Registrar</option>
+      <option value="landowner">Landowner</option>
+      <option value="bank">Bank</option>
+    </select><br><br>
+
     <button onclick="start()">Login</button>
   </div>
 </div>
 
 <!-- APP -->
-<div id="app">
+<div id="app" style="display:none">
 
 <div class="sidebar">
-<h2>LandChain</h2>
+  <h2>LandChain</h2>
 
-<a onclick="dashboard()">Dashboard</a>
-<a onclick="rbac()">Access Control</a>
-<a onclick="transfer()">Ownership Transfer</a>
-<a onclick="history()">Ownership History</a>
-<a onclick="documents()">Document Storage</a>
-<a onclick="tax()">Revenue & Tax</a>
-<a onclick="mortgage()">Mortgage & Loans</a>
-<a onclick="fraud()">Fraud Detection</a>
-<a onclick="gis()">GIS Map</a>
-<a onclick="qr()">QR Verification</a>
-<a onclick="ml()">ML Prediction</a>
-<a onclick="logs()">Activity Logs</a>
-<a onclick="blockchain()">Blockchain Explorer</a>
-
+  <a onclick="setActive(this);dashboard()">Dashboard</a>
+  <a onclick="setActive(this);tax()">Tax</a>
+  <a onclick="setActive(this);mortgage()">Mortgage</a>
+  <a onclick="setActive(this);fraud()">Fraud</a>
+  <a onclick="setActive(this);gis()">GIS</a>
 </div>
 
 <div class="main">
-<div class="topbar">
-<span class="badge green">Admin</span>
-</div>
+  <div class="topbar">
+    <div>Dashboard</div>
+    <div>
+      <button onclick="toggleDark()">🌙</button>
+    </div>
+  </div>
 
-<div id="content"></div>
+  <div id="content"></div>
 </div>
 
 </div>
@@ -158,160 +136,138 @@ button {
 <script>
 
 /* LOGIN */
+let userRole="admin";
 function start(){
-login.style.display="none";
-app.style.display="block";
-dashboard();
+  userRole=document.getElementById("role").value;
+  login.style.display="none";
+  app.style.display="block";
+  dashboard();
 }
 
-/* DASHBOARD */
+/* ALERT */
+function showAlert(msg,type="success"){
+  let el=document.createElement("div");
+  el.innerHTML=msg;
+  el.style.background= type==="error"?"#e74c3c":"#27ae60";
+  el.style.color="white";
+  el.style.padding="10px";
+  el.style.marginTop="10px";
+  el.style.borderRadius="8px";
+  alertBox.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+
+/* ACTIVE MENU */
+function setActive(el){
+  document.querySelectorAll(".sidebar a").forEach(a=>a.classList.remove("active"));
+  el.classList.add("active");
+}
+
+/* DARK MODE */
+function toggleDark(){
+  document.body.classList.toggle("dark");
+}
+
+/* DASHBOARD AUTO */
 function dashboard(){
-fetch("/properties")
-.then(r=>r.json())
-.then(data=>{
-content.innerHTML=`
-<div class="grid">
-<div class="card">Total Properties: ${data.properties.length}</div>
-<div class="card">Pending Transfers</div>
-<div class="card">Revenue</div>
-<div class="card">Mortgages</div>
-</div>
 
-<div style="padding:20px">
-<canvas id="chart"></canvas>
-</div>
-`;
+  content.innerHTML="<div class='loader'></div>";
 
-new Chart(document.getElementById("chart"),{
- type:"bar",
- data:{
-  labels:["Jan","Feb","Mar"],
-  datasets:[{label:"Registrations",data:[10,20,15]}]
- }
-});
-});
-}
+  fetch("/dashboard_data")
+  .then(r=>r.json())
+  .then(d=>{
 
-/* RBAC */
-function rbac(){
-content.innerHTML=`<div class="card">User Management + Permissions Matrix</div>`;
-}
+    content.innerHTML=`
+      <div class="grid">
 
-/* TRANSFER */
-function transfer(){
-content.innerHTML=`
-<div class="card">
-<input id="p" placeholder="Parcel">
-<input id="s" placeholder="Seller">
-<input id="b" placeholder="Buyer">
-<button onclick="sendTransfer()">Transfer</button>
-<div id="res"></div>
-</div>`;
-}
-function sendTransfer(){
-fetch("/transfer_property",{
- method:"POST",
- headers:{"Content-Type":"application/json"},
- body:JSON.stringify({
-  parcel_id:p.value,
-  seller_id:s.value,
-  buyer_id:b.value
- })
-})
-.then(r=>r.json())
-.then(d=> res.innerHTML=d.transaction_hash);
-}
+        <div class="card">
+          <h4>Total Properties</h4>
+          <h2>${d.total_properties}</h2>
+        </div>
 
-/* HISTORY */
-function history(){
-content.innerHTML=`
-<input id="hid">
-<button onclick="loadH()">Load</button>
-<div id="hres"></div>`;
-}
-function loadH(){
-fetch("/owner_history/"+hid.value)
-.then(r=>r.json())
-.then(d=>{
-hres.innerHTML=d.map(x=>`${x.from} → ${x.to}`).join("<br>");
-});
-}
+        <div class="card green">
+          <h4>Total Tax</h4>
+          <h2>₹${d.total_tax}</h2>
+        </div>
 
-/* DOCUMENT */
-function documents(){
-content.innerHTML=`<div class="card">Upload & Verify Documents</div>`;
+        <div class="card orange">
+          <h4>Pending Tax</h4>
+          <h2>₹${d.pending_tax}</h2>
+        </div>
+
+        <div class="card">
+          <h4>Mortgages</h4>
+          <h2>${d.mortgages}</h2>
+        </div>
+
+        <div class="card red">
+          <h4>Fraud Score</h4>
+          <h2>${d.fraud_score}</h2>
+        </div>
+
+      </div>
+
+      <canvas id="chart" style="margin-top:20px"></canvas>
+    `;
+
+    new Chart(document.getElementById("chart"),{
+      type:"line",
+      data:{
+        labels:["Jan","Feb","Mar","Apr"],
+        datasets:[{label:"Revenue",data:[20000,40000,30000,50000]}]
+      }
+    });
+
+    showAlert("Dashboard Loaded");
+
+  })
+  .catch(()=>showAlert("Error loading data","error"));
 }
 
 /* TAX */
 function tax(){
-content.innerHTML=`<div class="card">Tax Dashboard</div>`;
+  fetch("/tax/L0")
+  .then(r=>r.json())
+  .then(d=>{
+    content.innerHTML=`
+      <div class="grid">
+        <div class="card green">₹${d.total}</div>
+        <div class="card">₹${d.paid}</div>
+        <div class="card orange">₹${d.pending}</div>
+      </div>
+    `;
+  });
 }
 
 /* MORTGAGE */
 function mortgage(){
-content.innerHTML=`<div class="card">Mortgage Details</div>`;
+  fetch("/mortgage/L0")
+  .then(r=>r.json())
+  .then(d=>{
+    content.innerHTML=`<div class="card">₹${d.amount} - ${d.bank}</div>`;
+  });
 }
 
 /* FRAUD */
 function fraud(){
-content.innerHTML=`<div class="grid">
-<div class="card green">Low</div>
-<div class="card orange">Medium</div>
-<div class="card red">High</div>
-</div>`;
+  fetch("/fraud_check/L0")
+  .then(r=>r.json())
+  .then(d=>{
+    content.innerHTML=`<div class="card">Risk: ${d.risk_level}</div>`;
+  });
 }
 
-/* GIS */
+/* MAP */
 function gis(){
-content.innerHTML=`<iframe src="/map" style="width:100%;height:600px;border:none;"></iframe>`;
+  content.innerHTML=`<iframe src="/map" style="width:100%;height:600px;border:none;"></iframe>`;
 }
 
-/* QR */
-function qr(){
-content.innerHTML=`<img src="/qr/P001"><div class="badge green">Verified</div>`;
-}
-
-/* ML */
-function ml(){
-content.innerHTML=`
-<input id="area">
-<button onclick="predict()">Predict</button>
-<div id="mres"></div>`;
-}
-function predict(){
-fetch("/predict_price",{
- method:"POST",
- headers:{"Content-Type":"application/json"},
- body:JSON.stringify({
-  area_sqft:area.value,
-  road_distance_km:2,
-  city_distance_km:5,
-  nearby_school:"Yes",
-  nearby_hospital:"No",
-  year:2024
- })
-})
-.then(r=>r.json())
-.then(d=> mres.innerHTML=d.predicted_price);
-}
-
-/* LOGS */
-function logs(){
-fetch("/get_login_activity")
-.then(r=>r.json())
-.then(data=>{
-content.innerHTML=data.map(l=>`<div class="card">${l.user_id}</div>`).join("");
-});
-}
-
-/* BLOCKCHAIN */
-function blockchain(){
-fetch("/get_blockchain")
-.then(r=>r.json())
-.then(data=>{
-content.innerHTML=data.map(b=>`<div class="card">Block ${b.block_number}</div>`).join("");
-});
-}
+/* AUTO REFRESH */
+setInterval(()=>{
+  if(content.innerHTML.includes("Total Properties")){
+    dashboard();
+  }
+},15000);
 
 </script>
 
