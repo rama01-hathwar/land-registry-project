@@ -881,7 +881,6 @@ function handleLogin(){
   document.getElementById('userRole').textContent=document.getElementById('loginRole').selectedOptions[0].text;
   document.getElementById('userAvatar').textContent=currentUser.name.charAt(0).toUpperCase();
   initCharts();
-  initGIS();
   loadBlockchainData();
 }
 function handleLogout(){
@@ -915,7 +914,21 @@ function navigateTo(page){
   const info=pageTitles[page]||['Page','Home'];
   document.getElementById('pageTitle').textContent=info[0];
   document.getElementById('pageBreadcrumb').textContent=info[1];
-  if(page==='gis'&&gisMap)setTimeout(()=>gisMap.invalidateSize(),150);
+
+  /* — KEY FIX: init map ONLY when GIS page becomes visible — */
+  if(page==='gis'){
+    if(!gisMap){
+      /* wait one frame so the div is fully visible before Leaflet reads its size */
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+          initGIS();
+        });
+      });
+    } else {
+      setTimeout(()=>gisMap.invalidateSize(),200);
+    }
+  }
+
   if(page==='blockchain')loadBlockchainData();
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('show');
