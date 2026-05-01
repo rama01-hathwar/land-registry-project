@@ -1980,6 +1980,38 @@ def check_documents():
     except Exception as e:
         import traceback
         return f"<prep>{traceback.format_exec()}</prep>"
+
+@app.route("/dashboard_data")
+def dashboard_data():
+
+    cursor = conn.cursor()
+
+    # Total properties
+    cursor.execute("SELECT COUNT(*) FROM property")
+    total_properties = cursor.fetchone()[0]
+
+    # Total tax
+    cursor.execute("SELECT SUM(tax_amount), SUM(tax_paid) FROM tax")
+    tax = cursor.fetchone()
+    total_tax = tax[0] or 0
+    paid_tax = tax[1] or 0
+    pending_tax = total_tax - paid_tax
+
+    # Mortgage count
+    cursor.execute("SELECT COUNT(*) FROM mortgage")
+    mortgage = cursor.fetchone()[0]
+
+    # Fraud avg
+    cursor.execute("SELECT AVG(risk_level) FROM fraud")
+    fraud = cursor.fetchone()[0] or 0
+
+    return jsonify({
+        "total_properties": total_properties,
+        "total_tax": total_tax,
+        "pending_tax": pending_tax,
+        "mortgages": mortgage,
+        "fraud_score": round(fraud,2)
+    })
     
     
 if __name__ == "__main__":
