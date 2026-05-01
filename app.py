@@ -290,10 +290,12 @@ def transfer_property():
     seller_id = data['seller_id']
     buyer_id = data['buyer_id']
     sale_amount = data['sale_amount']
-    transaction_hash=data['transaction_hash']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
     # --------------------------------
-    # BLOCK TRANSFER IF DISPUTE EXISTS
+    # 1. BLOCK IF DISPUTE EXISTS
     # --------------------------------
     cursor.execute("""
         SELECT COUNT(*) FROM dispute
@@ -303,64 +305,44 @@ def transfer_property():
     dispute_count = cursor.fetchone()[0]
 
     if dispute_count > 0:
-        return jsonify({
-            "message": "Transfer blocked due to active dispute"
-        })
-    #-----Block tranfer if mortgage exist----#
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Transfer blocked — active dispute on property"})
+
+    # --------------------------------
+    # 2. BLOCK IF MORTGAGE EXISTS
+    # --------------------------------
     cursor.execute("""
-    SELECT mortgage_status
-    FROM mortgage
-    WHERE parcel_id = %s AND mortgage_status = 'Active'
-""", (parcel_id,))
+        SELECT mortgage_id
+        FROM mortgage
+        WHERE parcel_id = %s AND mortgage_status = 'Active'
+    """, (parcel_id,))
 
     mortgage = cursor.fetchone()
 
     if mortgage:
-      return jsonify({
-        "message": "Transfer blocked due to active mortgage"
-    }), 400
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Transfer blocked — property under active mortgage"})
+
     # --------------------------------
-    # CHECK TAX
+    # 3. CHECK TAX
     # --------------------------------
     cursor.execute("""
-        SELECT * FROM property_tax
+        SELECT tax_id FROM property_tax
         WHERE parcel_id = %s AND payment_status != 'Paid'
     """, (parcel_id,))
 
     tax = cursor.fetchone()
 
     if tax:
-        return jsonify({
-            "error": "Transfer blocked due to unpaid tax"
-        })
-    # 4 Check blockchain confirmation
-    cursor.execute("""
-    SELECT confirmation_status
-    FROM blockchain
-    WHERE transaction_hash = %s
-    """, (transaction_hash,))
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Transfer blocked — unpaid property tax"})
 
-    blockchain = cursor.fetchone()
-
-    if not blockchain:
-        return jsonify({
-            "message": "Blockchain transaction not found"
-        })
-
-    if blockchain[0] != 'Confirmed':
-        return jsonify({
-            "message": "Transfer blocked: Blockchain transaction not confirmed"
-        })
-
-
-    return jsonify({
-        "message": "All checks passed. Transfer can proceed"
-    })
-    
     # --------------------------------
-# Check the seller is the current owner
-# --------------------------------
-
+    # 4. CHECK SELLER IS CURRENT OWNER
+    # --------------------------------
     cursor.execute("""
         SELECT owner_id FROM property
         WHERE parcel_id = %s
@@ -369,20 +351,24 @@ def transfer_property():
     owner = cursor.fetchone()
 
     if not owner:
-       return jsonify({"error": "Property not found"})
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Property not found"})
 
     if owner[0] != seller_id:
-       return jsonify({"error": "Seller is not the current owner"}) 
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Transfer blocked — seller is not the current owner"})
 
-    # -----------------------------------
-    # 2. GET PREVIOUS TRANSACTION HASH
-    # -----------------------------------
-
+    # --------------------------------
+    # 5. GET PREVIOUS TRANSACTION HASH
+    # --------------------------------
     cursor.execute("""
-        SELECT TOP 1 transaction_hash
+        SELECT transaction_hash
         FROM transfer
         WHERE parcel_id = %s
         ORDER BY timestamp DESC
+        LIMIT 1
     """, (parcel_id,))
 
     result = cursor.fetchone()
@@ -392,56 +378,63 @@ def transfer_property():
     else:
         previous_hash = "GENESIS"
 
-    # -----------------------------------
-    # 3. GENERATE BLOCKCHAIN HASH
-    # -----------------------------------
-
+    # --------------------------------
+    # 6. AUTO-GENERATE BLOCKCHAIN HASH
+    # --------------------------------
     transaction_string = parcel_id + seller_id + buyer_id + previous_hash + str(datetime.datetime.now())
-
     transaction_hash = hashlib.sha256(transaction_string.encode()).hexdigest()
 
-    # -----------------------------------
-    # 4. GENERATE TRANSACTION ID
-    # -----------------------------------
+    # --------------------------------
+    # 7. AUTO-CREATE BLOCKCHAIN BLOCK
+    # --------------------------------
+    cursor.execute("SELECT COUNT(*) FROM blockchain")
+    count = cursor.fetchone()[0]
+    block_number = count + 1
+    block_id = "B" + str(block_number).zfill(3)
 
+    cursor.execute("""
+        INSERT INTO blockchain
+        (block_id, block_number, gas_fee, confirmation_status, timestamp, transaction_hash, previous_hash)
+        VALUES (%s, %s, %s, %s, NOW(), %s, %s)
+    """, (block_id, block_number, 0.0025, 'Confirmed', transaction_hash, previous_hash))
+
+    # --------------------------------
+    # 8. GENERATE TRANSACTION ID
+    # --------------------------------
     transaction_id = "T" + str(random.randint(1000, 9999))
 
-    block_number = random.randint(120000, 130000)
-
-    timestamp = datetime.datetime.now()
-
-    # -----------------------------------
-    # 5. UPDATE PROPERTY OWNER
-    # -----------------------------------
-
+    # --------------------------------
+    # 9. UPDATE PROPERTY OWNER
+    # --------------------------------
     cursor.execute("""
         UPDATE property
         SET owner_id = %s
         WHERE parcel_id = %s
     """, (buyer_id, parcel_id))
 
-    # -----------------------------------
-    # 6. INSERT TRANSACTION RECORD
-    # -----------------------------------
-
+    # --------------------------------
+    # 10. INSERT TRANSFER RECORD
+    # --------------------------------
     cursor.execute("""
         INSERT INTO transfer
         (transaction_id, parcel_id, from_owner, to_owner, transaction_type,
         transaction_hash, block_number, timestamp, sale_amount)
-
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """,
-    (transaction_id, parcel_id, seller_id, buyer_id, "Transfer",
-     transaction_hash, block_number, timestamp, sale_amount))
+    """, (
+        transaction_id, parcel_id, seller_id, buyer_id, "Transfer",
+        transaction_hash, block_number, datetime.datetime.now(), sale_amount
+    ))
 
     conn.commit()
+    cursor.close()
+    conn.close()
 
-    return {
+    return jsonify({
         "message": "Property transferred successfully",
         "transaction_id": transaction_id,
-        "transaction_hash": transaction_hash
-    }
-
+        "transaction_hash": transaction_hash,
+        "block_number": block_number
+    })
 # --- Owner History --- #
 @app.route('/owner_history/<land_id>', methods=['GET'])
 def owner_history(land_id):
