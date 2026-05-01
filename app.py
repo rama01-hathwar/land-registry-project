@@ -603,41 +603,33 @@ def resolve_dispute(dispute_id):
 from datetime import datetime
 import random
 
-@app.route('/generate_tax/<parcel_id>', methods=['POST'])
-def generate_tax(parcel_id):
+@app.route('/generate_tax', methods=['POST'])
+def generate_tax():
+    try:
+        data = request.get_json()
+        parcel_id = data.get('parcel_id')
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+        if not parcel_id:
+            return jsonify({"error": "Parcel ID required"}), 400
 
-    cursor.execute("SELECT current_market_value FROM property WHERE parcel_id = %s", (parcel_id,))
-    prop = cursor.fetchone()
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
 
-    if not prop:
-        cursor.close(); conn.close()
-        return jsonify({"error": "Property not found"})
+        # Example query (adjust if needed)
+        cur.execute("SELECT area_sq_ft FROM gis_land_data WHERE land_id=%s", (parcel_id,))
+        row = cur.fetchone()
 
-    tax_amount = float(prop[0]) * 0.01
-    year = datetime.now().year
+        if not row:
+            return jsonify({"error": "Land not found"}), 404
 
-    cursor.execute("SELECT tax_id FROM tax WHERE parcel_id = %s AND tax_year = %s", (parcel_id, year))
-    if cursor.fetchone():
-        cursor.close(); conn.close()
-        return jsonify({"message": "Tax already generated for this year"})
+        area = row[0]
+        tax = area * 2  # simple logic
 
-    tax_id = "TX" + str(random.randint(1000, 9999))
+        return jsonify({"tax": tax})
 
-    cursor.execute("""
-        INSERT INTO tax
-        (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
-        VALUES (%s, %s, %s, %s, 0, NULL, 'Pending')
-    """, (tax_id, parcel_id, year, tax_amount))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    return jsonify({"message": "Tax generated successfully", "tax_amount": tax_amount})
-
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"error": str(e)}), 500
 @app.route('/ping')
 def ping():
     return jsonify({"status": "ok", "message": "Backend is reachable"})
