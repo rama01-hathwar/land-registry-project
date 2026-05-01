@@ -12,6 +12,7 @@ import json
 import sqlite3
 import joblib
 import pandas as pd
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 def get_db_connection():
@@ -44,6 +45,7 @@ def init_document_table():
 model = joblib.load("land_price_model.pkl")
 model_columns = joblib.load("model_columns.pkl")
 app = Flask(__name__)
+CORS(app)
 
 def convert_land_to_parcel(land_id):
     return land_id.replace("L", "P")
@@ -286,110 +288,69 @@ def transfer_property():
 
     data = request.json
 
-    parcel_id = data['parcel_id']
-    seller_id = data['seller_id']
-    buyer_id = data['buyer_id']
-    sale_amount = data['sale_amount']
+    parcel_id = data.get('parcel_id')
+    seller_id = data.get('seller_id')
+    buyer_id = data.get('buyer_id')
+    sale_amount = data.get('sale_amount')
+
+    if not parcel_id or not seller_id or not buyer_id:
+        return jsonify({"message": "Missing required fields"}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # --------------------------------
-    # 1. BLOCK IF DISPUTE EXISTS
-    # --------------------------------
+    # 1. Check dispute
     cursor.execute("""
         SELECT COUNT(*) FROM dispute
         WHERE parcel_id = %s AND status != 'Resolved'
     """, (parcel_id,))
+    if cursor.fetchone()[0] > 0:
+        cursor.close(); conn.close()
+        return jsonify({"message": "Transfer blocked — active dispute"})
 
-    dispute_count = cursor.fetchone()[0]
-
-    if dispute_count > 0:
-        cursor.close()
-        conn.close()
-        return jsonify({"message": "Transfer blocked — active dispute on property"})
-
-    # --------------------------------
-    # 2. BLOCK IF MORTGAGE EXISTS
-    # --------------------------------
+    # 2. Check mortgage
     cursor.execute("""
-        SELECT mortgage_id
-        FROM mortgage
+        SELECT mortgage_id FROM mortgage
         WHERE parcel_id = %s AND mortgage_status = 'Active'
     """, (parcel_id,))
+    if cursor.fetchone():
+        cursor.close(); conn.close()
+        return jsonify({"message": "Transfer blocked — active mortgage"})
 
-    mortgage = cursor.fetchone()
-
-    if mortgage:
-        cursor.close()
-        conn.close()
-        return jsonify({"message": "Transfer blocked — property under active mortgage"})
-
-    # --------------------------------
-    # 3. CHECK TAX
-    # --------------------------------
+    # 3. Check tax
     cursor.execute("""
-        SELECT tax_id FROM property_tax
+        SELECT tax_id FROM tax
         WHERE parcel_id = %s AND payment_status != 'Paid'
     """, (parcel_id,))
+    if cursor.fetchone():
+        cursor.close(); conn.close()
+        return jsonify({"message": "Transfer blocked — unpaid tax"})
 
-    tax = cursor.fetchone()
-
-    if tax:
-        cursor.close()
-        conn.close()
-        return jsonify({"message": "Transfer blocked — unpaid property tax"})
-
-    # --------------------------------
-    # 4. CHECK SELLER IS CURRENT OWNER
-    # --------------------------------
-    cursor.execute("""
-        SELECT owner_id FROM property
-        WHERE parcel_id = %s
-    """, (parcel_id,))
-
+    # 4. Check seller is owner
+    cursor.execute("SELECT owner_id FROM property WHERE parcel_id = %s", (parcel_id,))
     owner = cursor.fetchone()
-
     if not owner:
-        cursor.close()
-        conn.close()
-        return jsonify({"error": "Property not found"})
-
+        cursor.close(); conn.close()
+        return jsonify({"message": "Property not found"})
     if owner[0] != seller_id:
-        cursor.close()
-        conn.close()
+        cursor.close(); conn.close()
         return jsonify({"message": "Transfer blocked — seller is not the current owner"})
 
-    # --------------------------------
-    # 5. GET PREVIOUS TRANSACTION HASH
-    # --------------------------------
+    # 5. Get previous hash
     cursor.execute("""
-        SELECT transaction_hash
-        FROM transfer
-        WHERE parcel_id = %s
-        ORDER BY timestamp DESC
-        LIMIT 1
+        SELECT transaction_hash FROM transfer
+        WHERE parcel_id = %s ORDER BY timestamp DESC LIMIT 1
     """, (parcel_id,))
+    prev = cursor.fetchone()
+    previous_hash = prev[0] if prev else "GENESIS"
 
-    result = cursor.fetchone()
+    # 6. Generate hash
+    raw = parcel_id + seller_id + buyer_id + previous_hash + str(datetime.now())
+    transaction_hash = hashlib.sha256(raw.encode()).hexdigest()
 
-    if result:
-        previous_hash = result[0]
-    else:
-        previous_hash = "GENESIS"
-
-    # --------------------------------
-    # 6. AUTO-GENERATE BLOCKCHAIN HASH
-    # --------------------------------
-    transaction_string = parcel_id + seller_id + buyer_id + previous_hash + str(datetime.datetime.now())
-    transaction_hash = hashlib.sha256(transaction_string.encode()).hexdigest()
-
-    # --------------------------------
-    # 7. AUTO-CREATE BLOCKCHAIN BLOCK
-    # --------------------------------
+    # 7. Create blockchain block
     cursor.execute("SELECT COUNT(*) FROM blockchain")
-    count = cursor.fetchone()[0]
-    block_number = count + 1
+    block_number = cursor.fetchone()[0] + 1
     block_id = "B" + str(block_number).zfill(3)
 
     cursor.execute("""
@@ -397,6 +358,32 @@ def transfer_property():
         (block_id, block_number, gas_fee, confirmation_status, timestamp, transaction_hash, previous_hash)
         VALUES (%s, %s, %s, %s, NOW(), %s, %s)
     """, (block_id, block_number, 0.0025, 'Confirmed', transaction_hash, previous_hash))
+
+    # 8. Generate transaction ID
+    transaction_id = "T" + str(random.randint(1000, 9999))
+
+    # 9. Update owner
+    cursor.execute("UPDATE property SET owner_id = %s WHERE parcel_id = %s", (buyer_id, parcel_id))
+
+    # 10. Insert transfer record
+    cursor.execute("""
+        INSERT INTO transfer
+        (transaction_id, parcel_id, from_owner, to_owner, transaction_type,
+        transaction_hash, block_number, timestamp, sale_amount)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (transaction_id, parcel_id, seller_id, buyer_id, "Transfer",
+         transaction_hash, block_number, datetime.now(), sale_amount))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "message": "Property transferred successfully",
+        "transaction_id": transaction_id,
+        "transaction_hash": transaction_hash,
+        "block_number": block_number
+    })
 
     # --------------------------------
     # 8. GENERATE TRANSACTION ID
@@ -622,44 +609,23 @@ def generate_tax(parcel_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 1. Get market value of the property
-    cursor.execute(
-        "SELECT current_market_value FROM property WHERE parcel_id = %s",
-        (parcel_id,)
-    )
+    cursor.execute("SELECT current_market_value FROM property WHERE parcel_id = %s", (parcel_id,))
+    prop = cursor.fetchone()
 
-    property_data = cursor.fetchone()
-
-    if not property_data:
-        cursor.close()
-        conn.close()
+    if not prop:
+        cursor.close(); conn.close()
         return jsonify({"error": "Property not found"})
 
-    market_value = float(property_data[0])
-
-    # 2. Calculate tax (1%)
-    tax_amount = market_value * 0.01
-
-    # 3. Get current year
+    tax_amount = float(prop[0]) * 0.01
     year = datetime.now().year
 
-    # 4. Check if tax already exists for this property and year
-    cursor.execute("""
-        SELECT tax_id FROM tax
-        WHERE parcel_id = %s AND tax_year = %s
-    """, (parcel_id, year))
+    cursor.execute("SELECT tax_id FROM tax WHERE parcel_id = %s AND tax_year = %s", (parcel_id, year))
+    if cursor.fetchone():
+        cursor.close(); conn.close()
+        return jsonify({"message": "Tax already generated for this year"})
 
-    existing_tax = cursor.fetchone()
-
-    if existing_tax:
-        cursor.close()
-        conn.close()
-        return jsonify({"message": "Tax already generated for this property for this year"})
-
-    # 5. Generate tax id
     tax_id = "TX" + str(random.randint(1000, 9999))
 
-    # 6. Insert new tax record
     cursor.execute("""
         INSERT INTO tax
         (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
@@ -670,120 +636,12 @@ def generate_tax(parcel_id):
     cursor.close()
     conn.close()
 
-    return jsonify({
-        "message": "Tax generated successfully",
-        "parcel_id": parcel_id,
-        "tax_amount": tax_amount
-    })
+    return jsonify({"message": "Tax generated successfully", "tax_amount": tax_amount})
 
-#--Get tax details---#
-@app.route('/tax/<land_id>', methods=['GET'])
-def tax(land_id):
-    try:
-        parcel_id = convert_land_to_parcel(land_id)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT tax_amount, payment_status
-            FROM tax
-            WHERE parcel_id = %s
-        """, (parcel_id,))
-
-        row = cursor.fetchone()
-
-        cursor.close()
-        conn.close()
-
-        if not row:
-            return {}
-
-        return {
-            "amount": row[0],
-            "status": row[1]
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
-#---Check pending tax---#
-@app.route('/pending_tax/<parcel_id>', methods=['GET'])
-def get_pending_tax(parcel_id):
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status
-        FROM tax
-        WHERE parcel_id = %s
-    """, (parcel_id,))
-
-    tax = cursor.fetchall()
-
-    results = []
-
-    for row in tax:
-        results.append({
-            "tax_id": row[0],
-            "tax_year": row[1],
-            "tax_amount": row[2],
-            "tax_paid": row[3],
-            "payment_date": str(row[4]),
-            "payment_status": row[5]
-        })
-
-    return jsonify(results)
-
-#----Pay tax---#
-@app.route('/pay_tax', methods=['POST'])
-def pay_tax():
-
-    data = request.json
-
-    tax_id = data['tax_id']
-    tax_paid = data['tax_paid']
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE tax
-        SET tax_paid = %s, payment_date = %s, payment_status = 'Paid'
-        WHERE tax_id = %s
-    """, (tax_paid, datetime.now(), tax_id))
-
-    conn.commit()
-
-    return jsonify({
-        "message": "Tax payment successful"
-    })
-
-#----Get pending tax---#
-@app.route('/get_tax/<parcel_id>', methods=['GET'])
-def pending_tax(parcel_id):
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT tax_id, tax_year, tax_amount, tax_paid, payment_status
-        FROM tax
-        WHERE parcel_id = %s
-        AND payment_status != 'Paid'
-    """, (parcel_id,))
-
-    tax = cursor.fetchall()
-
-    results = []
-
-    for row in tax:
-        results.append({
-            "tax_id": row[0],
-            "tax_year": row[1],
-            "tax_amount": row[2],
-            "tax_paid": row[3],
-            "payment_status": row[4]
-        })
-
-    return jsonify(results)
+@app.route('/ping')
+def ping():
+    return jsonify({"status": "ok", "message": "Backend is reachable"})
+    
 #---Mortgage---#
 
 # ---------------------------------
