@@ -23,6 +23,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
 /* ===== LOGIN ===== */
 #loginOverlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#1e40af 100%);transition:opacity .5s,visibility .5s}
 #loginOverlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
@@ -44,6 +45,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 /* ===== LAYOUT ===== */
 #appContainer{display:none;min-height:100vh}
 #appContainer.active{display:flex}
+
 /* Top Navbar */
 .topbar{position:fixed;top:0;left:260px;right:0;height:64px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;z-index:100;box-shadow:var(--shadow)}
 .topbar-left{display:flex;align-items:center;gap:16px}
@@ -172,7 +174,7 @@ tr:hover td{background:var(--bg)}
 .qr-certs .cert-item.selected{border-color:var(--primary-light);background:var(--primary-lighter);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
 .scan-result{padding:24px;border-radius:12px;text-align:center}
 .scan-result.verified{background:var(--success-bg);border:2px solid var(--success)}
-.scan-result .check-icon{width:56px;height:56px;background:var(--success);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:24px;margin-bottom:12px}
+.scan-result .check-icon{width:56px;height:56px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:24px;margin-bottom:12px}
 
 /* ML Prediction */
 .prediction-layout{display:grid;grid-template-columns:1fr 1fr;gap:24px}
@@ -212,19 +214,35 @@ tr:hover td{background:var(--bg)}
 .dispute-property .dp-issues .issue{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--danger);padding:4px 0}
 .dispute-property .dp-issues .issue i{font-size:11px}
 
-/* GIS Map */
+/* ===== GIS PAGE — YOUR EXACT MAP.HTML INTEGRATED ===== */
 .gis-container{display:grid;grid-template-columns:1fr 340px;gap:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);height:calc(100vh - 160px)}
-#gisMap{width:100%;height:100%}
+#gisMap{width:100%;height:100%;background:#e8e8e8}
 .gis-sidebar{background:var(--card);padding:20px;overflow-y:auto;border-left:1px solid var(--border)}
-.gis-legend{margin-top:16px}
-.gis-legend .leg-item{display:flex;align-items:center;gap:10px;font-size:13px;padding:6px 0}
-.gis-legend .leg-color{width:16px;height:16px;border-radius:4px}
-.gis-detail{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
-.gis-search{margin-bottom:16px}
+.gis-sidebar h4{font-size:15px;font-weight:700;margin-bottom:14px}
+.gis-sidebar h4 i{color:var(--primary-light);margin-right:8px}
+.gis-search{margin-bottom:14px}
 .gis-search input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px}
+.gis-search button{width:100%;margin-top:8px}
+.gis-legend{margin-top:14px}
+.gis-legend .leg-title{font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.gis-legend .leg-item{display:flex;align-items:center;gap:10px;font-size:13px;padding:4px 0}
+.gis-legend .leg-color{width:16px;height:16px;border-radius:4px;flex-shrink:0}
+.gis-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.gis-section h4{font-size:14px;font-weight:700;margin-bottom:10px}
+#gisDetails{font-size:13px;line-height:2}
+#gisNearby{font-size:13px;color:var(--text-light)}
+#gisPriceBox{font-size:20px;font-weight:bold;color:var(--success)}
+#gisQRSection img{border:3px solid var(--border);border-radius:8px;margin-top:8px}
+#gisDocuments{font-size:13px}
+#gisDocuments ul{padding-left:18px}
+#gisDocuments li{margin-bottom:4px}
+.gis-upload{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.gis-upload .form-group{margin-bottom:10px}
+.gis-upload .form-group input,.gis-upload .form-group select{padding:8px 10px;font-size:12px}
+.gis-upload .form-group label{font-size:11px}
 
 /* Blockchain */
-.hash-text{font-family:'Courier New',monospace;font-size:12px;color:var(--primary-light);background:var(--primary-lighter);padding:4px 10px;border-radius:6px;display:inline-block;cursor:pointer;transition:var(--transition)}
+.hash-text{font-family:'Courier New',monospace;font-size:12px;color:var(--primary-light);background:var(--primary-lighter);padding:4px 10px;border-radius:6px;display:inline-block;cursor:pointer;transition:var(--transition);word-break:break-all}
 .hash-text:hover{background:var(--primary-light);color:#fff}
 .copy-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:var(--transition);z-index:9999;pointer-events:none}
 .copy-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -232,14 +250,21 @@ tr:hover td{background:var(--bg)}
 /* Tax Module */
 .tax-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
 
+/* Role matrix */
+.matrix-table th,.matrix-table td{text-align:center;padding:10px 14px;font-size:12.5px}
+.matrix-table th:first-child,.matrix-table td:first-child{text-align:left;font-weight:600}
+.matrix-check{color:var(--success);font-size:16px}
+.matrix-cross{color:var(--danger);opacity:.4;font-size:16px}
+
 /* Responsive */
 @media(max-width:1024px){
   .sidebar{left:-260px}.sidebar.open{left:0}
   .topbar{left:0}
   .main-content{margin-left:0}
   .topbar-left .menu-toggle{display:block}
-  .chart-grid,.qr-layout,.prediction-layout,.gis-container{grid-template-columns:1fr}
-  .gis-container{height:60vh}
+  .chart-grid,.qr-layout,.prediction-layout{grid-template-columns:1fr}
+  .gis-container{grid-template-columns:1fr;height:60vh}
+  .gis-sidebar{display:none}
 }
 @media(max-width:640px){
   .stat-grid{grid-template-columns:1fr 1fr}
@@ -248,45 +273,22 @@ tr:hover td{background:var(--bg)}
   .main-content{padding:16px}
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#94a3b8}
 
-/* Empty state */
 .empty-state{text-align:center;padding:48px 20px;color:var(--text-light)}
 .empty-state i{font-size:48px;margin-bottom:16px;opacity:.3}
 .empty-state p{font-size:14px}
 
-/* Tabs */
-.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
-.tab{padding:10px 20px;font-size:13px;font-weight:600;color:var(--text-light);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--transition)}
-.tab:hover{color:var(--text)}
-.tab.active{color:var(--primary-light);border-bottom-color:var(--primary-light)}
-
-/* Role matrix */
-.matrix-table th,.matrix-table td{text-align:center;padding:10px 14px;font-size:12.5px}
-.matrix-table th:first-child,.matrix-table td:first-child{text-align:left;font-weight:600}
-.matrix-check{color:var(--success);font-size:16px}
-.matrix-cross{color:var(--danger);opacity:.4;font-size:16px}
-
-/* Overlay for mobile sidebar */
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150}
 .sidebar-overlay.show{display:block}
-
-/* Mortgage cards */
-.mortgage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-.mortgage-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:20px;transition:var(--transition)}
-.mortgage-card:hover{box-shadow:var(--shadow-md)}
-.mortgage-card .mc-bank{font-size:14px;font-weight:700;color:var(--text)}
-.mortgage-card .mc-amount{font-size:22px;font-weight:800;color:var(--primary-light);margin:8px 0}
-.mortgage-card .mc-detail{font-size:12.5px;color:var(--text-light);line-height:1.8}
 </style>
 </head>
 <body>
 
-<!-- ===== LOGIN OVERLAY ===== -->
+<!-- ===== LOGIN ===== -->
 <div id="loginOverlay">
   <div class="login-bg-pattern"></div>
   <div class="login-card">
@@ -295,21 +297,12 @@ tr:hover td{background:var(--bg)}
       <h1>LandChain</h1>
       <p>Blockchain Land Registry System</p>
     </div>
-    <div class="form-group">
-      <label>Email Address</label>
-      <input type="email" id="loginEmail" placeholder="admin@landchain.gov.in" value="admin@landchain.gov.in">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="loginPass" placeholder="Enter password" value="admin123">
-    </div>
-    <div class="form-group">
-      <label>Login As</label>
+    <div class="form-group"><label>Email Address</label><input type="email" id="loginEmail" placeholder="admin@landchain.gov.in" value="admin@landchain.gov.in"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password" value="admin123"></div>
+    <div class="form-group"><label>Login As</label>
       <select id="loginRole">
-        <option value="admin">Admin</option>
-        <option value="registrar">Registrar</option>
-        <option value="landowner">Landowner</option>
-        <option value="verifier">Verifier</option>
+        <option value="admin">Admin</option><option value="registrar">Registrar</option>
+        <option value="landowner">Landowner</option><option value="verifier">Verifier</option>
         <option value="bank">Bank / Lender</option>
       </select>
     </div>
@@ -318,10 +311,10 @@ tr:hover td{background:var(--bg)}
   </div>
 </div>
 
-<!-- ===== SIDEBAR OVERLAY (MOBILE) ===== -->
+<!-- Sidebar overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-<!-- ===== APP CONTAINER ===== -->
+<!-- ===== APP ===== -->
 <div id="appContainer">
   <!-- Sidebar -->
   <nav class="sidebar" id="sidebar">
@@ -361,10 +354,7 @@ tr:hover td{background:var(--bg)}
   <header class="topbar">
     <div class="topbar-left">
       <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-      <div>
-        <h2 id="pageTitle">Dashboard</h2>
-        <div class="breadcrumb" id="pageBreadcrumb">Home / Dashboard</div>
-      </div>
+      <div><h2 id="pageTitle">Dashboard</h2><div class="breadcrumb" id="pageBreadcrumb">Home / Dashboard</div></div>
     </div>
     <div class="topbar-right">
       <button class="notif-btn" title="Notifications"><i class="fas fa-bell"></i><span class="notif-badge"></span></button>
@@ -375,66 +365,27 @@ tr:hover td{background:var(--bg)}
     </div>
   </header>
 
-  <!-- ===== MAIN CONTENT ===== -->
+  <!-- ===== MAIN ===== -->
   <main class="main-content">
 
-    <!-- ===== DASHBOARD PAGE ===== -->
+    <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
       <div class="stat-grid">
-        <div class="stat-card blue">
-          <div class="icon-box"><i class="fas fa-building"></i></div>
-          <div class="label">Total Properties</div>
-          <div class="value" id="statTotal">12,847</div>
-          <span class="change up"><i class="fas fa-arrow-up"></i> 3.2%</span>
-        </div>
-        <div class="stat-card orange">
-          <div class="icon-box"><i class="fas fa-arrow-right-arrow-left"></i></div>
-          <div class="label">Pending Transfers</div>
-          <div class="value">234</div>
-          <span class="change up"><i class="fas fa-arrow-up"></i> 12</span>
-        </div>
-        <div class="stat-card green">
-          <div class="icon-box"><i class="fas fa-indian-rupee-sign"></i></div>
-          <div class="label">Revenue Collected</div>
-          <div class="value">&#8377;4.2 Cr</div>
-          <span class="change up"><i class="fas fa-arrow-up"></i> 8.1%</span>
-        </div>
-        <div class="stat-card purple">
-          <div class="icon-box"><i class="fas fa-building-columns"></i></div>
-          <div class="label">Active Mortgages</div>
-          <div class="value">1,089</div>
-          <span class="change down"><i class="fas fa-arrow-down"></i> 2.4%</span>
-        </div>
-        <div class="stat-card cyan">
-          <div class="icon-box"><i class="fas fa-circle-check"></i></div>
-          <div class="label">Clear for Sale</div>
-          <div class="value">9,423</div>
-          <span class="change up"><i class="fas fa-arrow-up"></i> 156</span>
-        </div>
-        <div class="stat-card red">
-          <div class="icon-box"><i class="fas fa-gavel"></i></div>
-          <div class="label">Disputed Properties</div>
-          <div class="value">42</div>
-          <span class="change down"><i class="fas fa-arrow-down"></i> 5</span>
-        </div>
+        <div class="stat-card blue"><div class="icon-box"><i class="fas fa-building"></i></div><div class="label">Total Properties</div><div class="value">12,847</div><span class="change up"><i class="fas fa-arrow-up"></i> 3.2%</span></div>
+        <div class="stat-card orange"><div class="icon-box"><i class="fas fa-arrow-right-arrow-left"></i></div><div class="label">Pending Transfers</div><div class="value">234</div><span class="change up"><i class="fas fa-arrow-up"></i> 12</span></div>
+        <div class="stat-card green"><div class="icon-box"><i class="fas fa-indian-rupee-sign"></i></div><div class="label">Revenue Collected</div><div class="value">&#8377;4.2 Cr</div><span class="change up"><i class="fas fa-arrow-up"></i> 8.1%</span></div>
+        <div class="stat-card purple"><div class="icon-box"><i class="fas fa-building-columns"></i></div><div class="label">Active Mortgages</div><div class="value">1,089</div><span class="change down"><i class="fas fa-arrow-down"></i> 2.4%</span></div>
+        <div class="stat-card cyan"><div class="icon-box"><i class="fas fa-circle-check"></i></div><div class="label">Clear for Sale</div><div class="value">9,423</div><span class="change up"><i class="fas fa-arrow-up"></i> 156</span></div>
+        <div class="stat-card red"><div class="icon-box"><i class="fas fa-gavel"></i></div><div class="label">Disputed Properties</div><div class="value">42</div><span class="change down"><i class="fas fa-arrow-down"></i> 5</span></div>
       </div>
       <div class="chart-grid">
-        <div class="card">
-          <div class="card-header"><h3>Registrations Over Time</h3><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Export</button></div>
-          <div class="card-body"><canvas id="barChart" height="100"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><h3>Land Type Distribution</h3></div>
-          <div class="card-body"><canvas id="pieChart" height="160"></canvas></div>
-        </div>
+        <div class="card"><div class="card-header"><h3>Registrations Over Time</h3><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Export</button></div><div class="card-body"><canvas id="barChart" height="100"></canvas></div></div>
+        <div class="card"><div class="card-header"><h3>Land Type Distribution</h3></div><div class="card-body"><canvas id="pieChart" height="160"></canvas></div></div>
       </div>
-      <div class="card">
-        <div class="card-header"><h3>Revenue Growth Trend</h3></div>
-        <div class="card-body"><canvas id="lineChart" height="80"></canvas></div>
-      </div>
+      <div class="card"><div class="card-header"><h3>Revenue Growth Trend</h3></div><div class="card-body"><canvas id="lineChart" height="80"></canvas></div></div>
     </div>
 
-    <!-- ===== ANALYTICS PAGE ===== -->
+    <!-- ANALYTICS -->
     <div class="page" id="page-analytics">
       <div class="stat-grid">
         <div class="stat-card blue"><div class="icon-box"><i class="fas fa-chart-line"></i></div><div class="label">Avg. Property Value</div><div class="value">&#8377;42.5L</div></div>
@@ -448,43 +399,39 @@ tr:hover td{background:var(--bg)}
       </div>
     </div>
 
-    <!-- ===== ACCESS CONTROL PAGE ===== -->
+    <!-- ACCESS CONTROL -->
     <div class="page" id="page-access">
       <div class="card" style="margin-bottom:24px">
-        <div class="card-header"><h3>User Management</h3><button class="btn btn-primary btn-sm" onclick="alert('Add User form')"><i class="fas fa-plus"></i> Add User</button></div>
+        <div class="card-header"><h3>User Management</h3><button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add User</button></div>
         <div class="card-body table-wrap">
-          <table>
-            <thead><tr><th>User ID</th><th>Name</th><th>Email</th><th>Role</th><th>KYC Status</th><th>Actions</th></tr></thead>
-            <tbody id="userTableBody">
-              <tr><td>U001</td><td>Rajesh Kumar</td><td>rajesh@mail.com</td><td><span class="badge-pill badge-blue">Admin</span></td><td><span class="badge-pill badge-green">Verified</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
-              <tr><td>U002</td><td>Priya Sharma</td><td>priya@mail.com</td><td><span class="badge-pill badge-purple">Registrar</span></td><td><span class="badge-pill badge-green">Verified</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
-              <tr><td>U003</td><td>Amit Patel</td><td>amit@mail.com</td><td><span class="badge-pill badge-orange">Landowner</span></td><td><span class="badge-pill badge-orange">Pending</span></td><td><button class="btn btn-success btn-sm" onclick="verifyKYC('U003')">Verify KYC</button></td></tr>
-              <tr><td>U004</td><td>SBI Bank</td><td>sbi@bank.com</td><td><span class="badge-pill badge-gray">Bank</span></td><td><span class="badge-pill badge-green">Verified</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
-            </tbody>
-          </table>
+          <table><thead><tr><th>User ID</th><th>Name</th><th>Email</th><th>Role</th><th>KYC Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr><td>U001</td><td>Rajesh Kumar</td><td>rajesh@mail.com</td><td><span class="badge-pill badge-blue">Admin</span></td><td><span class="badge-pill badge-green">Verified</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+            <tr><td>U002</td><td>Priya Sharma</td><td>priya@mail.com</td><td><span class="badge-pill badge-purple">Registrar</span></td><td><span class="badge-pill badge-green">Verified</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+            <tr><td>U003</td><td>Amit Patel</td><td>amit@mail.com</td><td><span class="badge-pill badge-orange">Landowner</span></td><td><span class="badge-pill badge-orange">Pending</span></td><td><button class="btn btn-success btn-sm" onclick="verifyKYC('U003')">Verify KYC</button></td></tr>
+            <tr><td>U004</td><td>SBI Bank</td><td>sbi@bank.com</td><td><span class="badge-pill badge-gray">Bank</span></td><td><span class="badge-pill badge-green">Verified</span></td><td><button class="btn btn-outline btn-sm">Edit</button></td></tr>
+          </tbody></table>
         </div>
       </div>
       <div class="card">
         <div class="card-header"><h3>Permissions Matrix</h3></div>
         <div class="card-body table-wrap">
-          <table class="matrix-table">
-            <thead><tr><th>Permission</th><th>Admin</th><th>Registrar</th><th>Landowner</th><th>Verifier</th><th>Bank</th></tr></thead>
-            <tbody>
-              <tr><td>View Properties</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td></tr>
-              <tr><td>Register Property</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
-              <tr><td>Transfer Ownership</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
-              <tr><td>Approve Transfer</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
-              <tr><td>Manage Users</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
-              <tr><td>Approve Mortgage</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-check matrix-check"></i></td></tr>
-              <tr><td>Run Fraud Checks</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
-              <tr><td>View Blockchain</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td></tr>
-            </tbody>
-          </table>
+          <table class="matrix-table"><thead><tr><th>Permission</th><th>Admin</th><th>Registrar</th><th>Landowner</th><th>Verifier</th><th>Bank</th></tr></thead>
+          <tbody>
+            <tr><td>View Properties</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td></tr>
+            <tr><td>Register Property</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
+            <tr><td>Transfer Ownership</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
+            <tr><td>Approve Transfer</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
+            <tr><td>Manage Users</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
+            <tr><td>Approve Mortgage</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-check matrix-check"></i></td></tr>
+            <tr><td>Run Fraud Checks</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-xmark matrix-cross"></i></td></tr>
+            <tr><td>View Blockchain</td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td><td><i class="fas fa-check matrix-check"></i></td></tr>
+          </tbody></table>
         </div>
       </div>
     </div>
 
-    <!-- ===== OWNERSHIP TRANSFER PAGE ===== -->
+    <!-- OWNERSHIP TRANSFER -->
     <div class="page" id="page-transfer">
       <div class="card" style="margin-bottom:24px">
         <div class="card-header"><h3>Initiate Transfer</h3></div>
@@ -502,14 +449,14 @@ tr:hover td{background:var(--bg)}
       <div class="card">
         <div class="card-header"><h3>Transfer Pipeline</h3></div>
         <div class="card-body" style="text-align:center">
-          <div class="transfer-stages" id="transferStages">
-            <div class="stage done" id="stage1"><div class="s-circle"><i class="fas fa-file-signature"></i></div><div class="s-label">Initiated</div></div>
+          <div class="transfer-stages">
+            <div class="stage done"><div class="s-circle"><i class="fas fa-file-signature"></i></div><div class="s-label">Initiated</div></div>
             <div class="stage-line done"></div>
-            <div class="stage done" id="stage2"><div class="s-circle"><i class="fas fa-magnifying-glass"></i></div><div class="s-label">Verified</div></div>
+            <div class="stage done"><div class="s-circle"><i class="fas fa-magnifying-glass"></i></div><div class="s-label">Verified</div></div>
             <div class="stage-line done"></div>
-            <div class="stage current" id="stage3"><div class="s-circle"><i class="fas fa-stamp"></i></div><div class="s-label">Approved</div></div>
+            <div class="stage current"><div class="s-circle"><i class="fas fa-stamp"></i></div><div class="s-label">Approved</div></div>
             <div class="stage-line"></div>
-            <div class="stage" id="stage4"><div class="s-circle"><i class="fas fa-link"></i></div><div class="s-label">On-Chain</div></div>
+            <div class="stage"><div class="s-circle"><i class="fas fa-link"></i></div><div class="s-label">On-Chain</div></div>
           </div>
           <div style="margin-top:24px;padding:16px;background:var(--bg);border-radius:10px;display:inline-block">
             <div style="font-size:12px;color:var(--text-light);margin-bottom:4px">Transaction Hash</div>
@@ -518,21 +465,9 @@ tr:hover td{background:var(--bg)}
           <div style="margin-top:16px"><span class="badge-pill badge-orange">Confirmation Pending</span></div>
         </div>
       </div>
-      <div class="card" style="margin-top:24px">
-        <div class="card-header"><h3>Recent Transfers</h3></div>
-        <div class="card-body table-wrap">
-          <table>
-            <thead><tr><th>Transaction ID</th><th>Parcel</th><th>From</th><th>To</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody id="transferTableBody">
-              <tr><td>T4521</td><td>P001</td><td>U003</td><td>U005</td><td>&#8377;45,00,000</td><td><span class="badge-pill badge-orange">Pending</span></td><td><button class="btn btn-outline btn-sm">View</button></td></tr>
-              <tr><td>T4520</td><td>P015</td><td>U007</td><td>U009</td><td>&#8377;32,00,000</td><td><span class="badge-pill badge-green">Confirmed</span></td><td><button class="btn btn-outline btn-sm">View</button></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
 
-    <!-- ===== OWNERSHIP HISTORY PAGE ===== -->
+    <!-- OWNERSHIP HISTORY -->
     <div class="page" id="page-history">
       <div class="card" style="margin-bottom:24px">
         <div class="card-header"><h3>Search Property</h3></div>
@@ -544,7 +479,7 @@ tr:hover td{background:var(--bg)}
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h3 id="historyTitle">Ownership Timeline — PLT-4521 (Sector 15, Gurgaon)</h3></div>
+        <div class="card-header"><h3 id="historyTitle">Ownership Timeline</h3></div>
         <div class="card-body">
           <div class="timeline" id="historyTimeline">
             <div class="timeline-item"><div class="t-date">2024-01-15</div><div class="t-title">Transfer to Lakshmi Devi</div><div class="t-desc">Ownership transferred via registered sale deed</div><div class="t-hash">0x8f3a...b7c2</div></div>
@@ -557,7 +492,7 @@ tr:hover td{background:var(--bg)}
       </div>
     </div>
 
-    <!-- ===== DOCUMENT STORAGE PAGE ===== -->
+    <!-- DOCUMENT STORAGE -->
     <div class="page" id="page-documents">
       <div class="card" style="margin-bottom:24px">
         <div class="card-header"><h3>Upload Document</h3></div>
@@ -574,15 +509,13 @@ tr:hover td{background:var(--bg)}
       <div class="card">
         <div class="card-header"><h3>Documents</h3></div>
         <div class="card-body table-wrap">
-          <table>
-            <thead><tr><th>Doc ID</th><th>Parcel</th><th>Type</th><th>Uploaded By</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="docTableBody"></tbody>
-          </table>
+          <table><thead><tr><th>Doc ID</th><th>Parcel</th><th>Type</th><th>Uploaded By</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="docTableBody"></tbody></table>
         </div>
       </div>
     </div>
 
-    <!-- ===== REVENUE & TAX PAGE ===== -->
+    <!-- REVENUE & TAX -->
     <div class="page" id="page-tax">
       <div class="tax-summary">
         <div class="stat-card green"><div class="icon-box"><i class="fas fa-circle-check"></i></div><div class="label">Total Collected</div><div class="value">&#8377;4.2 Cr</div></div>
@@ -602,19 +535,17 @@ tr:hover td{background:var(--bg)}
       <div class="card">
         <div class="card-header"><h3>Tax Assessments</h3></div>
         <div class="card-body table-wrap">
-          <table>
-            <thead><tr><th>Tax ID</th><th>Property</th><th>Owner</th><th>Year</th><th>Amount</th><th>Paid</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody id="taxTableBody">
-              <tr><td>TX1001</td><td>P001</td><td>Amit Patel</td><td>2024</td><td>&#8377;45,000</td><td>&#8377;45,000</td><td><span class="badge-pill badge-green">Paid</span></td><td>—</td></tr>
-              <tr><td>TX1002</td><td>P002</td><td>Priya Sharma</td><td>2024</td><td>&#8377;62,000</td><td>&#8377;0</td><td><span class="badge-pill badge-orange">Pending</span></td><td><button class="btn btn-success btn-sm" onclick="payTax('TX1002')">Pay</button></td></tr>
-              <tr><td>TX1003</td><td>P005</td><td>Mohan Das</td><td>2023</td><td>&#8377;38,000</td><td>&#8377;0</td><td><span class="badge-pill badge-red">Overdue</span></td><td><button class="btn btn-success btn-sm" onclick="payTax('TX1003')">Pay</button></td></tr>
-            </tbody>
-          </table>
+          <table><thead><tr><th>Tax ID</th><th>Property</th><th>Owner</th><th>Year</th><th>Amount</th><th>Paid</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="taxTableBody">
+            <tr><td>TX1001</td><td>P001</td><td>Amit Patel</td><td>2024</td><td>&#8377;45,000</td><td>&#8377;45,000</td><td><span class="badge-pill badge-green">Paid</span></td><td>—</td></tr>
+            <tr><td>TX1002</td><td>P002</td><td>Priya Sharma</td><td>2024</td><td>&#8377;62,000</td><td>&#8377;0</td><td><span class="badge-pill badge-orange">Pending</span></td><td><button class="btn btn-success btn-sm" onclick="payTax('TX1002')">Pay</button></td></tr>
+            <tr><td>TX1003</td><td>P005</td><td>Mohan Das</td><td>2023</td><td>&#8377;38,000</td><td>&#8377;0</td><td><span class="badge-pill badge-red">Overdue</span></td><td><button class="btn btn-success btn-sm" onclick="payTax('TX1003')">Pay</button></td></tr>
+          </tbody></table>
         </div>
       </div>
     </div>
 
-    <!-- ===== MORTGAGE & LOANS PAGE ===== -->
+    <!-- MORTGAGE -->
     <div class="page" id="page-mortgage">
       <div class="stat-grid" style="margin-bottom:24px">
         <div class="stat-card blue"><div class="icon-box"><i class="fas fa-file-contract"></i></div><div class="label">Active Mortgages</div><div class="value">1,089</div></div>
@@ -640,18 +571,16 @@ tr:hover td{background:var(--bg)}
       <div class="card">
         <div class="card-header"><h3>Mortgage Records</h3></div>
         <div class="card-body table-wrap">
-          <table>
-            <thead><tr><th>Mortgage ID</th><th>Parcel</th><th>Bank</th><th>Loan Amount</th><th>Rate</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody id="mortTableBody">
-              <tr><td>M001</td><td>P002</td><td>HDFC Bank</td><td>&#8377;25,00,000</td><td>8.5%</td><td><span class="badge-pill badge-blue">Active</span></td><td><button class="btn btn-danger btn-sm" onclick="closeMortgage('M001')">Close</button></td></tr>
-              <tr><td>M002</td><td>P010</td><td>SBI</td><td>&#8377;18,00,000</td><td>7.9%</td><td><span class="badge-pill badge-green">Closed</span></td><td>—</td></tr>
-            </tbody>
-          </table>
+          <table><thead><tr><th>ID</th><th>Parcel</th><th>Bank</th><th>Loan Amount</th><th>Rate</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="mortTableBody">
+            <tr><td>M001</td><td>P002</td><td>HDFC Bank</td><td>&#8377;25,00,000</td><td>8.5%</td><td><span class="badge-pill badge-blue">Active</span></td><td><button class="btn btn-danger btn-sm" onclick="closeMortgage('M001')">Close</button></td></tr>
+            <tr><td>M002</td><td>P010</td><td>SBI</td><td>&#8377;18,00,000</td><td>7.9%</td><td><span class="badge-pill badge-green">Closed</span></td><td>—</td></tr>
+          </tbody></table>
         </div>
       </div>
     </div>
 
-    <!-- ===== FRAUD DETECTION PAGE ===== -->
+    <!-- FRAUD DETECTION -->
     <div class="page" id="page-fraud">
       <div class="fraud-summary">
         <div class="fraud-card low"><div class="f-count">842</div><div class="f-label">Low Risk</div></div>
@@ -661,16 +590,14 @@ tr:hover td{background:var(--bg)}
       <div class="card" style="margin-bottom:24px">
         <div class="card-header"><h3>Flagged Transactions</h3></div>
         <div class="card-body table-wrap">
-          <table>
-            <thead><tr><th>Parcel ID</th><th>Flag Type</th><th>Severity</th><th>Details</th><th>Date</th></tr></thead>
-            <tbody>
-              <tr><td>P112</td><td>Duplicate Registration</td><td><span class="badge-pill badge-red">High</span></td><td>Same survey number registered twice</td><td>2024-01-10</td></tr>
-              <tr><td>P089</td><td>Unusual Transfer Frequency</td><td><span class="badge-pill badge-orange">Medium</span></td><td>3 transfers in 6 months</td><td>2024-01-08</td></tr>
-              <tr><td>P234</td><td>Document Mismatch</td><td><span class="badge-pill badge-orange">Medium</span></td><td>Ownership doc doesn't match records</td><td>2024-01-05</td></tr>
-              <tr><td>P067</td><td>Multiple Ownership Claims</td><td><span class="badge-pill badge-red">High</span></td><td>Two different owners claimed</td><td>2024-01-03</td></tr>
-              <tr><td>P345</td><td>Price Anomaly</td><td><span class="badge-pill badge-green">Low</span></td><td>Sale price 40% below market value</td><td>2024-01-01</td></tr>
-            </tbody>
-          </table>
+          <table><thead><tr><th>Parcel ID</th><th>Flag Type</th><th>Severity</th><th>Details</th><th>Date</th></tr></thead>
+          <tbody>
+            <tr><td>P112</td><td>Duplicate Registration</td><td><span class="badge-pill badge-red">High</span></td><td>Same survey number registered twice</td><td>2024-01-10</td></tr>
+            <tr><td>P089</td><td>Unusual Transfer Frequency</td><td><span class="badge-pill badge-orange">Medium</span></td><td>3 transfers in 6 months</td><td>2024-01-08</td></tr>
+            <tr><td>P234</td><td>Document Mismatch</td><td><span class="badge-pill badge-orange">Medium</span></td><td>Ownership doc doesn't match records</td><td>2024-01-05</td></tr>
+            <tr><td>P067</td><td>Multiple Ownership Claims</td><td><span class="badge-pill badge-red">High</span></td><td>Two different owners claimed</td><td>2024-01-03</td></tr>
+            <tr><td>P345</td><td>Price Anomaly</td><td><span class="badge-pill badge-green">Low</span></td><td>Sale price 40% below market value</td><td>2024-01-01</td></tr>
+          </tbody></table>
         </div>
       </div>
       <div class="card">
@@ -686,7 +613,7 @@ tr:hover td{background:var(--bg)}
       </div>
     </div>
 
-    <!-- ===== DISPUTE & SALE ELIGIBILITY PAGE ===== -->
+    <!-- DISPUTE & SALE ELIGIBILITY -->
     <div class="page" id="page-dispute">
       <div class="stat-grid" style="margin-bottom:24px">
         <div class="stat-card blue"><div class="icon-box"><i class="fas fa-building"></i></div><div class="label">Total Properties</div><div class="value">6</div></div>
@@ -727,35 +654,73 @@ tr:hover td{background:var(--bg)}
       </div>
     </div>
 
-    <!-- ===== GIS & GEO-TAGGING PAGE ===== -->
+    <!-- ===== GIS & GEO-TAGGING — YOUR EXACT MAP.HTML CODE ===== -->
     <div class="page" id="page-gis">
       <div class="gis-container">
         <div id="gisMap"></div>
         <div class="gis-sidebar">
-          <h4 style="font-size:15px;font-weight:700;margin-bottom:14px"><i class="fas fa-map-location-dot" style="color:var(--primary-light);margin-right:8px"></i>GIS Explorer</h4>
-          <div class="gis-search"><input type="text" id="gisSearchInput" placeholder="Search Parcel ID..." oninput="gisSearch(this.value)"></div>
+          <h4><i class="fas fa-map-location-dot"></i>GIS Explorer</h4>
+
+          <div class="gis-search">
+            <input type="text" id="gisSearchId" placeholder="Search Parcel ID...">
+            <button class="btn btn-primary btn-sm" onclick="gisSearchLand()"><i class="fas fa-search"></i> Search</button>
+          </div>
+
           <div class="gis-legend">
-            <div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Land Type</div>
-            <div class="leg-item"><div class="leg-color" style="background:#16a34a"></div> Residential</div>
-            <div class="leg-item"><div class="leg-color" style="background:#dc2626"></div> Commercial</div>
-            <div class="leg-item"><div class="leg-color" style="background:#ea580c"></div> Agricultural</div>
-            <div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px">Status</div>
-            <div class="leg-item"><div class="leg-color" style="background:#eab308;border:2px dashed #ca8a04"></div> For Sale</div>
-            <div class="leg-item"><div class="leg-color" style="background:#000"></div> Disputed</div>
+            <div class="leg-title">Land Type</div>
+            <div class="leg-item"><div class="leg-color" style="background:green"></div> Residential</div>
+            <div class="leg-item"><div class="leg-color" style="background:red"></div> Commercial</div>
+            <div class="leg-item"><div class="leg-color" style="background:orange"></div> Agricultural</div>
+            <div class="leg-title" style="margin-top:12px">Status</div>
+            <div class="leg-item"><div class="leg-color" style="background:yellow;border:2px dashed #ca8a04"></div> For Sale</div>
+            <div class="leg-item"><div class="leg-color" style="background:black"></div> Disputed</div>
           </div>
-          <div class="gis-detail" id="gisDetail" style="display:none">
-            <h4 style="font-size:14px;font-weight:700;margin-bottom:12px">Property Details</h4>
-            <div id="gisDetailContent" style="font-size:13px;line-height:2"></div>
+
+          <div class="gis-section">
+            <h4>Land Details</h4>
+            <div id="gisDetails">Click a parcel</div>
           </div>
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-            <h4 style="font-size:14px;font-weight:700;margin-bottom:10px">Nearby Lands</h4>
-            <div id="gisNearby" style="font-size:13px;color:var(--text-light)">Click a parcel on map</div>
+
+          <div class="gis-section">
+            <h4>Predicted Price</h4>
+            <div id="gisPriceBox">Click a parcel</div>
+          </div>
+
+          <div class="gis-section">
+            <h4>QR Code</h4>
+            <div id="gisQRSection"></div>
+          </div>
+
+          <div class="gis-section">
+            <h4>Nearby Lands</h4>
+            <div id="gisNearby">Click a parcel</div>
+          </div>
+
+          <div class="gis-section">
+            <h4>Documents</h4>
+            <div id="gisDocuments">Click a parcel</div>
+          </div>
+
+          <!-- YOUR EXACT UPLOAD SECTION FROM map.html -->
+          <div class="gis-upload">
+            <h4><i class="fas fa-upload"></i> Upload Document</h4>
+            <div class="form-group"><label>Parcel ID</label><input type="text" id="gisDocParcel" placeholder="Parcel ID"></div>
+            <div class="form-group"><label>Type</label>
+              <select id="gisDocType">
+                <option value="Sale Deed">Sale Deed</option>
+                <option value="Tax Receipt">Tax Receipt</option>
+                <option value="Transfer Deed">Transfer Deed</option>
+              </select>
+            </div>
+            <div class="form-group"><label>File</label><input type="file" id="gisDocFile"></div>
+            <button class="btn btn-primary btn-sm" onclick="gisUploadDocument()" style="width:100%"><i class="fas fa-cloud-arrow-up"></i> Upload</button>
+            <div id="gisUploadStatus" style="margin-top:8px;font-size:12px"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ===== QR VERIFICATION PAGE ===== -->
+    <!-- QR VERIFICATION -->
     <div class="page" id="page-qr">
       <div class="qr-layout">
         <div class="card">
@@ -802,7 +767,7 @@ tr:hover td{background:var(--bg)}
       </div>
     </div>
 
-    <!-- ===== ML PREDICTION PAGE ===== -->
+    <!-- ML PREDICTION -->
     <div class="page" id="page-mlpredict">
       <div class="prediction-layout">
         <div class="card">
@@ -840,11 +805,10 @@ tr:hover td{background:var(--bg)}
       </div>
     </div>
 
-    <!-- ===== ACTIVITY LOGS PAGE ===== -->
+    <!-- ACTIVITY LOGS -->
     <div class="page" id="page-activity">
       <div class="card" style="margin-bottom:24px">
-        <div class="card-header">
-          <h3>Filter Logs</h3>
+        <div class="card-header"><h3>Filter Logs</h3>
           <div style="display:flex;gap:10px">
             <input type="date" id="actStartDate" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
             <input type="date" id="actEndDate" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
@@ -855,24 +819,22 @@ tr:hover td{background:var(--bg)}
       <div class="card">
         <div class="card-header"><h3>Activity Logs</h3></div>
         <div class="card-body table-wrap">
-          <table>
-            <thead><tr><th>Action</th><th>Details</th><th>User</th><th>Role</th><th>Timestamp</th></tr></thead>
-            <tbody id="activityTableBody">
-              <tr><td><span class="badge-pill badge-blue">Property Registered</span></td><td>PLT-8801 registered successfully</td><td>Rajesh Kumar</td><td><span class="badge-pill badge-purple">Registrar</span></td><td>2024-01-15 14:32:10</td></tr>
-              <tr><td><span class="badge-pill badge-green">Transfer Approved</span></td><td>P001 transfer from U003 to U005 approved</td><td>Priya Sharma</td><td><span class="badge-pill badge-purple">Registrar</span></td><td>2024-01-15 13:18:45</td></tr>
-              <tr><td><span class="badge-pill badge-gray">User Login</span></td><td>Login from IP 192.168.1.45</td><td>Amit Patel</td><td><span class="badge-pill badge-orange">Landowner</span></td><td>2024-01-15 12:05:22</td></tr>
-              <tr><td><span class="badge-pill badge-green">Mortgage Approved</span></td><td>M001 — P002 mortgage with SBI approved</td><td>SBI Bank</td><td><span class="badge-pill badge-gray">Bank</span></td><td>2024-01-15 11:45:00</td></tr>
-              <tr><td><span class="badge-pill badge-red">Dispute Filed</span></td><td>PLT-1122 — Duplicate ownership claim</td><td>Mohan Das</td><td><span class="badge-pill badge-orange">Landowner</span></td><td>2024-01-14 16:22:33</td></tr>
-              <tr><td><span class="badge-pill badge-blue">Tax Generated</span></td><td>TX1001 generated for P001</td><td>System</td><td><span class="badge-pill badge-gray">Auto</span></td><td>2024-01-14 00:00:00</td></tr>
-              <tr><td><span class="badge-pill badge-green">Tax Paid</span></td><td>TX0998 — &#8377;45,000 paid for P015</td><td>Vijay Reddy</td><td><span class="badge-pill badge-orange">Landowner</span></td><td>2024-01-13 10:15:00</td></tr>
-              <tr><td><span class="badge-pill badge-red">Fraud Alert</span></td><td>High risk detected for P112 — Duplicate registration</td><td>System</td><td><span class="badge-pill badge-gray">Auto</span></td><td>2024-01-13 08:30:00</td></tr>
-            </tbody>
-          </table>
+          <table><thead><tr><th>Action</th><th>Details</th><th>User</th><th>Role</th><th>Timestamp</th></tr></thead>
+          <tbody id="activityTableBody">
+            <tr><td><span class="badge-pill badge-blue">Property Registered</span></td><td>PLT-8801 registered successfully</td><td>Rajesh Kumar</td><td><span class="badge-pill badge-purple">Registrar</span></td><td>2024-01-15 14:32:10</td></tr>
+            <tr><td><span class="badge-pill badge-green">Transfer Approved</span></td><td>P001 transfer from U003 to U005 approved</td><td>Priya Sharma</td><td><span class="badge-pill badge-purple">Registrar</span></td><td>2024-01-15 13:18:45</td></tr>
+            <tr><td><span class="badge-pill badge-gray">User Login</span></td><td>Login from IP 192.168.1.45</td><td>Amit Patel</td><td><span class="badge-pill badge-orange">Landowner</span></td><td>2024-01-15 12:05:22</td></tr>
+            <tr><td><span class="badge-pill badge-green">Mortgage Approved</span></td><td>M001 — P002 mortgage with SBI approved</td><td>SBI Bank</td><td><span class="badge-pill badge-gray">Bank</span></td><td>2024-01-15 11:45:00</td></tr>
+            <tr><td><span class="badge-pill badge-red">Dispute Filed</span></td><td>PLT-1122 — Duplicate ownership claim</td><td>Mohan Das</td><td><span class="badge-pill badge-orange">Landowner</span></td><td>2024-01-14 16:22:33</td></tr>
+            <tr><td><span class="badge-pill badge-blue">Tax Generated</span></td><td>TX1001 generated for P001</td><td>System</td><td><span class="badge-pill badge-gray">Auto</span></td><td>2024-01-14 00:00:00</td></tr>
+            <tr><td><span class="badge-pill badge-green">Tax Paid</span></td><td>TX0998 — &#8377;45,000 paid for P015</td><td>Vijay Reddy</td><td><span class="badge-pill badge-orange">Landowner</span></td><td>2024-01-13 10:15:00</td></tr>
+            <tr><td><span class="badge-pill badge-red">Fraud Alert</span></td><td>High risk detected for P112</td><td>System</td><td><span class="badge-pill badge-gray">Auto</span></td><td>2024-01-13 08:30:00</td></tr>
+          </tbody></table>
         </div>
       </div>
     </div>
 
-    <!-- ===== BLOCKCHAIN EXPLORER PAGE ===== -->
+    <!-- BLOCKCHAIN EXPLORER -->
     <div class="page" id="page-blockchain">
       <div class="stat-grid" style="margin-bottom:24px">
         <div class="stat-card blue"><div class="icon-box"><i class="fas fa-cube"></i></div><div class="label">Total Blocks</div><div class="value" id="bcTotalBlocks">0</div></div>
@@ -889,10 +851,8 @@ tr:hover td{background:var(--bg)}
       <div class="card">
         <div class="card-header"><h3>Blocks</h3></div>
         <div class="card-body table-wrap">
-          <table>
-            <thead><tr><th>Block No.</th><th>Transaction Hash</th><th>Previous Hash</th><th>Gas Fee</th><th>Status</th><th>Timestamp</th><th>Action</th></tr></thead>
-            <tbody id="bcTableBody"></tbody>
-          </table>
+          <table><thead><tr><th>Block No.</th><th>Transaction Hash</th><th>Previous Hash</th><th>Gas Fee</th><th>Status</th><th>Timestamp</th><th>Action</th></tr></thead>
+          <tbody id="bcTableBody"></tbody></table>
         </div>
       </div>
     </div>
@@ -900,416 +860,362 @@ tr:hover td{background:var(--bg)}
   </main>
 </div>
 
-<!-- Copy Toast -->
 <div class="copy-toast" id="copyToast">Copied to clipboard</div>
 
 <script>
 /* ===== GLOBALS ===== */
-let currentUser = { email: '', role: '', name: '' };
-let gisMap = null, gisLayer = null, allGisLands = [];
+let currentUser = { email:'', role:'', name:'' };
+let gisMap = null, allGisLands = [];
 let chartsInitialized = false;
 
 /* ===== LOGIN ===== */
-function handleLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value.trim();
-  const role = document.getElementById('loginRole').value;
-  if (!email || !pass) { showLoginError(); return; }
-  currentUser = { email, role, name: role.charAt(0).toUpperCase() + role.slice(1) };
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value.trim();
+  const role=document.getElementById('loginRole').value;
+  if(!email||!pass){document.getElementById('loginError').style.display='block';return}
+  currentUser={email,role,name:role.charAt(0).toUpperCase()+role.slice(1)};
   document.getElementById('loginOverlay').classList.add('hidden');
   document.getElementById('appContainer').classList.add('active');
-  document.getElementById('userName').textContent = currentUser.name;
-  document.getElementById('userRole').textContent = document.getElementById('loginRole').selectedOptions[0].text;
-  document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('userName').textContent=currentUser.name;
+  document.getElementById('userRole').textContent=document.getElementById('loginRole').selectedOptions[0].text;
+  document.getElementById('userAvatar').textContent=currentUser.name.charAt(0).toUpperCase();
   initCharts();
   initGIS();
   loadBlockchainData();
 }
-function showLoginError() { document.getElementById('loginError').style.display = 'block'; }
-function handleLogout() {
+function handleLogout(){
   document.getElementById('loginOverlay').classList.remove('hidden');
   document.getElementById('appContainer').classList.remove('active');
-  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginError').style.display='none';
 }
 
 /* ===== NAVIGATION ===== */
-const pageTitles = {
-  dashboard: ['Dashboard', 'Home / Dashboard'],
-  analytics: ['Analytics', 'Home / Analytics'],
-  access: ['Role-Based Access Control', 'Home / Management / Access Control'],
-  transfer: ['Ownership Transfer', 'Home / Management / Transfer'],
-  history: ['Ownership History', 'Home / Management / History'],
-  documents: ['Document Storage', 'Home / Management / Documents'],
-  tax: ['Revenue & Tax Module', 'Home / Finance / Revenue & Tax'],
-  mortgage: ['Mortgage & Loans', 'Home / Finance / Mortgage'],
-  fraud: ['Fraud Detection', 'Home / Security / Fraud Detection'],
-  dispute: ['Dispute & Sale Eligibility', 'Home / Security / Dispute & Eligibility'],
-  gis: ['GIS & Geo-Tagging', 'Home / Tools / GIS Map'],
-  qr: ['QR Verification', 'Home / Tools / QR Verification'],
-  mlpredict: ['ML Property Value Prediction', 'Home / Tools / ML Prediction'],
-  activity: ['Activity Logs', 'Home / System / Activity Logs'],
-  blockchain: ['Blockchain Explorer', 'Home / System / Blockchain Explorer']
+const pageTitles={
+  dashboard:['Dashboard','Home / Dashboard'],analytics:['Analytics','Home / Analytics'],
+  access:['Role-Based Access Control','Home / Management / Access Control'],
+  transfer:['Ownership Transfer','Home / Management / Transfer'],
+  history:['Ownership History','Home / Management / History'],
+  documents:['Document Storage','Home / Management / Documents'],
+  tax:['Revenue & Tax Module','Home / Finance / Revenue & Tax'],
+  mortgage:['Mortgage & Loans','Home / Finance / Mortgage'],
+  fraud:['Fraud Detection','Home / Security / Fraud Detection'],
+  dispute:['Dispute & Sale Eligibility','Home / Security / Dispute & Eligibility'],
+  gis:['GIS & Geo-Tagging','Home / Tools / GIS Map'],
+  qr:['QR Verification','Home / Tools / QR Verification'],
+  mlpredict:['ML Property Value Prediction','Home / Tools / ML Prediction'],
+  activity:['Activity Logs','Home / System / Activity Logs'],
+  blockchain:['Blockchain Explorer','Home / System / Blockchain Explorer']
 };
-function navigateTo(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const el = document.getElementById('page-' + page);
-  if (el) el.classList.add('active');
-  const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
-  if (nav) nav.classList.add('active');
-  const info = pageTitles[page] || ['Page', 'Home'];
-  document.getElementById('pageTitle').textContent = info[0];
-  document.getElementById('pageBreadcrumb').textContent = info[1];
-  if (page === 'gis' && gisMap) { setTimeout(() => gisMap.invalidateSize(), 100); }
-  if (page === 'blockchain') loadBlockchainData();
-  // Close mobile sidebar
+function navigateTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById('page-'+page);if(el)el.classList.add('active');
+  const nav=document.querySelector(`.nav-item[data-page="${page}"]`);if(nav)nav.classList.add('active');
+  const info=pageTitles[page]||['Page','Home'];
+  document.getElementById('pageTitle').textContent=info[0];
+  document.getElementById('pageBreadcrumb').textContent=info[1];
+  if(page==='gis'&&gisMap)setTimeout(()=>gisMap.invalidateSize(),150);
+  if(page==='blockchain')loadBlockchainData();
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('show');
 }
-function toggleSidebar() {
+function toggleSidebar(){
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebarOverlay').classList.toggle('show');
 }
 
 /* ===== CHARTS ===== */
-function initCharts() {
-  if (chartsInitialized) return;
-  chartsInitialized = true;
-  const chartFont = { family: "'Segoe UI', sans-serif" };
-  Chart.defaults.font.family = chartFont.family;
-  Chart.defaults.font.size = 12;
-  // Bar Chart — Registrations
-  new Chart(document.getElementById('barChart'), {
-    type: 'bar', data: {
-      labels: ['Jul','Aug','Sep','Oct','Nov','Dec','Jan'],
-      datasets: [{ label: 'Registrations', data: [1820,2104,1950,2340,2180,2450,2680], backgroundColor: 'rgba(59,130,246,.75)', borderRadius: 6, borderSkipped: false }]
-    }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
-  });
-  // Pie Chart — Land Types
-  new Chart(document.getElementById('pieChart'), {
-    type: 'doughnut', data: {
-      labels: ['Residential','Commercial','Agricultural','Industrial'],
-      datasets: [{ data: [45,25,22,8], backgroundColor: ['#16a34a','#dc2626','#ea580c','#7c3aed'], borderWidth: 0, spacing: 3 }]
-    }, options: { responsive: true, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyleWidth: 10 } } } }
-  });
-  // Line Chart — Revenue
-  new Chart(document.getElementById('lineChart'), {
-    type: 'line', data: {
-      labels: ['Q1 2023','Q2 2023','Q3 2023','Q4 2023','Q1 2024'],
-      datasets: [{ label: 'Revenue (Cr)', data: [2.8,3.1,3.5,3.9,4.2], borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.1)', fill: true, tension: .4, pointRadius: 5, pointBackgroundColor: '#16a34a' }]
-    }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
-  });
-  // Analytics Bar
-  new Chart(document.getElementById('analyticsBar'), {
-    type: 'bar', data: {
-      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-      datasets: [
-        { label: 'Transfers', data: [120,145,130,160,155,178,190,185,200,210,195,220], backgroundColor: 'rgba(59,130,246,.7)', borderRadius: 4 },
-        { label: 'Registrations', data: [180,200,190,220,210,240,250,235,260,270,255,280], backgroundColor: 'rgba(22,163,74,.7)', borderRadius: 4 }
-      ]
-    }, options: { responsive: true, plugins: { legend: { position: 'top', labels: { usePointStyle: true } } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
-  });
-  // Analytics Doughnut
-  new Chart(document.getElementById('analyticsDoughnut'), {
-    type: 'doughnut', data: {
-      labels: ['Gurgaon','Bangalore','Mumbai','Hyderabad','Chennai','Others'],
-      datasets: [{ data: [28,24,18,14,10,6], backgroundColor: ['#1e3a8a','#3b82f6','#16a34a','#ea580c','#7c3aed','#94a3b8'], borderWidth: 0, spacing: 2 }]
-    }, options: { responsive: true, cutout: '55%', plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, font: { size: 11 } } } } }
-  });
-  // ML Comparison Chart
-  new Chart(document.getElementById('comparisonChart'), {
-    type: 'bar', data: {
-      labels: ['PLT-A','PLT-B','PLT-C','PLT-D','PLT-E'],
-      datasets: [{ label: 'Price (Lakhs)', data: [72,85,65,88,78], backgroundColor: ['rgba(59,130,246,.7)','rgba(22,163,74,.7)','rgba(234,88,12,.7)','rgba(22,163,74,.7)','rgba(59,130,246,.7)'], borderRadius: 6 }]
-    }, options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } } }
-  });
+function initCharts(){
+  if(chartsInitialized)return;chartsInitialized=true;
+  Chart.defaults.font.family="'Segoe UI',sans-serif";Chart.defaults.font.size=12;
+  new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:['Jul','Aug','Sep','Oct','Nov','Dec','Jan'],datasets:[{label:'Registrations',data:[1820,2104,1950,2340,2180,2450,2680],backgroundColor:'rgba(59,130,246,.75)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}}});
+  new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:['Residential','Commercial','Agricultural','Industrial'],datasets:[{data:[45,25,22,8],backgroundColor:['#16a34a','#dc2626','#ea580c','#7c3aed'],borderWidth:0,spacing:3}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{padding:16,usePointStyle:true,pointStyleWidth:10}}}}});
+  new Chart(document.getElementById('lineChart'),{type:'line',data:{labels:['Q1 2023','Q2 2023','Q3 2023','Q4 2023','Q1 2024'],datasets:[{label:'Revenue (Cr)',data:[2.8,3.1,3.5,3.9,4.2],borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.1)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#16a34a'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}}});
+  new Chart(document.getElementById('analyticsBar'),{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],datasets:[{label:'Transfers',data:[120,145,130,160,155,178,190,185,200,210,195,220],backgroundColor:'rgba(59,130,246,.7)',borderRadius:4},{label:'Registrations',data:[180,200,190,220,210,240,250,235,260,270,255,280],backgroundColor:'rgba(22,163,74,.7)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:'top',labels:{usePointStyle:true}}},scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}}}});
+  new Chart(document.getElementById('analyticsDoughnut'),{type:'doughnut',data:{labels:['Gurgaon','Bangalore','Mumbai','Hyderabad','Chennai','Others'],datasets:[{data:[28,24,18,14,10,6],backgroundColor:['#1e3a8a','#3b82f6','#16a34a','#ea580c','#7c3aed','#94a3b8'],borderWidth:0,spacing:2}]},options:{responsive:true,cutout:'55%',plugins:{legend:{position:'bottom',labels:{padding:12,usePointStyle:true,font:{size:11}}}}}});
+  new Chart(document.getElementById('comparisonChart'),{type:'bar',data:{labels:['PLT-A','PLT-B','PLT-C','PLT-D','PLT-E'],datasets:[{label:'Price (Lakhs)',data:[72,85,65,88,78],backgroundColor:['rgba(59,130,246,.7)','rgba(22,163,74,.7)','rgba(234,88,12,.7)','rgba(22,163,74,.7)','rgba(59,130,246,.7)'],borderRadius:6}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#f1f5f9'}},y:{grid:{display:false}}}}});
 }
 
-/* ===== GIS MAP ===== */
-function initGIS() {
-  if (gisMap) return;
-  gisMap = L.map('gisMap').setView([12.97, 77.59], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' }).addTo(gisMap);
-  fetch('/api/land').then(r => r.json()).then(data => {
-    allGisLands = data;
-    data.forEach(land => {
-      let color = '#16a34a';
-      if ((land.type || '').toLowerCase() === 'commercial') color = '#dc2626';
-      if ((land.type || '').toLowerCase() === 'agricultural') color = '#ea580c';
-      let style = { color, fillColor: color, fillOpacity: .35, weight: 2 };
-      if (land.status === 'for sale') { style.color = '#eab308'; style.dashArray = '6,4'; }
-      if (land.status === 'disputed') { style.color = '#000'; style.fillOpacity: .2; }
-      const poly = L.polygon(land.polygon || [[land.lat+.001,land.lon+.001],[land.lat+.001,land.lon-.001],[land.lat-.001,land.lon-.001],[land.lat-.001,land.lon+.001]], style).addTo(gisMap);
-      const marker = L.marker([land.lat, land.lon]).addTo(gisMap);
-      const clickHandler = () => {
-        gisMap.flyTo([land.lat, land.lon], 17);
-        document.getElementById('gisDetail').style.display = 'block';
-        document.getElementById('gisDetailContent').innerHTML =
-          `<b>ID:</b> ${land.parcel_id}<br><b>Survey:</b> ${land.survey}<br><b>Owner:</b> ${land.owner}<br><b>Type:</b> ${land.type}<br><b>Area:</b> ${land.area} sq ft<br><b>Status:</b> ${land.status}`;
-        // Nearby
-        let nb = '';
-        allGisLands.forEach(o => {
-          if (o.parcel_id !== land.parcel_id) {
-            const d = haversine(land.lat, land.lon, o.lat, o.lon);
-            if (d < 1) nb += `<div style="padding:4px 0">${o.parcel_id} — ${d.toFixed(2)} km</div>`;
-          }
-        });
-        document.getElementById('gisNearby').innerHTML = nb || 'No nearby lands found';
-      };
-      poly.on('click', clickHandler);
-      marker.on('click', clickHandler);
-    });
-  }).catch(() => {
-    // Fallback: show some demo markers if API fails
-    for (let i = 0; i < 20; i++) {
-      const lat = 12.97 + (Math.random() - .5) * .04;
-      const lon = 77.59 + (Math.random() - .5) * .04;
-      L.marker([lat, lon]).addTo(gisMap).on('click', () => {
-        document.getElementById('gisDetail').style.display = 'block';
-        document.getElementById('gisDetailContent').innerHTML = `<b>Lat:</b> ${lat.toFixed(4)}<br><b>Lon:</b> ${lon.toFixed(4)}`;
-      });
+/* ===================================================================
+   GIS MAP — YOUR EXACT map.html LOGIC INTEGRATED VERBATIM
+   =================================================================== */
+function getLandColor(type){
+  type=(type||"").toLowerCase();
+  if(type==="residential")return"green";
+  if(type==="commercial")return"red";
+  if(type==="agricultural")return"orange";
+  return"blue";
+}
+function getDistance(lat1,lon1,lat2,lon2){
+  const R=6371;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+/* YOUR EXACT handleLandClick FROM map.html */
+function handleLandClick(land, marker){
+  gisMap.flyTo([land.lat, land.lon], 18);
+  showGisDetails(land);
+  showGisQR(land);
+  document.getElementById("gisDocParcel").value = land.parcel_id;
+  loadGisNearby(land);
+  loadGisDocuments(land);
+
+  /* YOUR EXACT predict_price CALL FROM map.html */
+  fetch("/predict_price",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      area_sqft:land.area,
+      road_distance_km:2,
+      city_distance_km:5,
+      nearby_school:"Yes",
+      nearby_hospital:"No",
+      year:2024
+    })
+  })
+  .then(res=>res.json())
+  .then(result=>{
+    let price = result.predicted_price || 0;
+    document.getElementById("gisPriceBox").innerHTML = "₹ "+price;
+    if(marker){
+      marker.bindPopup("<b>"+land.parcel_id+"</b><br>₹"+price).openPopup();
     }
   });
 }
-function haversine(lat1,lon1,lat2,lon2){const R=6371;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
-function gisSearch(q){
-  if(!q){allGisLands.forEach(l=>{l._marker&&l._marker.setOpacity(1)});return}
-  const ql=q.toLowerCase();
-  allGisLands.forEach(l=>{
-    const match=l.parcel_id.toLowerCase().includes(ql)||l.owner.toLowerCase().includes(ql);
-    // We'd need to store markers for filtering; simplified version
+
+/* YOUR EXACT showDetails FROM map.html */
+function showGisDetails(land){
+  document.getElementById("gisDetails").innerHTML=
+    "ID: "+land.parcel_id+"<br>"+
+    "Owner: "+land.owner+"<br>"+
+    "Type: "+land.type+"<br>"+
+    "Status: "+land.status+"<br>"+
+    "Area: "+land.area;
+}
+
+/* YOUR EXACT showQR FROM map.html */
+function showGisQR(land){
+  document.getElementById("gisQRSection").innerHTML=
+    '<img src="/qr/'+land.parcel_id+'" width="120">';
+}
+
+/* YOUR EXACT loadNearby FROM map.html */
+function loadGisNearby(land){
+  let html="";let found=false;
+  allGisLands.forEach(o=>{
+    if(o.parcel_id!==land.parcel_id){
+      let d=getDistance(land.lat,land.lon,o.lat,o.lon);
+      if(d<1){found=true;html+=o.parcel_id+" ("+d.toFixed(2)+" km)<br>"}
+    }
+  });
+  document.getElementById("gisNearby").innerHTML=found?html:"No nearby lands";
+}
+
+/* YOUR EXACT searchLand FROM map.html */
+function gisSearchLand(){
+  let id=document.getElementById("gisSearchId").value;
+  let land=allGisLands.find(l=>l.parcel_id===id);
+  if(land)handleLandClick(land,null);
+  else alert("Not found");
+}
+
+/* YOUR EXACT loadDocuments FROM map.html */
+function loadGisDocuments(land){
+  fetch("/documents/"+land.parcel_id)
+  .then(response=>response.json())
+  .then(data=>{
+    let container=document.getElementById("gisDocuments");
+    if(!data||data.length===0){container.innerHTML="<p>No documents found</p>";return}
+    let html="<ul>";
+    data.forEach(doc=>{
+      html+="<li>📄 "+(doc.type||doc.document_type)+" ("+(doc.status||doc.verification_status)+")</li>";
+    });
+    html+="</ul>";
+    container.innerHTML=html;
+  })
+  .catch(err=>{
+    document.getElementById("gisDocuments").innerHTML="<p style='color:var(--danger)'>Error loading</p>";
   });
 }
 
-/* ===== QR VERIFICATION ===== */
-function selectCert(el, certId, parcelId) {
-  document.querySelectorAll('.cert-item').forEach(c => c.classList.remove('selected'));
+/* YOUR EXACT uploadDocument FROM map.html */
+function gisUploadDocument(){
+  let parcel=document.getElementById("gisDocParcel").value;
+  let type=document.getElementById("gisDocType").value;
+  let file=document.getElementById("gisDocFile").files[0];
+  if(!parcel||!file){alert("Fill all fields");return}
+  let formData=new FormData();
+  formData.append("parcel_id",parcel);
+  formData.append("document_type",type);
+  formData.append("uploaded_by","U001");
+  formData.append("file",file);
+  fetch("/upload_document",{method:"POST",body:formData})
+  .then(res=>res.json())
+  .then(data=>{
+    document.getElementById("gisUploadStatus").innerHTML="✅ Uploaded";
+  })
+  .catch(err=>{
+    document.getElementById("gisUploadStatus").innerHTML="❌ Error";
+  });
+}
+
+/* YOUR EXACT MAP INIT FROM map.html — fetch /api/land with all features */
+function initGIS(){
+  if(gisMap)return;
+  gisMap=L.map('gisMap').setView([12.97,77.59],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(gisMap);
+
+  fetch("/api/land")
+  .then(res=>res.json())
+  .then(data=>{
+    allGisLands=data;
+    data.forEach(land=>{
+      let baseColor=getLandColor(land.type);
+      let style={color:baseColor,fillColor:baseColor,fillOpacity:.4,weight:2};
+
+      /* YOUR EXACT for-sale STYLING */
+      if(land.status==="for sale"){
+        style.color="yellow";
+        style.dashArray="5,5";
+      }
+      /* YOUR EXACT disputed STYLING */
+      if(land.status==="disputed"){
+        style.color="black";
+      }
+
+      let poly=L.polygon(land.polygon,style).addTo(gisMap);
+
+      /* YOUR EXACT blinking for disputed */
+      if(land.status==="disputed"){
+        let el=poly.getElement();
+        if(el)el.classList.add("blink");
+      }
+
+      let marker=L.marker([land.lat,land.lon]).addTo(gisMap);
+
+      /* YOUR EXACT click handlers — both marker and polygon */
+      marker.on("click",()=>{handleLandClick(land,marker)});
+      poly.on("click",()=>{handleLandClick(land,marker)});
+    });
+  })
+  .catch(()=>{
+    /* Fallback demo markers if API fails */
+    for(let i=0;i<20;i++){
+      let lat=12.97+(Math.random()-.5)*.04;
+      let lon=77.59+(Math.random()-.5)*.04;
+      L.marker([lat,lon]).addTo(gisMap);
+    }
+  });
+}
+
+/* Blinking animation for disputed parcels (from your map.html) */
+const blinkStyle=document.createElement('style');
+blinkStyle.textContent='@keyframes blink{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}.blink{animation:blink 1s infinite}';
+document.head.appendChild(blinkStyle);
+
+/* ===== QR PAGE ===== */
+function selectCert(el,certId,parcelId){
+  document.querySelectorAll('.cert-item').forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
-  document.getElementById('qrImage').src = '/qr/' + parcelId;
-  document.getElementById('scanCertId').textContent = certId;
-  document.getElementById('scanParcelId').textContent = parcelId;
-  const isSuspicious = el.querySelector('.badge-red') !== null;
-  const result = document.getElementById('scanResult');
-  if (isSuspicious) {
-    result.className = 'scan-result';
-    result.style.background = 'var(--danger-bg)';
-    result.style.border = '2px solid var(--danger)';
-    result.querySelector('.check-icon').style.background = 'var(--danger)';
-    result.querySelector('.check-icon i').className = 'fas fa-times';
-    result.querySelector('h3').textContent = 'Suspicious Certificate';
-    result.querySelector('h3').style.color = 'var(--danger)';
-  } else {
-    result.className = 'scan-result verified';
-    result.querySelector('.check-icon').style.background = 'var(--success)';
-    result.querySelector('.check-icon i').className = 'fas fa-check';
-    result.querySelector('h3').textContent = 'Verified Authentic';
-    result.querySelector('h3').style.color = 'var(--success)';
+  document.getElementById('qrImage').src='/qr/'+parcelId;
+  document.getElementById('scanCertId').textContent=certId;
+  document.getElementById('scanParcelId').textContent=parcelId;
+  const isSusp=el.querySelector('.badge-red')!==null;
+  const r=document.getElementById('scanResult');
+  if(isSusp){
+    r.className='scan-result';r.style.background='var(--danger-bg)';r.style.border='2px solid var(--danger)';
+    r.querySelector('.check-icon').style.background='var(--danger)';r.querySelector('.check-icon i').className='fas fa-times';
+    r.querySelector('h3').textContent='Suspicious Certificate';r.querySelector('h3').style.color='var(--danger)';
+  }else{
+    r.className='scan-result verified';r.querySelector('.check-icon').style.background='var(--success)';
+    r.querySelector('.check-icon i').className='fas fa-check';r.querySelector('h3').textContent='Verified Authentic';
+    r.querySelector('h3').style.color='var(--success)';
   }
-  document.getElementById('scanOwner').textContent = el.querySelector('div > div:last-child').textContent.split(' — ')[0];
+  document.getElementById('scanOwner').textContent=el.querySelector('div > div:last-child').textContent.split(' — ')[0];
 }
-function downloadQR() {
-  const img = document.getElementById('qrImage');
-  const a = document.createElement('a');
-  a.href = img.src; a.download = 'landchain_qr.png'; a.click();
-}
+function downloadQR(){const a=document.createElement('a');a.href=document.getElementById('qrImage').src;a.download='landchain_qr.png';a.click()}
 
 /* ===== ML PREDICTION ===== */
-function predictPrice() {
-  const data = {
-    area_sqft: parseFloat(document.getElementById('mlArea').value),
-    road_distance_km: parseFloat(document.getElementById('mlRoad').value),
-    city_distance_km: parseFloat(document.getElementById('mlCity').value),
-    nearby_school: document.getElementById('mlSchool').value,
-    nearby_hospital: document.getElementById('mlHospital').value,
-    year: parseInt(document.getElementById('mlYear').value)
-  };
-  fetch('/predict_price', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-    .then(r => r.json())
-    .then(res => {
-      if (res.predicted_price) {
-        const price = res.predicted_price;
-        const lakhs = price / 100000;
-        document.getElementById('mlPrice').textContent = '₹' + lakhs.toFixed(1) + 'L';
-        document.getElementById('mlRange').textContent = '₹' + (lakhs * .9).toFixed(0) + 'L — ₹' + (lakhs * 1.1).toFixed(0) + 'L';
-        document.getElementById('mlPerSqft').textContent = '₹' + Math.round(price / data.area_sqft).toLocaleString();
-      } else if (res.error) {
-        alert('Prediction error: ' + res.error);
-      }
-    })
-    .catch(() => {
-      // Demo fallback
-      const area = data.area_sqft;
-      const price = area * 3500 + Math.random() * 500000;
-      const lakhs = price / 100000;
-      document.getElementById('mlPrice').textContent = '₹' + lakhs.toFixed(1) + 'L';
-      document.getElementById('mlRange').textContent = '₹' + (lakhs * .9).toFixed(0) + 'L — ₹' + (lakhs * 1.1).toFixed(0) + 'L';
-      document.getElementById('mlPerSqft').textContent = '₹' + Math.round(price / area).toLocaleString();
-    });
+function predictPrice(){
+  const data={area_sqft:parseFloat(document.getElementById('mlArea').value),road_distance_km:parseFloat(document.getElementById('mlRoad').value),city_distance_km:parseFloat(document.getElementById('mlCity').value),nearby_school:document.getElementById('mlSchool').value,nearby_hospital:document.getElementById('mlHospital').value,year:parseInt(document.getElementById('mlYear').value)};
+  fetch('/predict_price',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+  .then(r=>r.json()).then(res=>{
+    if(res.predicted_price){const p=res.predicted_price;const l=p/100000;document.getElementById('mlPrice').textContent='₹'+l.toFixed(1)+'L';document.getElementById('mlRange').textContent='₹'+(l*.9).toFixed(0)+'L — ₹'+(l*1.1).toFixed(0)+'L';document.getElementById('mlPerSqft').textContent='₹'+Math.round(p/data.area_sqft).toLocaleString()}
+    else if(res.error)alert(res.error);
+  }).catch(()=>{const a=data.area_sqft;const p=a*3500+Math.random()*500000;const l=p/100000;document.getElementById('mlPrice').textContent='₹'+l.toFixed(1)+'L';document.getElementById('mlRange').textContent='₹'+(l*.9).toFixed(0)+'L — ₹'+(l*1.1).toFixed(0)+'L';document.getElementById('mlPerSqft').textContent='₹'+Math.round(p/a).toLocaleString()});
 }
 
-/* ===== API INTEGRATION FUNCTIONS ===== */
-function initiateTransfer() {
-  const data = {
-    parcel_id: document.getElementById('trParcelId').value,
-    seller_id: document.getElementById('trSellerId').value,
-    buyer_id: document.getElementById('trBuyerId').value,
-    sale_amount: parseFloat(document.getElementById('trAmount').value),
-    transaction_hash: document.getElementById('trHash').value
-  };
-  fetch('/transfer_property', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-    .then(r => r.json())
-    .then(res => alert(res.message || JSON.stringify(res)))
-    .catch(() => alert('Transfer request sent (demo mode)'));
+/* ===== API CALLS ===== */
+function initiateTransfer(){
+  const d={parcel_id:document.getElementById('trParcelId').value,seller_id:document.getElementById('trSellerId').value,buyer_id:document.getElementById('trBuyerId').value,sale_amount:parseFloat(document.getElementById('trAmount').value),transaction_hash:document.getElementById('trHash').value};
+  fetch('/transfer_property',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>r.json()).then(res=>alert(res.message||JSON.stringify(res))).catch(()=>alert('Transfer request sent (demo)'));
 }
-
-function loadHistory() {
-  const landId = document.getElementById('historyLandId').value.trim();
-  if (!landId) return;
-  fetch('/owner_history/' + landId)
-    .then(r => r.json())
-    .then(data => {
-      if (data.error) { alert(data.error); return; }
-      const container = document.getElementById('historyTimeline');
-      if (data.length === 0) { container.innerHTML = '<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No history found</p></div>'; return; }
-      container.innerHTML = data.map(h => `
-        <div class="timeline-item">
-          <div class="t-date">${h.date}</div>
-          <div class="t-title">${h.type === 'Transfer' ? 'Transfer to ' + h.to : h.type}</div>
-          <div class="t-desc">From: ${h.from} → To: ${h.to}</div>
-        </div>`).join('');
-      document.getElementById('historyTitle').textContent = 'Ownership Timeline — ' + landId;
-    })
-    .catch(() => alert('Failed to load history'));
+function loadHistory(){
+  const id=document.getElementById('historyLandId').value.trim();if(!id)return;
+  fetch('/owner_history/'+id).then(r=>r.json()).then(data=>{
+    if(data.error){alert(data.error);return}
+    const c=document.getElementById('historyTimeline');
+    if(data.length===0){c.innerHTML='<div class="empty-state"><i class="fas fa-clock-rotate-left"></i><p>No history found</p></div>';return}
+    c.innerHTML=data.map(h=>'<div class="timeline-item"><div class="t-date">'+h.date+'</div><div class="t-title">'+(h.type==='Transfer'?'Transfer to '+h.to:h.type)+'</div><div class="t-desc">From: '+h.from+' → To: '+h.to+'</div></div>').join('');
+    document.getElementById('historyTitle').textContent='Ownership Timeline — '+id;
+  }).catch(()=>alert('Failed to load history'));
 }
-
-function generateTax() {
-  const parcelId = document.getElementById('taxParcelId').value.trim();
-  if (!parcelId) return;
-  fetch('/generate_tax/' + parcelId, { method: 'POST' })
-    .then(r => r.json())
-    .then(res => {
-      const msg = document.getElementById('taxGenMsg');
-      if (res.message) { msg.innerHTML = '<span style="color:var(--success)"><i class="fas fa-check-circle"></i> ' + res.message + (res.tax_amount ? ' — ₹' + res.tax_amount.toLocaleString() : '') + '</span>'; }
-      else if (res.error) { msg.innerHTML = '<span style="color:var(--danger)"><i class="fas fa-times-circle"></i> ' + res.error + '</span>'; }
-    })
-    .catch(() => { document.getElementById('taxGenMsg').innerHTML = '<span style="color:var(--warning)"><i class="fas fa-info-circle"></i> Demo mode — tax generation simulated</span>'; });
+function generateTax(){
+  const p=document.getElementById('taxParcelId').value.trim();if(!p)return;
+  fetch('/generate_tax/'+p,{method:'POST'}).then(r=>r.json()).then(res=>{
+    const m=document.getElementById('taxGenMsg');
+    if(res.message)m.innerHTML='<span style="color:var(--success)"><i class="fas fa-check-circle"></i> '+res.message+(res.tax_amount?' — ₹'+res.tax_amount.toLocaleString():'')+'</span>';
+    else if(res.error)m.innerHTML='<span style="color:var(--danger)"><i class="fas fa-times-circle"></i> '+res.error+'</span>';
+  }).catch(()=>{document.getElementById('taxGenMsg').innerHTML='<span style="color:var(--warning)"><i class="fas fa-info-circle"></i> Demo mode</span>'});
 }
-
-function payTax(taxId) {
-  fetch('/pay_tax', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tax_id: taxId, tax_paid: 45000 }) })
-    .then(r => r.json())
-    .then(res => { alert(res.message || 'Payment processed'); location.reload(); })
-    .catch(() => alert('Tax payment processed (demo mode)'));
+function payTax(id){
+  fetch('/pay_tax',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tax_id:id,tax_paid:45000})}).then(r=>r.json()).then(res=>{alert(res.message);location.reload()}).catch(()=>alert('Paid (demo)'));
 }
-
-function addMortgage() {
-  const data = {
-    parcel_id: document.getElementById('mortParcelId').value,
-    owner_id: document.getElementById('mortOwnerId').value,
-    bank_name: document.getElementById('mortBank').value,
-    loan_amount: parseFloat(document.getElementById('mortAmount').value),
-    interest_rate: parseFloat(document.getElementById('mortRate').value),
-    start_date: document.getElementById('mortStart').value,
-    end_date: document.getElementById('mortEnd').value
-  };
-  fetch('/add_mortgage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-    .then(r => r.json())
-    .then(res => { document.getElementById('mortMsg').innerHTML = '<span style="color:var(--success)"><i class="fas fa-check-circle"></i> ' + (res.message || JSON.stringify(res)) + '</span>'; })
-    .catch(() => { document.getElementById('mortMsg').innerHTML = '<span style="color:var(--warning)"><i class="fas fa-info-circle"></i> Demo mode</span>'; });
+function addMortgage(){
+  const d={parcel_id:document.getElementById('mortParcelId').value,owner_id:document.getElementById('mortOwnerId').value,bank_name:document.getElementById('mortBank').value,loan_amount:parseFloat(document.getElementById('mortAmount').value),interest_rate:parseFloat(document.getElementById('mortRate').value),start_date:document.getElementById('mortStart').value,end_date:document.getElementById('mortEnd').value};
+  fetch('/add_mortgage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>r.json()).then(res=>{document.getElementById('mortMsg').innerHTML='<span style="color:var(--success)"><i class="fas fa-check-circle"></i> '+(res.message||JSON.stringify(res))+'</span>'}).catch(()=>{document.getElementById('mortMsg').innerHTML='<span style="color:var(--warning)">Demo mode</span>'});
 }
-
-function closeMortgage(id) {
-  fetch('/close_mortgage', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mortgage_id: id }) })
-    .then(r => r.json())
-    .then(res => { alert(res.message); location.reload(); })
-    .catch(() => alert('Mortgage closed (demo mode)'));
+function closeMortgage(id){fetch('/close_mortgage',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({mortgage_id:id})}).then(r=>r.json()).then(res=>{alert(res.message);location.reload()}).catch(()=>alert('Closed (demo)'))}
+function verifyKYC(id){fetch('/verify_kyc/'+id,{method:'PUT'}).then(r=>r.json()).then(res=>{alert(res.message);location.reload()}).catch(()=>alert('Verified (demo)'))}
+function uploadDoc(){
+  const p=document.getElementById('docParcelId').value;const t=document.getElementById('docTypeSelect').value;const f=document.getElementById('docFileInput').files[0];
+  if(!p||!f){document.getElementById('docUploadMsg').innerHTML='<span style="color:var(--danger)">Fill all fields</span>';return}
+  const fd=new FormData();fd.append('parcel_id',p);fd.append('document_type',t);fd.append('uploaded_by','U001');fd.append('file',f);
+  fetch('/upload_document',{method:'POST',body:fd}).then(r=>r.json()).then(res=>{document.getElementById('docUploadMsg').innerHTML='<span style="color:var(--success)"><i class="fas fa-check-circle"></i> '+(res.message||'Uploaded')+'</span>'}).catch(()=>{document.getElementById('docUploadMsg').innerHTML='<span style="color:var(--warning)">Demo mode</span>'});
 }
-
-function verifyKYC(userId) {
-  fetch('/verify_kyc/' + userId, { method: 'PUT' })
-    .then(r => r.json())
-    .then(res => { alert(res.message); location.reload(); })
-    .catch(() => alert('KYC verified (demo mode)'));
-}
-
-function uploadDoc() {
-  const parcel = document.getElementById('docParcelId').value;
-  const type = document.getElementById('docTypeSelect').value;
-  const file = document.getElementById('docFileInput').files[0];
-  if (!parcel || !file) { document.getElementById('docUploadMsg').innerHTML = '<span style="color:var(--danger)">Fill all fields</span>'; return; }
-  const fd = new FormData();
-  fd.append('parcel_id', parcel); fd.append('document_type', type); fd.append('uploaded_by', 'U001'); fd.append('file', file);
-  fetch('/upload_document', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(res => { document.getElementById('docUploadMsg').innerHTML = '<span style="color:var(--success)"><i class="fas fa-check-circle"></i> ' + (res.message || 'Uploaded') + '</span>'; })
-    .catch(() => { document.getElementById('docUploadMsg').innerHTML = '<span style="color:var(--warning)"><i class="fas fa-info-circle"></i> Demo mode</span>'; });
-}
-
-function filterActivity() {
-  const start = document.getElementById('actStartDate').value;
-  const end = document.getElementById('actEndDate').value;
-  if (!start || !end) return;
-  fetch('/filter_login_activity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start_date: start, end_date: end }) })
-    .then(r => r.json())
-    .then(data => {
-      const tbody = document.getElementById('activityTableBody');
-      if (!Array.isArray(data) || data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:24px">No logs found for selected range</td></tr>'; return; }
-      tbody.innerHTML = data.map(r => `<tr><td><span class="badge-pill badge-blue">${r.action_type}</span></td><td>${r.description||'—'}</td><td>${r.user_id}</td><td>—</td><td>${r.timestamp}</td></tr>`).join('');
-    })
-    .catch(() => alert('Filter applied (demo mode)'));
+function filterActivity(){
+  const s=document.getElementById('actStartDate').value;const e=document.getElementById('actEndDate').value;if(!s||!e)return;
+  fetch('/filter_login_activity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({start_date:s,end_date:e})}).then(r=>r.json()).then(data=>{
+    const tb=document.getElementById('activityTableBody');
+    if(!Array.isArray(data)||data.length===0){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:24px">No logs found</td></tr>';return}
+    tb.innerHTML=data.map(r=>'<tr><td><span class="badge-pill badge-blue">'+r.action_type+'</span></td><td>'+(r.description||'—')+'</td><td>'+r.user_id+'</td><td>—</td><td>'+r.timestamp+'</td></tr>').join('');
+  }).catch(()=>alert('Filter applied (demo)'));
 }
 
 /* ===== BLOCKCHAIN ===== */
-function loadBlockchainData() {
-  fetch('/get_blockchain')
-    .then(r => r.json())
-    .then(data => {
-      const arr = Array.isArray(data) ? data : [];
-      let confirmed = 0, pending = 0;
-      const tbody = document.getElementById('bcTableBody');
-      if (arr.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:24px">No blocks found</td></tr>'; }
-      else {
-        tbody.innerHTML = arr.map(b => {
-          if (b.confirmation_status === 'Confirmed') confirmed++; else pending++;
-          return `<tr><td>${b.block_number}</td><td><span class="hash-text" onclick="copyHash(this)" style="font-size:11px">0x${Math.random().toString(16).slice(2,18)}...</span></td><td><span class="hash-text" onclick="copyHash(this)" style="font-size:11px">0x${Math.random().toString(16).slice(2,18)}...</span></td><td>0.0025 ETH</td><td><span class="badge-pill ${b.confirmation_status==='Confirmed'?'badge-green':'badge-orange'}">${b.confirmation_status}</span></td><td>2024-01-15</td><td>${b.confirmation_status!=='Confirmed'?`<button class="btn btn-success btn-sm" onclick="confirmBlock()">Confirm</button>`:'—'}</td></tr>`;
-        }).join('');
-      }
-      document.getElementById('bcTotalBlocks').textContent = arr.length;
-      document.getElementById('bcConfirmed').textContent = confirmed;
-      document.getElementById('bcPending').textContent = pending;
-    })
-    .catch(() => {
-      document.getElementById('bcTotalBlocks').textContent = '0';
-      document.getElementById('bcTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:24px">Could not load blockchain data</td></tr>';
-    });
+function loadBlockchainData(){
+  fetch('/get_blockchain').then(r=>r.json()).then(data=>{
+    const arr=Array.isArray(data)?data:[];let conf=0,pend=0;
+    const tb=document.getElementById('bcTableBody');
+    if(arr.length===0){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:24px">No blocks found</td></tr>'}
+    else{tb.innerHTML=arr.map(b=>{if(b.confirmation_status==='Confirmed')conf++;else pend++;return '<tr><td>'+b.block_number+'</td><td><span class="hash-text" onclick="copyHash(this)" style="font-size:11px">0x'+Math.random().toString(16).slice(2,18)+'...</span></td><td><span class="hash-text" onclick="copyHash(this)" style="font-size:11px">0x'+Math.random().toString(16).slice(2,18)+'...</span></td><td>0.0025 ETH</td><td><span class="badge-pill '+(b.confirmation_status==='Confirmed'?'badge-green':'badge-orange')+'">'+b.confirmation_status+'</span></td><td>2024-01-15</td><td>'+(b.confirmation_status!=='Confirmed'?'<button class="btn btn-success btn-sm" onclick="confirmBlock()">Confirm</button>':'—')+'</td></tr>'}).join('')}
+    document.getElementById('bcTotalBlocks').textContent=arr.length;document.getElementById('bcConfirmed').textContent=conf;document.getElementById('bcPending').textContent=pend;
+  }).catch(()=>{document.getElementById('bcTotalBlocks').textContent='0';document.getElementById('bcTableBody').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:24px">Could not load</td></tr>'});
 }
-function verifyBlockchain() {
-  fetch('/verify_blockchain')
-    .then(r => r.json())
-    .then(res => {
-      const el = document.getElementById('bcIntegrityResult');
-      if (res.blockchain_valid) { el.innerHTML = '<span style="color:var(--success)"><i class="fas fa-check-circle"></i> Blockchain integrity verified — All blocks are valid</span>'; }
-      else { el.innerHTML = '<span style="color:var(--danger)"><i class="fas fa-times-circle"></i> Tampering detected at block #' + res.block_number + '</span>'; }
-    })
-    .catch(() => { document.getElementById('bcIntegrityResult').innerHTML = '<span style="color:var(--success)"><i class="fas fa-check-circle"></i> Verification complete</span>'; });
+function verifyBlockchain(){
+  fetch('/verify_blockchain').then(r=>r.json()).then(res=>{
+    const el=document.getElementById('bcIntegrityResult');
+    if(res.blockchain_valid)el.innerHTML='<span style="color:var(--success)"><i class="fas fa-check-circle"></i> Blockchain integrity verified — All blocks valid</span>';
+    else el.innerHTML='<span style="color:var(--danger)"><i class="fas fa-times-circle"></i> Tampering detected at block #'+res.block_number+'</span>';
+  }).catch(()=>{document.getElementById('bcIntegrityResult').innerHTML='<span style="color:var(--success)"><i class="fas fa-check-circle"></i> Verification complete</span>'});
 }
-function confirmBlock() {
-  alert('Block confirmation requires blockchain transaction (demo mode)');
-}
+function confirmBlock(){alert('Block confirmation requires blockchain transaction (demo)')}
 
-/* ===== UTILITIES ===== */
-function copyHash(el) {
-  navigator.clipboard.writeText(el.textContent).then(() => {
-    const toast = document.getElementById('copyToast');
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
-  });
-}
-
-/* ===== Enter key on login ===== */
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !document.getElementById('loginOverlay').classList.contains('hidden')) handleLogin();
-});
+/* ===== UTILS ===== */
+function copyHash(el){navigator.clipboard.writeText(el.textContent).then(()=>{const t=document.getElementById('copyToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)})}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElementById('loginOverlay').classList.contains('hidden'))handleLogin()});
 </script>
 </body>
 </html>
