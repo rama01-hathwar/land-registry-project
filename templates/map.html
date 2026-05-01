@@ -869,16 +869,30 @@ let chartsInitialized = false;
 
 /* ===== LOGIN ===== */
 function handleLogin(){
+  console.log("Login clicked");
+
   const email=document.getElementById('loginEmail').value.trim();
   const pass=document.getElementById('loginPass').value.trim();
   const role=document.getElementById('loginRole').value;
-  if(!email||!pass){document.getElementById('loginError').style.display='block';return}
-  currentUser={email,role,name:role.charAt(0).toUpperCase()+role.slice(1)};
-  document.getElementById('loginOverlay').classList.add('hidden');
-  document.getElementById('appContainer').classList.add('active');
+
+  if(!email||!pass){
+    document.getElementById('loginError').style.display='block';
+    return;
+  }
+
+  currentUser={
+    email,
+    role,
+    name:role.charAt(0).toUpperCase()+role.slice(1)
+  };
+
+  document.getElementById('loginOverlay').style.display="none";
+  document.getElementById('appContainer').style.display="block";
+
   document.getElementById('userName').textContent=currentUser.name;
   document.getElementById('userRole').textContent=document.getElementById('loginRole').selectedOptions[0].text;
   document.getElementById('userAvatar').textContent=currentUser.name.charAt(0).toUpperCase();
+
   initCharts();
   loadBlockchainData();
 }
@@ -1230,7 +1244,7 @@ function initiateTransfer(){
     var tbody=document.getElementById('transferTableBody');
     if(res.transaction_id){
       var row=document.createElement('tr');
-      row.innerHTML='<td>'+res.transaction_id+'</td><td>'+d.parcel_id+'</td><td>'+d.seller_id+'</td><td>'+d.buyer_id+'</td><td>₹'+parseFloat(d.sale_amount||0).toLocaleString('en-IN')+'</td><td><span class="badge-pill badge-green">On-Chain</span></td><td><span class="hash-text" style="font-size:10px" onclick="copyHash(this)">'+res.+'</span></td>';
+      row.innerHTML='<td>'+res.transaction_id+'</td><td>'+d.parcel_id+'</td><td>'+d.seller_id+'</td><td>'+d.buyer_id+'</td><td>₹'+parseFloat(d.sale_amount||0).toLocaleString('en-IN')+'</td><td><span class="badge-pill badge-green">On-Chain</span></td><td><span class="hash-text" style="font-size:10px" onclick="copyHash(this)">'+ (res.tx_hash || res.transaction_id || 'N/A') +'</span>
       row.style.animation='pageIn .4s ease';
       tbody.insertBefore(row,tbody.firstChild);
       document.getElementById('trParcelId').value='';
