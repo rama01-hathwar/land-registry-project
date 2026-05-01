@@ -1071,48 +1071,65 @@ function initGIS(){
   gisMap=L.map('gisMap').setView([12.97,77.59],12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(gisMap);
 
-  fetch("/api/land")
-  .then(res=>res.json())
-  .then(data=>{
-    allGisLands=data;
-    data.forEach(land=>{
-      let baseColor=getLandColor(land.type);
-      let style={color:baseColor,fillColor:baseColor,fillOpacity:.4,weight:2};
+  
+fetch("/api/land")
+.then(res => res.text())
+.then(text => {
+  try {
+    const data = JSON.parse(text);
 
-      /* YOUR EXACT for-sale STYLING */
-      if(land.status==="for sale"){
-        style.color="yellow";
-        style.dashArray="5,5";
+    allGisLands = data;
+
+    data.forEach(land => {
+
+      let baseColor = getLandColor(land.type);
+
+      let style = {
+        color: baseColor,
+        fillColor: baseColor,
+        fillOpacity: 0.4,
+        weight: 2
+      };
+
+      if (land.status === "for sale") {
+        style.color = "yellow";
+        style.dashArray = "5,5";
       }
-      /* YOUR EXACT disputed STYLING */
-      if(land.status==="disputed"){
-        style.color="black";
+
+      if (land.status === "disputed") {
+        style.color = "black";
       }
 
-      let poly=L.polygon(land.polygon,style).addTo(gisMap);
+      let poly = L.polygon(land.polygon, style).addTo(gisMap);
 
-      /* YOUR EXACT blinking for disputed */
-      if(land.status==="disputed"){
-        let el=poly.getElement();
-        if(el)el.classList.add("blink");
+      // blinking
+      if (land.status === "disputed") {
+        setTimeout(() => {
+          let el = poly.getElement();
+          if (el) el.classList.add("blink");
+        }, 100);
       }
 
-      let marker=L.marker([land.lat,land.lon]).addTo(gisMap);
+      let marker = L.marker([land.lat, land.lon]).addTo(gisMap);
 
-      /* YOUR EXACT click handlers — both marker and polygon */
-      marker.on("click",()=>{handleLandClick(land,marker)});
-      poly.on("click",()=>{handleLandClick(land,marker)});
+      marker.on("click", () => handleLandClick(land, marker));
+      poly.on("click", () => handleLandClick(land, marker));
     });
-  })
-  .catch(()=>{
-    /* Fallback demo markers if API fails */
-    for(let i=0;i<20;i++){
-      let lat=12.97+(Math.random()-.5)*.04;
-      let lon=77.59+(Math.random()-.5)*.04;
-      L.marker([lat,lon]).addTo(gisMap);
-    }
-  });
-}
+
+  } catch (e) {
+    console.error("❌ API NOT JSON:", text);
+  }
+})
+.catch(err => {
+  console.error("❌ FETCH ERROR:", err);
+
+  // fallback markers
+  for (let i = 0; i < 20; i++) {
+    let lat = 12.97 + (Math.random() - 0.5) * 0.04;
+    let lon = 77.59 + (Math.random() - 0.5) * 0.04;
+    L.marker([lat, lon]).addTo(gisMap);
+  }
+});
 
 /* Blinking animation for disputed parcels (from your map.html) */
 const blinkStyle=document.createElement('style');
