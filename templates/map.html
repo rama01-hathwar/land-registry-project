@@ -215,8 +215,8 @@ tr:hover td{background:var(--bg)}
 .dispute-property .dp-issues .issue i{font-size:11px}
 
 /* ===== GIS PAGE — YOUR EXACT MAP.HTML INTEGRATED ===== */
-.gis-container{display:grid;grid-template-columns:1fr 340px;gap:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);height:calc(100vh - 160px)}
-#gisMap{width:100%;height:100%;background:#e8e8e8}
+.gis-container{display:grid;grid-template-columns:1fr 340px;gap:0;border-radius:var(--radius);border:1px solid var(--border);height:calc(100vh - 160px)}
+#gisMap{width:100%;height:100%;background:#e8e8e8;position:relative;z-index:1}
 .gis-sidebar{background:var(--card);padding:20px;overflow-y:auto;border-left:1px solid var(--border)}
 .gis-sidebar h4{font-size:15px;font-weight:700;margin-bottom:14px}
 .gis-sidebar h4 i{color:var(--primary-light);margin-right:8px}
@@ -917,17 +917,14 @@ function navigateTo(page){
 
   /* — KEY FIX: init map ONLY when GIS page becomes visible — */
   if(page==='gis'){
-    if(!gisMap){
-      /* wait one frame so the div is fully visible before Leaflet reads its size */
-      requestAnimationFrame(()=>{
-        requestAnimationFrame(()=>{
-          initGIS();
-        });
-      });
+        if(!gisMap){
+      setTimeout(()=>{
+        initGIS();
+        setTimeout(()=>{ if(gisMap) gisMap.invalidateSize(); },300);
+      },200);
     } else {
-      setTimeout(()=>gisMap.invalidateSize(),200);
+      gisMap.invalidateSize();
     }
-  }
 
   if(page==='blockchain')loadBlockchainData();
   document.getElementById('sidebar').classList.remove('open');
@@ -1162,8 +1159,32 @@ function predictPrice(){
 
 /* ===== API CALLS ===== */
 function initiateTransfer(){
-  const d={parcel_id:document.getElementById('trParcelId').value,seller_id:document.getElementById('trSellerId').value,buyer_id:document.getElementById('trBuyerId').value,sale_amount:parseFloat(document.getElementById('trAmount').value),transaction_hash:document.getElementById('trHash').value};
-  fetch('/transfer_property',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(r=>r.json()).then(res=>alert(res.message||JSON.stringify(res))).catch(()=>alert('Transfer request sent (demo)'));
+  const d={
+    parcel_id:document.getElementById('trParcelId').value,
+    seller_id:document.getElementById('trSellerId').value,
+    buyer_id:document.getElementById('trBuyerId').value,
+    sale_amount:parseFloat(document.getElementById('trAmount').value)
+  };
+  if(!d.parcel_id||!d.seller_id||!d.buyer_id){alert('Fill all required fields');return}
+  fetch('/transfer_property',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+  .then(r=>r.json())
+  .then(res=>{
+    const tbody=document.getElementById('transferTableBody');
+    if(res.transaction_id){
+      const row=document.createElement('tr');
+      row.innerHTML=`<td>${res.transaction_id}</td><td>${d.parcel_id}</td><td>${d.seller_id}</td><td>${d.buyer_id}</td><td>₹${parseFloat(d.sale_amount||0).toLocaleString('en-IN')}</td><td><span class="badge-pill badge-green">On-Chain</span></td><td><span class="hash-text" style="font-size:10px" onclick="copyHash(this)">${res.transaction_hash}</span></td>`;
+      row.style.animation='pageIn .4s ease';
+      tbody.insertBefore(row,tbody.firstChild);
+      document.getElementById('trParcelId').value='';
+      document.getElementById('trSellerId').value='';
+      document.getElementById('trBuyerId').value='';
+      document.getElementById('trAmount').value='';
+      alert('✅ '+res.message);
+    }else{
+      alert('❌ '+res.message);
+    }
+  })
+  .catch(()=>{alert('Network error — could not reach backend')});
 }
 function loadHistory(){
   const id=document.getElementById('historyLandId').value.trim();if(!id)return;
