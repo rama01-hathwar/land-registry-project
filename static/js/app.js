@@ -1,118 +1,117 @@
-function safeFetch(url, callback){
-    fetch(window.location.origin + url)
-    .then(res=>{
-        if(!res.ok) throw new Error("API error");
-        return res.json();
-    })
-    .then(data=>{
-        if(data.error){
-            console.error(data.error);
-            return;
-        }
-        callback(data);
-    })
-    .catch(err=>{
-        console.error("Fetch error:", err);
-    });
-}
+function show(id){
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
 
-// ---------------- NAV ----------------
-function show(id, el){
-
-    document.querySelectorAll(".module").forEach(m=>{
-        m.style.display = "none";
-    });
-
-    document.getElementById(id).style.display = "block";
-
-    document.querySelectorAll(".menu").forEach(m=>{
-        m.classList.remove("active");
-    });
-
-    el.classList.add("active");
-
-    if(id==="gis") loadMap();
-    if(id==="fraud") loadFraud();
+    if(id==="dashboard") loadDashboard();
+    if(id==="transfer") loadTransfer();
     if(id==="history") loadHistory();
+    if(id==="documents") loadDocuments();
     if(id==="tax") loadTax();
     if(id==="mortgage") loadMortgage();
+    if(id==="fraud") loadFraud();
     if(id==="dispute") loadDispute();
+    if(id==="gis") loadGIS();
+    if(id==="qr") loadQR();
+    if(id==="ml") loadML();
     if(id==="logs") loadLogs();
     if(id==="blockchain") loadBlockchain();
 }
 
-// ---------------- MAP ----------------
-function loadMap(){
-    if(window.map) return;
-
-    window.map = L.map('map').setView([12.97,77.59],12);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-    safeFetch("/api/land", data=>{
-        data.forEach(l=>{
-            L.marker([l.lat,l.lon])
-            .addTo(map)
-            .bindPopup(l.parcel_id);
-        });
+/* ================= DASHBOARD ================= */
+function loadDashboard(){
+    fetch('/dashboard_data')
+    .then(r=>r.json())
+    .then(d=>{
+        dashboard.innerHTML = `
+        <h2>Dashboard</h2>
+        <div class="card">Parcels: ${d.parcels}</div>
+        <div class="card">Revenue: ₹${d.revenue}</div>
+        <div class="card">Frauds: ${d.frauds}</div>`;
     });
 }
 
-// ---------------- MODULES ----------------
-function loadFraud(){
-    safeFetch("/fraud_check/L001", d=>{
-        document.getElementById("fraud").innerHTML =
-        `${d.parcel_id} - ${d.risk_level}`;
-    });
+/* ================= TRANSFER ================= */
+function loadTransfer(){
+    transfer.innerHTML = `
+    <h2>Ownership Transfer</h2>
+    <input id="p" placeholder="Parcel ID">
+    <input id="s" placeholder="Seller">
+    <input id="b" placeholder="Buyer">
+    <button onclick="transferOwnership()">Transfer</button>`;
 }
 
+function transferOwnership(){
+    fetch('/transfer',{method:'POST'});
+}
+
+/* ================= HISTORY ================= */
 function loadHistory(){
-    safeFetch("/owner_history/L001", data=>{
-        let html="";
-        data.forEach(h=>{
-            html += `<div>${h.from} → ${h.to}</div>`;
-        });
-        document.getElementById("history").innerHTML = html;
+    fetch('/history').then(r=>r.json()).then(d=>{
+        history.innerHTML = "<h2>Ownership History</h2>"+
+        d.map(x=>`<div class="card">${x}</div>`).join('');
     });
 }
 
+/* ================= DOCUMENT ================= */
+function loadDocuments(){
+    documents.innerHTML = `
+    <h2>Upload Document</h2>
+    <input type="file">
+    <button>Upload</button>`;
+}
+
+/* ================= TAX ================= */
 function loadTax(){
-    safeFetch("/tax/L001", d=>{
-        document.getElementById("tax").innerHTML =
-        `Amount: ${d.amount}`;
+    fetch('/tax').then(r=>r.json()).then(d=>{
+        tax.innerHTML = "<h2>Tax</h2>"+
+        d.map(x=>`<div class="card">${x.amount}</div>`).join('');
     });
 }
 
+/* ================= MORTGAGE ================= */
 function loadMortgage(){
-    safeFetch("/mortgage/L001", d=>{
-        document.getElementById("mortgage").innerHTML =
-        `${d.bank || ""} ${d.amount || ""}`;
+    fetch('/mortgage').then(r=>r.json()).then(d=>{
+        mortgage.innerHTML = "<h2>Mortgage</h2>"+
+        d.map(x=>`<div class="card">${x.bank}</div>`).join('');
     });
 }
 
+/* ================= FRAUD ================= */
+function loadFraud(){
+    fetch('/fraud').then(r=>r.json()).then(d=>{
+        fraud.innerHTML = "<h2>Fraud</h2>"+
+        d.map(x=>`<div class="card">${x.status}</div>`).join('');
+    });
+}
+
+/* ================= DISPUTE ================= */
 function loadDispute(){
-    safeFetch("/dispute/L001", d=>{
-        document.getElementById("dispute").innerHTML =
-        `${d.issue || d.status}`;
-    });
+    dispute.innerHTML="<h2>Disputes</h2>";
 }
 
+/* ================= GIS ================= */
+function loadGIS(){
+    gis.innerHTML="<h2>GIS Map</h2><div id='map'></div>";
+}
+
+/* ================= QR ================= */
+function loadQR(){
+    qr.innerHTML="<h2>QR Verification</h2>";
+}
+
+/* ================= ML ================= */
+function loadML(){
+    ml.innerHTML="<h2>Price Prediction</h2>";
+}
+
+/* ================= LOGS ================= */
 function loadLogs(){
-    safeFetch("/get_login_activity", data=>{
-        let html="";
-        data.forEach(l=>{
-            html += `<div>${l.user_id}</div>`;
-        });
-        document.getElementById("logs").innerHTML = html;
-    });
+    logs.innerHTML="<h2>Activity Logs</h2>";
 }
 
+/* ================= BLOCKCHAIN ================= */
 function loadBlockchain(){
-    safeFetch("/get_blockchain", data=>{
-        let html="";
-        data.forEach(b=>{
-            html += `<div>Block ${b.block_number}</div>`;
-        });
-        document.getElementById("blockchain").innerHTML = html;
-    });
+    blockchain.innerHTML="<h2>Blockchain Explorer</h2>";
 }
+
+window.onload = loadDashboard;
