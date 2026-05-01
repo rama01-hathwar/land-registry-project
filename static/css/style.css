@@ -1,55 +1,36 @@
-body {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  background: #f5f7fb;
-}
+body { margin:0; font-family:Arial; }
 
-/* SIDEBAR */
+.app { display:flex; height:100vh; }
+
 .sidebar {
-  width: 260px;
-  height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  background: white;
-  padding: 20px;
-  overflow-y: auto;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+    width:250px;
+    background:#0f172a;
+    color:white;
+    padding:20px;
 }
 
-/* MAIN */
+.sidebar li {
+    padding:10px;
+    cursor:pointer;
+}
+
+.sidebar li:hover {
+    background:#1e293b;
+}
+
 .main {
-  margin-left: 260px;
-  padding: 20px;
+    flex:1;
+    padding:20px;
+    overflow:auto;
+    background:#f1f5f9;
 }
 
-/* CONTENT */
-#content {
-  margin-top: 10px;
-}
+.section { display:none; }
+.section.active { display:block; }
 
-/* GRID */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 15px;
-}
-
-/* CARD */
 .card {
-  background: white;
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-}
-
-/* BADGES */
-.green { background:#d4f8e8; color:#27ae60; padding:5px; border-radius:10px;}
-.red { background:#ffd6d6; color:#e74c3c; padding:5px; border-radius:10px;}
-.orange { background:#ffe8c2; color:#d97706; padding:5px; border-radius:10px;}
-
-/* MOBILE */
-@media(max-width:768px){
-  .sidebar { position:relative; width:100%; height:auto; }
-  .main { margin-left:0; }
+    background:white;
+    padding:15px;
+    margin:10px 0;
+    border-radius:8px;
 }
