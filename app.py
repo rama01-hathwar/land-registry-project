@@ -619,9 +619,10 @@ import random
 @app.route('/generate_tax/<parcel_id>', methods=['POST'])
 def generate_tax(parcel_id):
 
+    conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 1️⃣ Get market value of the property
+    # 1. Get market value of the property
     cursor.execute(
         "SELECT current_market_value FROM property WHERE parcel_id = %s",
         (parcel_id,)
@@ -630,34 +631,35 @@ def generate_tax(parcel_id):
     property_data = cursor.fetchone()
 
     if not property_data:
+        cursor.close()
+        conn.close()
         return jsonify({"error": "Property not found"})
 
     market_value = float(property_data[0])
 
-    # 2️⃣ Calculate tax (1%)
+    # 2. Calculate tax (1%)
     tax_amount = market_value * 0.01
 
-    # 3️⃣ Get current year
+    # 3. Get current year
     year = datetime.now().year
 
-    # 4️⃣ Check if tax already exists for this property and year
+    # 4. Check if tax already exists for this property and year
     cursor.execute("""
-        SELECT tax_id
-        FROM tax
+        SELECT tax_id FROM tax
         WHERE parcel_id = %s AND tax_year = %s
     """, (parcel_id, year))
 
     existing_tax = cursor.fetchone()
 
     if existing_tax:
-        return jsonify({
-            "message": "Tax already generated for this property for this year"
-        })
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Tax already generated for this property for this year"})
 
-    # 5️⃣ Generate tax id
+    # 5. Generate tax id
     tax_id = "TX" + str(random.randint(1000, 9999))
 
-    # 6️⃣ Insert new tax record
+    # 6. Insert new tax record
     cursor.execute("""
         INSERT INTO tax
         (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
@@ -665,8 +667,9 @@ def generate_tax(parcel_id):
     """, (tax_id, parcel_id, year, tax_amount))
 
     conn.commit()
+    cursor.close()
+    conn.close()
 
-    # 7️⃣ Return response
     return jsonify({
         "message": "Tax generated successfully",
         "parcel_id": parcel_id,
