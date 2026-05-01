@@ -1193,24 +1193,30 @@ def get_land():
         conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM gis_land_data")
+        cursor.execute("""
+        SELECT land_id, survey_number, owner_name, land_use_type,
+               area_sq_ft, latitude, longitude, boundary_polygon
+        FROM gis_land_data
+        """)
+
         rows = cursor.fetchall()
 
         data = []
 
         for row in rows:
 
+            lat = float(row[5]) if row[5] else 12.97
+            lon = float(row[6]) if row[6] else 77.59
+
             polygon = []
 
-            if len(row)>7 and row[7]:
+            if row[7]:
                 try:
                     polygon = json.loads(row[7])
                 except:
                     polygon = []
 
             if not polygon:
-                lat = row[5]
-                lon = row[6]
                 size = max(float(row[4]) / 10000000, 0.0003)
 
                 polygon = [
@@ -1225,17 +1231,18 @@ def get_land():
                 "survey": row[1],
                 "owner": row[2],
                 "type": row[3],
-                "area": row[4],
-                "lat": row[5],
-                "lon": row[6],
+                "area": float(row[4]) if row[4] else 0,
+                "lat": lat,
+                "lon": lon,
                 "polygon": polygon,
-                "status": row[8] if len(row)>8 and row[8] else "pending"
+                "status": "pending"
             })
 
         conn.close()
         return jsonify(data)
 
     except Exception as e:
+        print("MAP ERROR:", e)
         return jsonify({"error": str(e)})
 
 @app.route("/api/nearby_land")
