@@ -599,37 +599,112 @@ def resolve_dispute(dispute_id):
 
     return {"message": "Dispute resolved successfully"}
 
-#--Generate Tax Automatically--#
-from datetime import datetime
-import random
+@app.route('/generate_tax/<parcel_id>', methods=['POST'])
+def generate_tax(parcel_id):
 
-@app.route('/generate_tax', methods=['POST'])
-def generate_tax():
-    try:
-        data = request.get_json()
-        parcel_id = data.get('parcel_id')
+    cursor = conn.cursor()
 
-        if not parcel_id:
-            return jsonify({"error": "Parcel ID required"}), 400
+    cursor.execute("SELECT current_market_value FROM property WHERE parcel_id = ?", (parcel_id,))
+    property_data = cursor.fetchone()
 
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
+    if not property_data:
+        return jsonify({"error": "Property not found"})
 
-        # Example query (adjust if needed)
-        cur.execute("SELECT area_sq_ft FROM gis_land_data WHERE land_id=%s", (parcel_id,))
-        row = cur.fetchone()
+    market_value = float(property_data[0])
+    tax_amount = market_value * 0.01
+    year = datetime.now().year
 
-        if not row:
-            return jsonify({"error": "Land not found"}), 404
+    cursor.execute("SELECT tax_id FROM tax WHERE parcel_id = ? AND tax_year = ?", (parcel_id, year))
+    if cursor.fetchone():
+        return jsonify({"message": "Tax already generated"})
 
-        area = row[0]
-        tax = area * 2  # simple logic
+    tax_id = "TX" + str(random.randint(1000, 9999))
 
-        return jsonify({"tax": tax})
+    cursor.execute("""
+        INSERT INTO tax (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
+        VALUES (?, ?, ?, ?, 0, NULL, 'Pending')
+    """, (tax_id, parcel_id, year, tax_amount))
 
-    except Exception as e:
-        print("ERROR:", e)
-        return jsonify({"error": str(e)}), 500
+    conn.commit()
+
+    return jsonify({
+        "message": "Tax generated",
+        "tax_amount": tax_amount
+    })
+
+@app.route('/tax/<parcel_id>', methods=['GET'])
+def get_tax_summary(parcel_id):
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT tax_amount, tax_paid, payment_status
+        FROM tax
+        WHERE parcel_id = ?
+    """, (parcel_id,))
+
+    rows = cursor.fetchall()
+
+    total = 0
+    paid = 0
+    pending = 0
+
+    for r in rows:
+        total += r[0]
+        paid += r[1]
+        if r[2] != "Paid":
+            pending += (r[0] - r[1])
+
+    return jsonify({
+        "total": total,
+        "paid": paid,
+        "pending": pending
+    })
+
+@app.route('/tax_details/<parcel_id>', methods=['GET'])
+def tax_details(parcel_id):
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT tax_id, tax_year, tax_amount, tax_paid, payment_status
+        FROM tax
+        WHERE parcel_id = ?
+    """, (parcel_id,))
+
+    rows = cursor.fetchall()
+
+    result = []
+
+    for r in rows:
+        result.append({
+            "tax_id": r[0],
+            "year": r[1],
+            "amount": r[2],
+            "paid": r[3],
+            "status": r[4]
+        })
+
+    return jsonify(result)
+
+@app.route('/pay_tax', methods=['POST'])
+def pay_tax():
+
+    data = request.json
+
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE tax
+        SET tax_paid = ?, payment_date = ?, payment_status = 'Paid'
+        WHERE tax_id = ?
+    """, (data['tax_paid'], datetime.now(), data['tax_id']))
+
+    conn.commit()
+
+    return jsonify({"message": "Payment successful"})
+
+
 @app.route('/ping')
 def ping():
     return jsonify({"status": "ok", "message": "Backend is reachable"})
