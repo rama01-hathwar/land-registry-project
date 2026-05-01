@@ -1230,7 +1230,7 @@ function initiateTransfer(){
     var tbody=document.getElementById('transferTableBody');
     if(res.transaction_id){
       var row=document.createElement('tr');
-      row.innerHTML='<td>'+res.transaction_id+'</td><td>'+d.parcel_id+'</td><td>'+d.seller_id+'</td><td>'+d.buyer_id+'</td><td>₹'+parseFloat(d.sale_amount||0).toLocaleString('en-IN')+'</td><td><span class="badge-pill badge-green">On-Chain</span></td><td><span class="hash-text" style="font-size:10px" onclick="copyHash(this)">'+res.transaction_hash+'</span></td>';
+      row.innerHTML='<td>'+res.transaction_id+'</td><td>'+d.parcel_id+'</td><td>'+d.seller_id+'</td><td>'+d.buyer_id+'</td><td>₹'+parseFloat(d.sale_amount||0).toLocaleString('en-IN')+'</td><td><span class="badge-pill badge-green">On-Chain</span></td><td><span class="hash-text" style="font-size:10px" onclick="copyHash(this)">'+res.+'</span></td>';
       row.style.animation='pageIn .4s ease';
       tbody.insertBefore(row,tbody.firstChild);
       document.getElementById('trParcelId').value='';
