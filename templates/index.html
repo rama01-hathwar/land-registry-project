@@ -253,22 +253,37 @@ function apiForm(url,formData){
 function logAct(a,d){api('/log_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',action_type:a,description:d,ip_address:'client'})});api('/login_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',ip_address:'client'})});}
 
 /* ===== LOGIN ===== */
-function doLogin(e){
-    if(e)e.preventDefault();
-    var user=$('loginUser').value.trim(),pass=$('loginPass').value.trim(),role=$('loginRole').value,err=$('loginErr');
-    if(!user||!pass||!role){err.textContent='Please fill all fields';err.style.display='block';return false;}
-    err.style.display='none';
-    ST.user=user;ST.role=role;
-    $('loginWrap').style.display='none';
-    $('appWrap').style.display='block';
-    $('sideUser').textContent=user;
-    $('sideRole').textContent=ROLE_LABELS[role];
-    $('sideRole2').textContent=ROLE_LABELS[role];
-    $('sideAvatar').textContent=user.charAt(0).toUpperCase();
-    buildSidebar();go('dashboard');
-    toast('Welcome, '+user+'!','ok');
-    logAct('Login','Logged in as '+ROLE_LABELS[role]);
-    return false;
+function doLogin() {
+    var user = EL('loginUser').value.trim();
+    var pass = EL('loginPass').value.trim();
+    var role = EL('loginRole').value;
+    var err = EL('loginErr');
+    if (!user || !pass || !role) {
+        err.textContent = 'Please fill all fields including role';
+        err.style.display = 'block';
+        return;
+    }
+    err.style.display = 'none';
+    ST.user = user;
+    ST.role = role;
+    EL('loginWrap').style.display = 'none';
+    EL('appWrap').style.display = 'block';
+    EL('sideUser').textContent = user;
+    EL('sideRole').textContent = ROLE_LABELS[role] || role;
+    EL('sideRole2').textContent = ROLE_LABELS[role] || role;
+    EL('sideAvatar').textContent = user.charAt(0).toUpperCase();
+    buildSidebar();
+    testConn();
+    setTimeout(function() {
+        go('dashboard');
+        toast('Welcome, ' + user + '!', 'ok');
+    }, 80);
+}
+function quickLogin() {
+    EL('loginUser').value = 'admin';
+    EL('loginPass').value = 'admin123';
+    EL('loginRole').value = 'admin';
+    doLogin();
 }
 function doLogout(){
     ST.user=null;ST.role=null;ST.page='dashboard';
