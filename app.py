@@ -1233,7 +1233,7 @@ def generate_full_data():
         conn = get_db()
         c = conn.cursor()
 
-        # Clear tables
+        # ================= CLEAR OLD DATA =================
         c.execute("DELETE FROM property")
         c.execute("DELETE FROM gis_land_data")
         c.execute("DELETE FROM tax")
@@ -1243,11 +1243,25 @@ def generate_full_data():
         c.execute("DELETE FROM ownership_history")
         c.execute("DELETE FROM blockchain")
 
+        conn.commit()   # 🔥 VERY IMPORTANT
+
+        # ================= DATA LIST =================
+        statuses = ["registered", "pending", "disputed", "verified"]
+        land_types = ["Residential", "Commercial", "Agricultural"]
+
+        base_lat, base_lon = 12.9716, 77.5946
+
+        # ================= GENERATE =================
         for i in range(1, 1000):
 
             parcel_id = f"L{i:03}"
             owner_id = f"U{i:03}"
             now = str(datetime.now())
+
+            lat = base_lat + random.uniform(-0.02, 0.02)
+            lon = base_lon + random.uniform(-0.02, 0.02)
+            area = random.randint(800, 5000)
+            value = random.randint(1000000, 10000000)
 
             # ================= PROPERTY =================
             c.execute("""
@@ -1261,11 +1275,14 @@ def generate_full_data():
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 parcel_id, owner_id, f"S{i:03}", f"K{i:03}",
-                "Village","Taluk","District","State",
-                "Residential",1200,
-                now, 5000000,
-                12.9,77.5,
-                "Pending","None"
+                "Village", "Taluk", "District", "State",
+                random.choice(land_types),
+                area,
+                now,
+                value,
+                lat, lon,
+                "Pending",
+                "None"
             ))
 
             # ================= GIS =================
@@ -1276,10 +1293,15 @@ def generate_full_data():
             )
             VALUES (?,?,?,?,?,?,?,?,?)
             """, (
-                parcel_id, f"S{i:03}", "Owner "+str(i),
-                "Residential",
-                1200, 12.9, 77.5,
-                '[]', 'registered'
+                parcel_id,
+                f"S{i:03}",
+                "Owner " + str(i),
+                random.choice(land_types),
+                area,
+                lat,
+                lon,
+                '[]',
+                random.choice(statuses)   # 🔥 RANDOM STATUS
             ))
 
             # ================= TAX =================
@@ -1291,8 +1313,10 @@ def generate_full_data():
             VALUES (?,?,?,?,?,?,?)
             """, (
                 f"TAX{i:03}", parcel_id,
-                2024, 2000,
-                1000, now,
+                2024,
+                random.randint(1000, 5000),
+                random.randint(0, 2000),
+                now,
                 "Pending"
             ))
 
@@ -1305,8 +1329,10 @@ def generate_full_data():
             VALUES (?,?,?,?,?,?,?)
             """, (
                 f"PTAX{i:03}", parcel_id,
-                2024, 3000,
-                1500, now,
+                2024,
+                random.randint(2000, 8000),
+                random.randint(0, 4000),
+                now,
                 "Pending"
             ))
 
@@ -1320,13 +1346,14 @@ def generate_full_data():
             """, (
                 f"M{i:03}", parcel_id, owner_id,
                 "ICICI Bank",
-                100000, 8.5,
+                random.randint(50000, 500000),
+                round(random.uniform(7.5, 10.5), 2),
                 now, now,
                 "Closed"
             ))
 
             # ================= DISPUTE =================
-            if i % 10 == 0:
+            if random.random() < 0.2:
                 c.execute("""
                 INSERT INTO dispute (
                     dispute_id, parcel_id, dispute_type, reported_by,
