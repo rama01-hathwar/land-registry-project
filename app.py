@@ -1093,7 +1093,7 @@ def generate_full_data():
 
     base_lat, base_lon = 12.9716, 77.5946
 
-    for i in range(1, 101):
+    for i in range(1, 501):
 
         parcel_id = f"L{i:03}"   # ✅ SAME ID everywhere
 
