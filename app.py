@@ -1110,77 +1110,153 @@ def generate_full_data():
         conn = get_db()
         c = conn.cursor()
 
-        # TEST EACH STEP
-        for i in range(1, 3):   # only 2 rows for testing
+        # Clear tables
+        c.execute("DELETE FROM property")
+        c.execute("DELETE FROM gis_land_data")
+        c.execute("DELETE FROM tax")
+        c.execute("DELETE FROM property_tax")
+        c.execute("DELETE FROM mortgage")
+        c.execute("DELETE FROM dispute")
+        c.execute("DELETE FROM ownership_history")
+        c.execute("DELETE FROM blockchain")
+
+        for i in range(1, 1000):
 
             parcel_id = f"L{i:03}"
             owner_id = f"U{i:03}"
+            now = str(datetime.now())
 
-            # 🔹 PROPERTY TEST
-            try:
-                c.execute("""
-                INSERT INTO property (
-                    parcel_id, owner_id, survey_number, khata_number,
-                    village, taluk, district, state,
-                    land_type, area_sqft, registration_date,
-                    current_market_value, geo_latitude, geo_longitude,
-                    tax_status, mortgage_status
-                )
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """, (
-                    parcel_id, owner_id, f"S{i:03}", f"K{i:03}",
-                    "Village","Taluk","District","State",
-                    "Residential",1200,
-                    str(datetime.now()),
-                    5000000,
-                    12.9,77.5,
-                    "Pending","None"
-                ))
-            except Exception as e:
-                return f"PROPERTY ERROR: {str(e)}"
+            # ================= PROPERTY =================
+            c.execute("""
+            INSERT INTO property (
+                parcel_id, owner_id, survey_number, khata_number,
+                village, taluk, district, state,
+                land_type, area_sqft, registration_date,
+                current_market_value, geo_latitude, geo_longitude,
+                tax_status, mortgage_status
+            )
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                parcel_id, owner_id, f"S{i:03}", f"K{i:03}",
+                "Village","Taluk","District","State",
+                "Residential",1200,
+                now, 5000000,
+                12.9,77.5,
+                "Pending","None"
+            ))
 
-            # 🔹 TAX TEST
-            try:
-                c.execute("""
-                INSERT INTO tax (
-                    tax_id, parcel_id, tax_year, tax_amount,
-                    tax_paid, payment_date, payment_status
-                )
-                VALUES (?,?,?,?,?,?,?)
-                """, (
-                    f"TAX{i:03}", parcel_id,
-                    2024, 2000, 1000,
-                    str(datetime.now()),
-                    "Pending"
-                ))
-            except Exception as e:
-                return f"TAX ERROR: {str(e)}"
+            # ================= GIS =================
+            c.execute("""
+            INSERT INTO gis_land_data (
+                land_id, survey_number, owner_name, land_use_type,
+                area_sq_ft, latitude, longitude, boundary_polygon, status
+            )
+            VALUES (?,?,?,?,?,?,?,?,?)
+            """, (
+                parcel_id, f"S{i:03}", "Owner "+str(i),
+                "Residential",
+                1200, 12.9, 77.5,
+                '[]', 'registered'
+            ))
 
-            # 🔹 MORTGAGE TEST
-            try:
+            # ================= TAX =================
+            c.execute("""
+            INSERT INTO tax (
+                tax_id, parcel_id, tax_year, tax_amount,
+                tax_paid, payment_date, payment_status
+            )
+            VALUES (?,?,?,?,?,?,?)
+            """, (
+                f"TAX{i:03}", parcel_id,
+                2024, 2000,
+                1000, now,
+                "Pending"
+            ))
+
+            # ================= PROPERTY TAX =================
+            c.execute("""
+            INSERT INTO property_tax (
+                tax_id, parcel_id, tax_year, tax_amount,
+                tax_paid, payment_date, payment_status
+            )
+            VALUES (?,?,?,?,?,?,?)
+            """, (
+                f"PTAX{i:03}", parcel_id,
+                2024, 3000,
+                1500, now,
+                "Pending"
+            ))
+
+            # ================= MORTGAGE =================
+            c.execute("""
+            INSERT INTO mortgage (
+                mortgage_id, parcel_id, owner_id, bank_name,
+                loan_amount, interest_rate, start_date, end_date, mortgage_status
+            )
+            VALUES (?,?,?,?,?,?,?,?,?)
+            """, (
+                f"M{i:03}", parcel_id, owner_id,
+                "ICICI Bank",
+                100000, 8.5,
+                now, now,
+                "Closed"
+            ))
+
+            # ================= DISPUTE =================
+            if i % 10 == 0:
                 c.execute("""
-                INSERT INTO mortgage (
-                    mortgage_id, parcel_id, owner_id, bank_name,
-                    loan_amount, interest_rate, start_date, end_date, mortgage_status
+                INSERT INTO dispute (
+                    dispute_id, parcel_id, dispute_type, reported_by,
+                    description, status, created_date, resolved_date
                 )
-                VALUES (?,?,?,?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,?,?,?)
                 """, (
-                    f"M{i:03}", parcel_id, owner_id,
-                    "ICICI", 100000, 8.5,
-                    str(datetime.now()),
-                    str(datetime.now()),
-                    "Active"
+                    f"D{i:03}", parcel_id,
+                    "Ownership", owner_id,
+                    "Test dispute",
+                    "Open",
+                    now, ""
                 ))
-            except Exception as e:
-                return f"MORTGAGE ERROR: {str(e)}"
+
+            # ================= BLOCKCHAIN =================
+            c.execute("""
+            INSERT INTO blockchain (
+                block_id, block_number, gas_fee,
+                confirmation_status, timestamp,
+                transaction_hash, previous_hash
+            )
+            VALUES (?,?,?,?,?,?,?)
+            """, (
+                f"B{i:03}", i,
+                0.001,
+                "Confirmed",
+                now,
+                f"HASH{i:03}",
+                "GENESIS"
+            ))
+
+            # ================= OWNERSHIP HISTORY =================
+            c.execute("""
+            INSERT INTO ownership_history (
+                parcel_id, seller_id, buyer_id,
+                transfer_date, transaction_hash
+            )
+            VALUES (?,?,?,?,?)
+            """, (
+                parcel_id,
+                "GENESIS",
+                owner_id,
+                now,
+                "INIT_HASH"
+            ))
 
         conn.commit()
         conn.close()
 
-        return "✅ BASIC INSERT WORKING"
+        return "✅ FULL DATA GENERATED SUCCESSFULLY"
 
     except Exception as e:
-        return f"MAIN ERROR: {str(e)}"
+        return f"❌ ERROR: {str(e)}"
 
 
 @app.route('/generate-qr')
