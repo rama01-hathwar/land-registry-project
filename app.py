@@ -1287,22 +1287,22 @@ def generate_full_data():
 
             # ================= GIS =================
            c.execute("""
-           INSERT INTO gis_land_data (
-              land_id, survey_number, owner_name, land_use_type,
-              area_sq_ft, latitude, longitude, boundary_polygon, status
-           )
-           VALUES (?,?,?,?,?,?,?,?,?)
-           """, (
-              f"L{i:03}",   # 🔥 FIX HERE
-              f"S{i:03}",
-              "Owner " + str(i),
-              random.choice(["Residential","Commercial","Agricultural"]),
-              area,
-              lat,
-              lon,
-              '[]',
-              random.choice(["registered","pending","disputed","verified"])
-           ))
+INSERT INTO gis_land_data (
+    land_id, survey_number, owner_name, land_use_type,
+    area_sq_ft, latitude, longitude, boundary_polygon, status
+)
+VALUES (?,?,?,?,?,?,?,?,?)
+""", (
+    f"L{i:03}",   # 🔥 FIX HERE
+    f"S{i:03}",
+    "Owner " + str(i),
+    random.choice(["Residential","Commercial","Agricultural"]),
+    area,
+    lat,
+    lon,
+    '[]',
+    random.choice(["registered","pending","disputed","verified"])
+))
             # ================= TAX =================
             c.execute("""
             INSERT INTO tax (
