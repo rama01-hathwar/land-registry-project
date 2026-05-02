@@ -1408,6 +1408,10 @@ def generate_full_data():
     except Exception as e:
         return f"❌ ERROR: {str(e)}"
 
+@app.route('/reset-db')
+def reset_db():
+    init_db()
+    return "DB RESET DONE"
 
 @app.route('/generate-qr')
 def generate_qr_codes():
