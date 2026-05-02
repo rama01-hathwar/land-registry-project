@@ -1605,6 +1605,40 @@ def check_property():
     conn.close()
     return jsonify([r[0] for r in rows])
 
+@app.before_first_request
+def load_data():
+    generate_full_data_internal()
+
+def generate_full_data_internal():
+    conn = get_db()
+    c = conn.cursor()
+
+    c.execute("DELETE FROM gis_land_data")
+
+    for i in range(1, 201):
+        parcel_id = f"L{i:03}"
+
+        c.execute("""
+        INSERT INTO gis_land_data (
+            land_id, survey_number, owner_name,
+            land_use_type, area_sq_ft,
+            latitude, longitude, boundary_polygon, status
+        ) VALUES (?,?,?,?,?,?,?,?,?)
+        """, (
+            parcel_id,
+            f"S{i:03}",
+            "Owner " + str(i),
+            "Residential",
+            1000 + i,
+            12.97,
+            77.59,
+            '[]',
+            "registered"
+        ))
+
+    conn.commit()
+    conn.close()
+
 # ============================================================
 # STARTUP
 # ============================================================
