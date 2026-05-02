@@ -250,40 +250,53 @@ function apiForm(url,formData){
     .catch(function(e){ST.backendUp=false;updateConnBadge();return null;});
 }
 function logAct(a,d){api('/log_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',action_type:a,description:d,ip_address:'client'})});api('/login_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',ip_address:'client'})});}
+function testConn() {
+    fetch(BASE_URL + '/')
+        .then(() => {
+            ST.backendUp = true;
+            updateConnBadge();
+        })
+        .catch(() => {
+            ST.backendUp = false;
+            updateConnBadge();
+        });
+}
 
 /* ===== LOGIN ===== */
 function doLogin() {
-    var user = EL('loginUser').value.trim();
-    var pass = EL('loginPass').value.trim();
-    var role = EL('loginRole').value;
-    var err = EL('loginErr');
+    var user = $('loginUser').value.trim();
+    var pass = $('loginPass').value.trim();
+    var role = $('loginRole').value;
+    var err = $('loginErr');
+
     if (!user || !pass || !role) {
         err.textContent = 'Please fill all fields including role';
         err.style.display = 'block';
         return;
     }
+
     err.style.display = 'none';
+
     ST.user = user;
     ST.role = role;
-    EL('loginWrap').style.display = 'none';
-    EL('appWrap').style.display = 'block';
-    EL('sideUser').textContent = user;
-    EL('sideRole').textContent = ROLE_LABELS[role] || role;
-    EL('sideRole2').textContent = ROLE_LABELS[role] || role;
-    EL('sideAvatar').textContent = user.charAt(0).toUpperCase();
+
+    $('loginWrap').style.display = 'none';
+    $('appWrap').style.display = 'block';
+
+    $('sideUser').textContent = user;
+    $('sideRole').textContent = ROLE_LABELS[role] || role;
+    $('sideRole2').textContent = ROLE_LABELS[role] || role;
+    $('sideAvatar').textContent = user.charAt(0).toUpperCase();
+
     buildSidebar();
     testConn();
+
     setTimeout(function() {
         go('dashboard');
         toast('Welcome, ' + user + '!', 'ok');
-    }, 80);
+    }, 100);
 }
-function quickLogin() {
-    EL('loginUser').value = 'admin';
-    EL('loginPass').value = 'admin123';
-    EL('loginRole').value = 'admin';
-    doLogin();
-}
+
 function doLogout(){
     ST.user=null;ST.role=null;ST.page='dashboard';
     destroyGISMap();
@@ -507,12 +520,6 @@ function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMark
    INIT — event listeners
    ============================================================ */
 document.addEventListener('DOMContentLoaded', function() {
-    $('loginForm').addEventListener('submit', doLogin);
-    $('quickLoginBtn').addEventListener('click', function(){
-        $('loginUser').value = 'admin';
-        $('loginPass').value = 'admin123';
-        $('loginRole').value = 'admin';
-        doLogin();
     });
     $('logoutBtn').addEventListener('click', doLogout);
     $('mobToggleBtn').addEventListener('click', function(){
