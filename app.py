@@ -1605,19 +1605,29 @@ def check_property():
     conn.close()
     return jsonify([r[0] for r in rows])
 
-@app.before_first_request
-def load_data():
-    generate_full_data_internal()
 
+
+# ============================================================
+# STARTUP
+# ============================================================
+init_document_table()
+init_db()
 def generate_full_data_internal():
     conn = get_db()
     c = conn.cursor()
 
+    # clear old data
     c.execute("DELETE FROM gis_land_data")
+    c.execute("DELETE FROM property")
 
     for i in range(1, 201):
         parcel_id = f"L{i:03}"
+        owner_id = f"U{i:03}"
 
+        lat = 12.9716 + random.uniform(-0.02, 0.02)
+        lon = 77.5946 + random.uniform(-0.02, 0.02)
+
+        # ===== GIS DATA =====
         c.execute("""
         INSERT INTO gis_land_data (
             land_id, survey_number, owner_name,
@@ -1628,22 +1638,35 @@ def generate_full_data_internal():
             parcel_id,
             f"S{i:03}",
             "Owner " + str(i),
-            "Residential",
-            1000 + i,
-            12.97,
-            77.59,
+            random.choice(["Residential","Commercial","Agricultural"]),
+            random.randint(800,5000),
+            lat,
+            lon,
             '[]',
             "registered"
         ))
 
+        # ===== PROPERTY DATA =====
+        c.execute("""
+        INSERT INTO property (
+            parcel_id, owner_id, survey_number,
+            land_type, area_sqft, registration_date,
+            current_market_value, geo_latitude, geo_longitude
+        ) VALUES (?,?,?,?,?,?,?,?,?)
+        """, (
+            parcel_id,
+            owner_id,
+            f"S{i:03}",
+            "Residential",
+            random.randint(800,5000),
+            str(datetime.now()),
+            random.randint(100000,5000000),
+            lat,
+            lon
+        ))
+
     conn.commit()
     conn.close()
-
-# ============================================================
-# STARTUP
-# ============================================================
-init_document_table()
-init_db()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
