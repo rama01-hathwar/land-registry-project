@@ -595,18 +595,60 @@ function handleGISClick(land, marker){
     $('gisNearby').innerHTML = found ? nearbyHtml : 'No nearby lands';
 }
 
-    loadGISDocs(land.parcel_id);
-    $('gisPriceBox').innerHTML='<i class="fas fa-spinner fa-spin"></i> Predicting...';
-    api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:land.area,road_distance_km:2,city_distance_km:5,nearby_school:'Yes',nearby_hospital:'No',year:2024})}).then(function(res){
-        if(res&&res.predicted_price!==undefined){
-            $('gisPriceBox').innerHTML='<span style="color:var(--success)">Rs '+parseFloat(res.predicted_price).toLocaleString()+'</span>';
-            marker.bindPopup('<b>'+land.parcel_id+'</b><br>Rs '+parseFloat(res.predicted_price).toLocaleString()).openPopup();
-        }else{
-            var dp=Math.round(land.area*3500+Math.random()*500000);
-            $('gisPriceBox').innerHTML='<span style="color:var(--warn)">Rs '+dp.toLocaleString()+' (demo)</span>';
+   // 🔥 LOAD DOCUMENTS SAFELY
+loadGISDocs(land.parcel_id);
+
+// 🔥 SHOW LOADING
+$('gisPriceBox').innerHTML =
+'<i class="fas fa-spinner fa-spin"></i> Predicting...';
+
+// 🔥 CALL ML API
+api('/predict_price',{
+    method:'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+        area_sqft: land.area || 1000,
+        road_distance_km: 2,
+        city_distance_km: 5,
+        nearby_school: 'Yes',
+        nearby_hospital: 'No',
+        year: 2024
+    })
+})
+.then(function(res){
+
+    if(res && res.predicted_price !== undefined){
+
+        let price = parseFloat(res.predicted_price) || 0;
+
+        $('gisPriceBox').innerHTML =
+        '<span style="color:var(--success)">₹ ' +
+        price.toLocaleString() + '</span>';
+
+        if(marker){
+            marker.bindPopup(
+                '<b>' + land.parcel_id + '</b><br>₹ ' +
+                price.toLocaleString()
+            ).openPopup();
         }
-    });
-}
+
+    } else {
+        throw new Error("Invalid ML response");
+    }
+
+})
+.catch(function(err){
+
+    console.error("ML Error:", err);
+
+    // 🔥 DEMO FALLBACK
+    let demoPrice = Math.round((land.area || 1000) * 3500 + Math.random()*500000);
+
+    $('gisPriceBox').innerHTML =
+    '<span style="color:var(--warn)">₹ ' +
+    demoPrice.toLocaleString() +
+    ' (demo)</span>';
+});
 
 function loadGISDocs(pid){api('/documents/'+pid).then(function(data){var box=$('gisDocs');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='No documents';return;}box.innerHTML=data.map(function(d){return'<div style="margin-bottom:4px"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:4px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
 function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMarkers.find(function(m){return m.land.parcel_id===id;});if(found)handleGISClick(found.land,found.marker);else toast('Not found','err');}
@@ -616,17 +658,19 @@ function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMark
    ============================================================ */
 document.addEventListener('DOMContentLoaded', function() {
 
-    $('logoutBtn').addEventListener('click', doLogout);
+    $('logoutBtn')?.addEventListener('click', doLogout);
 
-    $('mobToggleBtn').addEventListener('click', function(){
-        $('sideNav').classList.toggle('open');
+    $('mobToggleBtn')?.addEventListener('click', function(){
+        $('sideNav')?.classList.toggle('open');
     });
 
-    $('modalBg').addEventListener('click', function(e){
+    $('modalBg')?.addEventListener('click', function(e){
         if (e.target === $('modalBg')) closeModal();
     });
 
     updateConnBadge();
+
+});
 
     fetch(BASE_URL + '/properties', {method: 'GET'})
     .then(function(r) {
