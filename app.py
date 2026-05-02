@@ -74,61 +74,184 @@ def init_document_table():
 def init_db():
     conn = get_db()
     c = conn.cursor()
-    c.execute("""CREATE TABLE IF NOT EXISTS users (
-        user_id TEXT PRIMARY KEY, full_name TEXT, wallet_address TEXT DEFAULT '',
-        mobile_number TEXT, email TEXT, role TEXT, kyc_status TEXT DEFAULT 'pending', password_hash TEXT)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS property (
-        parcel_id TEXT PRIMARY KEY, owner_id TEXT, survey_number TEXT, khata_number TEXT DEFAULT '',
-        village TEXT DEFAULT '', taluk TEXT DEFAULT '', district TEXT DEFAULT '', state TEXT DEFAULT '',
-        land_type TEXT DEFAULT '', area_sqft REAL, registration_date TEXT, current_market_value REAL,
-        geo_latitude REAL, geo_longitude REAL, tax_status TEXT DEFAULT 'Pending', mortgage_status TEXT DEFAULT 'None')""")
-    c.execute("""CREATE TABLE IF NOT EXISTS property_tax (
-        tax_id TEXT PRIMARY KEY, parcel_id TEXT, tax_year INTEGER, tax_amount REAL,
-        tax_paid REAL DEFAULT 0, payment_date TEXT, payment_status TEXT DEFAULT 'Pending')""")
-    c.execute("""CREATE TABLE IF NOT EXISTS tax (
-        tax_id TEXT PRIMARY KEY, parcel_id TEXT, tax_year INTEGER, tax_amount REAL,
-        tax_paid REAL DEFAULT 0, payment_date TEXT, payment_status TEXT DEFAULT 'Pending')""")
-    c.execute("""CREATE TABLE IF NOT EXISTS mortgage (
-        mortgage_id TEXT PRIMARY KEY, parcel_id TEXT, owner_id TEXT, bank_name TEXT,
-        loan_amount REAL, interest_rate REAL, start_date TEXT, end_date TEXT,
-        mortgage_status TEXT DEFAULT 'Active')""")
-    c.execute("""CREATE TABLE IF NOT EXISTS dispute (
-        dispute_id TEXT PRIMARY KEY, parcel_id TEXT, dispute_type TEXT, reported_by TEXT,
-        description TEXT, status TEXT DEFAULT 'Open', created_date TEXT, resolved_date TEXT)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS blockchain (
-        block_id TEXT PRIMARY KEY, block_number INTEGER, gas_fee REAL,
-        confirmation_status TEXT DEFAULT 'Pending', timestamp TEXT,
-        transaction_hash TEXT, previous_hash TEXT)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS transfer (
-        transaction_id TEXT PRIMARY KEY, parcel_id TEXT, from_owner TEXT, to_owner TEXT,
-        transaction_type TEXT, transaction_hash TEXT, block_number INTEGER, timestamp TEXT, sale_amount REAL)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS login_activity (
-        login_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, action_type TEXT,
-        parcel_id TEXT, description TEXT, timestamp TEXT, ip_address TEXT)""")
-    c.execute("""CREATE TABLE IF NOT EXISTS document (
-        document_id TEXT PRIMARY KEY, parcel_id TEXT, document_type TEXT,
-        file_path TEXT DEFAULT '', file_hash TEXT DEFAULT '', uploaded_by TEXT,
-        uploaded_date TEXT, verification_status TEXT DEFAULT 'Pending')""")
-    c.execute("""CREATE TABLE IF NOT EXISTS fraud_detection (
-        parcel_id TEXT PRIMARY KEY, duplicate_survey INTEGER DEFAULT 0,
-        multiple_claim INTEGER DEFAULT 0, abnormal_transfer INTEGER DEFAULT 0, risk_score TEXT DEFAULT 'Low')""")
-    c.execute("""CREATE TABLE IF NOT EXISTS gis_land_data (
-        land_id TEXT PRIMARY KEY, survey_number TEXT DEFAULT '', owner_name TEXT,
-        land_use_type TEXT, area_sq_ft REAL, latitude REAL, longitude REAL,
-        boundary_polygon TEXT DEFAULT '[]', status TEXT DEFAULT 'registered')""")
-    c.execute("""
-CREATE TABLE IF NOT EXISTS ownership_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    parcel_id TEXT,
-    seller_id TEXT,
-    buyer_id TEXT,
-    transfer_date TEXT,
-    transaction_hash TEXT
-)
-""")
+
+    # 🔥 DROP ALL TABLES (RESET)
+    c.execute("DROP TABLE IF EXISTS users")
+    c.execute("DROP TABLE IF EXISTS property")
+    c.execute("DROP TABLE IF EXISTS property_tax")
+    c.execute("DROP TABLE IF EXISTS tax")
+    c.execute("DROP TABLE IF EXISTS mortgage")
+    c.execute("DROP TABLE IF EXISTS dispute")
+    c.execute("DROP TABLE IF EXISTS blockchain")
+    c.execute("DROP TABLE IF EXISTS transfer")
+    c.execute("DROP TABLE IF EXISTS login_activity")
+    c.execute("DROP TABLE IF EXISTS document")
+    c.execute("DROP TABLE IF EXISTS fraud_detection")
+    c.execute("DROP TABLE IF EXISTS gis_land_data")
+    c.execute("DROP TABLE IF EXISTS ownership_history")
+
+    # ================= USERS =================
+    c.execute("""CREATE TABLE users (
+        user_id TEXT PRIMARY KEY,
+        full_name TEXT,
+        wallet_address TEXT DEFAULT '',
+        mobile_number TEXT,
+        email TEXT,
+        role TEXT,
+        kyc_status TEXT DEFAULT 'pending',
+        password_hash TEXT
+    )""")
+
+    # ================= PROPERTY =================
+    c.execute("""CREATE TABLE property (
+        parcel_id TEXT PRIMARY KEY,
+        owner_id TEXT,
+        survey_number TEXT,
+        khata_number TEXT DEFAULT '',
+        village TEXT DEFAULT '',
+        taluk TEXT DEFAULT '',
+        district TEXT DEFAULT '',
+        state TEXT DEFAULT '',
+        land_type TEXT DEFAULT '',
+        area_sqft REAL,
+        registration_date TEXT,
+        current_market_value REAL,
+        geo_latitude REAL,
+        geo_longitude REAL,
+        tax_status TEXT DEFAULT 'Pending',
+        mortgage_status TEXT DEFAULT 'None'
+    )""")
+
+    # ================= TAX =================
+    c.execute("""CREATE TABLE tax (
+        tax_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        tax_year INTEGER,
+        tax_amount REAL,
+        tax_paid REAL DEFAULT 0,
+        payment_date TEXT,
+        payment_status TEXT DEFAULT 'Pending'
+    )""")
+
+    # ================= PROPERTY TAX =================
+    c.execute("""CREATE TABLE property_tax (
+        tax_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        tax_year INTEGER,
+        tax_amount REAL,
+        tax_paid REAL DEFAULT 0,
+        payment_date TEXT,
+        payment_status TEXT DEFAULT 'Pending'
+    )""")
+
+    # ================= MORTGAGE =================
+    c.execute("""CREATE TABLE mortgage (
+        mortgage_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        owner_id TEXT,
+        bank_name TEXT,
+        loan_amount REAL,
+        interest_rate REAL,
+        start_date TEXT,
+        end_date TEXT,
+        mortgage_status TEXT DEFAULT 'Active'
+    )""")
+
+    # ================= DISPUTE =================
+    c.execute("""CREATE TABLE dispute (
+        dispute_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        dispute_type TEXT,
+        reported_by TEXT,
+        description TEXT,
+        status TEXT DEFAULT 'Open',
+        created_date TEXT,
+        resolved_date TEXT
+    )""")
+
+    # ================= BLOCKCHAIN =================
+    c.execute("""CREATE TABLE blockchain (
+        block_id TEXT PRIMARY KEY,
+        block_number INTEGER,
+        gas_fee REAL,
+        confirmation_status TEXT DEFAULT 'Pending',
+        timestamp TEXT,
+        transaction_hash TEXT,
+        previous_hash TEXT
+    )""")
+
+    # ================= TRANSFER =================
+    c.execute("""CREATE TABLE transfer (
+        transaction_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        from_owner TEXT,
+        to_owner TEXT,
+        transaction_type TEXT,
+        transaction_hash TEXT,
+        block_number INTEGER,
+        timestamp TEXT,
+        sale_amount REAL
+    )""")
+
+    # ================= LOGIN =================
+    c.execute("""CREATE TABLE login_activity (
+        login_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
+        action_type TEXT,
+        parcel_id TEXT,
+        description TEXT,
+        timestamp TEXT,
+        ip_address TEXT
+    )""")
+
+    # ================= DOCUMENT =================
+    c.execute("""CREATE TABLE document (
+        document_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        document_type TEXT,
+        file_path TEXT DEFAULT '',
+        file_hash TEXT DEFAULT '',
+        uploaded_by TEXT,
+        uploaded_date TEXT,
+        verification_status TEXT DEFAULT 'Pending'
+    )""")
+
+    # ================= FRAUD =================
+    c.execute("""CREATE TABLE fraud_detection (
+        parcel_id TEXT PRIMARY KEY,
+        duplicate_survey INTEGER DEFAULT 0,
+        multiple_claim INTEGER DEFAULT 0,
+        abnormal_transfer INTEGER DEFAULT 0,
+        risk_score TEXT DEFAULT 'Low'
+    )""")
+
+    # ================= GIS (FIXED WITH STATUS) =================
+    c.execute("""CREATE TABLE gis_land_data (
+        land_id TEXT PRIMARY KEY,
+        survey_number TEXT DEFAULT '',
+        owner_name TEXT,
+        land_use_type TEXT,
+        area_sq_ft REAL,
+        latitude REAL,
+        longitude REAL,
+        boundary_polygon TEXT DEFAULT '[]',
+        status TEXT DEFAULT 'registered'
+    )""")
+
+    # ================= OWNERSHIP HISTORY =================
+    c.execute("""CREATE TABLE ownership_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        parcel_id TEXT,
+        seller_id TEXT,
+        buyer_id TEXT,
+        transfer_date TEXT,
+        transaction_hash TEXT
+    )""")
+
     conn.commit()
     conn.close()
-    print("All tables verified/created — existing data untouched")
+
+    print("✅ FULL DATABASE RESET & REBUILT SUCCESSFULLY")
 
 # ============================================================
 # HELPERS
