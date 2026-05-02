@@ -1,377 +1,1110 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>GIS Land Registry System</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIS Land Registry System</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0C1222;--bg2:#151E30;--bg3:#1C2740;--card:#1E2A42;--accent:#0EA5A0;--accent2:#0D8F8B;--accentGlow:rgba(14,165,160,.15);--gold:#D4A843;--danger:#E53E3E;--success:#38A169;--warn:#D69E2E;--info:#3B82F6;--purple:#8B5CF6;--txt:#E8EDF5;--txt2:#7B8BA5;--txt3:#4A5568;--border:#263044;--border2:#314563}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--txt);overflow-x:hidden;min-height:100vh}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+.page{display:none}.page.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes glow{0%,100%{box-shadow:0 0 5px var(--accent)}50%{box-shadow:0 0 20px var(--accent)}}
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:var(--bg)}
+.login-wrap::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,160,.2),transparent 70%);top:-150px;right:-150px;animation:float1 12s ease-in-out infinite}
+.login-wrap::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(212,168,67,.15),transparent 70%);bottom:-120px;left:-120px;animation:float2 10s ease-in-out infinite}
+@keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,30px)}}
+@keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-40px)}}
+.login-box{background:rgba(21,30,48,.9);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:440px;position:relative;z-index:2}
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial;
-        }
+/* LAYOUT */
+.sidebar{width:250px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);position:fixed;left:0;top:0;z-index:40;display:flex;flex-direction:column;transition:transform .3s}
+.sidebar-head{padding:16px;border-bottom:1px solid var(--border)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;color:var(--txt2);transition:all .15s;white-space:nowrap;position:relative}
+.nav-item:hover{background:rgba(14,165,160,.08);color:var(--txt)}
+.nav-item.active{background:rgba(14,165,160,.12);color:var(--accent);font-weight:600}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--accent);border-radius:0 2px 2px 0}
+.nav-item i{width:18px;text-align:center;font-size:.85rem}
+.nav-item .nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:.65rem;padding:1px 6px;border-radius:10px;font-weight:700}
+.main{margin-left:250px;min-height:100vh;padding:20px 28px}
 
-        #container {
-            display: flex;
-            height: 100vh;
-        }
+/* COMPONENTS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:all .2s}
+.stat-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.btn{padding:9px 18px;border-radius:8px;font-weight:600;font-size:.82rem;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
+.btn-d{background:var(--danger);color:#fff}.btn-d:hover{background:#c53030}
+.btn-s{background:var(--success);color:#fff}.btn-s:hover{background:#2f855a}
+.btn-w{background:var(--gold);color:#000}.btn-w:hover{background:#b8942e}
+.btn-g{background:transparent;color:var(--txt2);border:1px solid var(--border)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:.75rem}
+.inp{width:100%;padding:9px 13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-family:inherit;font-size:.85rem;outline:none;transition:border .15s}
+.inp:focus{border-color:var(--accent)}
+.inp::placeholder{color:var(--txt3)}
+select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%237B8BA5' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--txt2);border-bottom:1px solid var(--border);font-weight:600}
+td{padding:10px 14px;border-bottom:1px solid rgba(38,48,68,.5);font-size:.83rem}
+tr:hover td{background:rgba(14,165,160,.03)}
+.badge{padding:3px 9px;border-radius:12px;font-size:.7rem;font-weight:600;display:inline-block}
+.b-green{background:rgba(56,161,105,.15);color:#38A169}
+.b-red{background:rgba(229,62,62,.15);color:#E53E3E}
+.b-yellow{background:rgba(214,158,46,.15);color:#D69E2E}
+.b-blue{background:rgba(14,165,160,.15);color:#0EA5A0}
+.b-purple{background:rgba(139,92,246,.15);color:#8B5CF6}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-bg.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:580px;width:95%;max-height:85vh;overflow-y:auto;animation:fadeIn .2s ease}
+.toast-box{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:6px}
+.toast{padding:12px 18px;border-radius:10px;font-size:.83rem;font-weight:500;animation:slideR .3s ease;min-width:260px;display:flex;align-items:center;gap:8px}
+@keyframes slideR{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+.t-ok{background:rgba(56,161,105,.15);border:1px solid rgba(56,161,105,.3);color:#38A169}
+.t-err{background:rgba(229,62,62,.15);border:1px solid rgba(229,62,62,.3);color:#E53E3E}
+.t-info{background:rgba(14,165,160,.15);border:1px solid rgba(14,165,160,.3);color:#0EA5A0}
+.section-head{margin-bottom:20px}
+.section-head h2{font-size:1.4rem;font-weight:700}
+.section-head p{font-size:.82rem;color:var(--txt2);margin-top:2px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:.75rem;font-weight:500;color:var(--txt2)}
+.tab-bar{display:flex;gap:4px;margin-bottom:16px;background:var(--bg);padding:4px;border-radius:10px;border:1px solid var(--border)}
+.tab-btn{padding:7px 14px;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:500;border:none;background:transparent;color:var(--txt2);transition:all .15s;font-family:inherit}
+.tab-btn.active{background:var(--accent);color:#fff}
+.empty-state{text-align:center;padding:40px 20px;color:var(--txt2)}
+.empty-state i{font-size:2rem;margin-bottom:10px;opacity:.4}
+.empty-state p{font-size:.85rem}
 
-        #map {
-            width: 75%;
-            height: 100%;
-        }
+/* GIS MAP PAGE */
+.gis-layout{display:flex;gap:0;height:calc(100vh - 90px);margin:-20px -28px}
+.gis-map-wrap{flex:1;position:relative}
+#gisMap{width:100%;height:100%;z-index:1}
+.gis-panel{width:320px;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:14px;flex-shrink:0}
+.gis-panel h4{font-size:.82rem;font-weight:600;margin:14px 0 8px;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em}
+.gis-panel h4:first-child{margin-top:0}
+.gis-legend{position:absolute;bottom:16px;left:16px;z-index:1000;background:#fff;padding:10px 14px;border-radius:8px;font-size:12px;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.gis-legend b{display:block;margin-bottom:4px}
+.gis-legend .leg-row{display:flex;align-items:center;gap:6px;margin:2px 0}
+.gis-legend .leg-box{width:14px;height:14px;border-radius:2px;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.blink{animation:blink 1s infinite}
+#gisPriceBox{font-size:1.1rem;font-weight:700;color:var(--success)}
 
-        #sidebar {
-            width: 25%;
-            padding: 15px;
-            background: #f4f4f4;
-            overflow-y: auto;
-        }
+/* BLOCKCHAIN */
+.block-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;position:relative}
+.block-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);border-radius:3px 0 0 3px}
+.block-card.confirmed::before{background:var(--success)}
+.block-card.pending::before{background:var(--warn)}
 
-        #priceBox {
-            font-size: 20px;
-            font-weight: bold;
-            color: green;
-        }
-
-        /* 🔥 blinking effect */
-        @keyframes blink {
-            0% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.2;
-            }
-
-            100% {
-                opacity: 1;
-            }
-        }
-
-        .blink {
-            animation: blink 1s infinite;
-        }
-
-        /* Legend */
-        #legend {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: white;
-            padding: 10px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-        }
-
-        .legend-box {
-            width: 15px;
-            height: 15px;
-            display: inline-block;
-            margin-right: 5px;
-        }
-    </style>
+@media(max-width:900px){
+.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
+.main{margin-left:0;padding:16px}
+.gis-layout{flex-direction:column;height:auto}
+.gis-panel{width:100%;max-height:300px;border-left:none;border-top:1px solid var(--border)}
+.mob-toggle{display:flex!important}
+.form-grid{grid-template-columns:1fr}
+}
+.mob-toggle{display:none;position:fixed;top:12px;left:12px;z-index:50;width:38px;height:38px;border-radius:8px;background:var(--accent);color:#fff;align-items:center;justify-content:center;border:none;cursor:pointer;font-size:1rem}
+</style>
 </head>
-
 <body>
 
-    <h2 style="text-align:center;">GIS Land Registry System</h2>
+<!-- TOAST -->
+<div class="toast-box" id="toastBox"></div>
 
-    <div id="container">
-        <div id="map"></div>
+<!-- LOGIN -->
+<div id="loginWrap" class="login-wrap">
+<div class="login-box">
+<div style="text-align:center;margin-bottom:28px">
+<div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--gold));display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+<i class="fas fa-landmark" style="font-size:1.4rem;color:#fff"></i>
+</div>
+<h1 style="font-size:1.3rem;font-weight:700">GIS Land Registry</h1>
+<p style="font-size:.8rem;color:var(--txt2);margin-top:4px">Government Land Record Management System</p>
+</div>
+<form id="loginForm" onsubmit="return doLogin(event)">
+<div class="form-group" style="margin-bottom:12px">
+<label>Username</label>
+<input class="inp" id="loginUser" placeholder="Enter username" required>
+</div>
+<div class="form-group" style="margin-bottom:12px">
+<label>Password</label>
+<input type="password" class="inp" id="loginPass" placeholder="Enter password" required>
+</div>
+<div class="form-group" style="margin-bottom:16px">
+<label>Role</label>
+<select class="inp" id="loginRole" required>
+<option value="">Select Role</option>
+<option value="admin">Admin</option>
+<option value="registrar">Registrar</option>
+<option value="landowner">Landowner</option>
+<option value="verifier">Verifier</option>
+<option value="bank">Bank and Lender</option>
+</select>
+</div>
+<div id="loginErr" style="display:none;margin-bottom:12px;padding:10px;border-radius:8px;font-size:.82rem;background:rgba(229,62,62,.1);color:var(--danger)"></div>
+<button type="submit" class="btn btn-p" style="width:100%;justify-content:center;padding:12px"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+</form>
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);text-align:center">
+<button class="btn btn-g btn-sm" onclick="quickLogin()"><i class="fas fa-bolt"></i> Quick Login as Admin</button>
+</div>
+</div>
+</div>
 
-        <div id="sidebar">
-            <h3>Search Parcel</h3>
-            <input type="text" id="searchId">
-            <button onclick="searchLand()">Search</button>
+<!-- APP -->
+<div id="appWrap" style="display:none">
+<button class="mob-toggle" onclick="document.getElementById('sideNav').classList.toggle('open')"><i class="fas fa-bars"></i></button>
 
-            <h3>Land Details</h3>
-            <div id="details">Click a parcel</div>
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sideNav">
+<div class="sidebar-head">
+<div style="display:flex;align-items:center;gap:10px">
+<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--gold));display:flex;align-items:center;justify-content:center"><i class="fas fa-landmark" style="color:#fff;font-size:.85rem"></i></div>
+<div><div style="font-size:.82rem;font-weight:600">Land Registry</div><div style="font-size:.68rem;color:var(--txt2)" id="sideRole">Admin</div></div>
+</div>
+</div>
+<nav class="sidebar-nav" id="sideNavItems"></nav>
+<div style="padding:12px;border-top:1px solid var(--border)">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700" id="sideAvatar">A</div>
+<div><div style="font-size:.8rem;font-weight:500" id="sideUser">Admin</div><div style="font-size:.65rem;color:var(--txt2)" id="sideRole2">Administrator</div></div>
+</div>
+<button onclick="doLogout()" class="nav-item" style="color:var(--danger);width:100%"><i class="fas fa-sign-out-alt"></i> Logout</button>
+</div>
+</aside>
 
-            <h3>Predicted Price</h3>
-            <div id="priceBox">Click a parcel</div>
+<!-- MAIN -->
+<main class="main" id="mainArea"></main>
+</div>
 
-            <h3>QR Code</h3>
-            <div id="qrSection"></div>
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+<div class="modal" id="modalContent"></div>
+</div>
 
-            <h3>📤 Upload Document</h3>
+<script>
+/* ============================================================
+   CONFIG - Change BASE_URL to match your backend
+   ============================================================ */
+const BASE_URL = ''; // e.g. 'http://localhost:5000' or 'https://land-registry-project.onrender.com'
 
-            <input type="text" id="docParcel" placeholder="Parcel ID"><br><br>
+/* ============================================================
+   ROLE ACCESS CONFIG
+   ============================================================ */
+const MODULES = [
+    {id:'dashboard',icon:'fa-th-large',label:'Dashboard'},
+    {id:'records',icon:'fa-file-alt',label:'Land Records'},
+    {id:'transfer',icon:'fa-exchange-alt',label:'Ownership Transfer'},
+    {id:'history',icon:'fa-history',label:'Ownership History'},
+    {id:'documents',icon:'fa-folder-open',label:'Document Storage'},
+    {id:'tax',icon:'fa-receipt',label:'Revenue & Tax'},
+    {id:'mortgage',icon:'fa-university',label:'Mortgage & Loans'},
+    {id:'fraud',icon:'fa-shield-alt',label:'Fraud Detection'},
+    {id:'dispute',icon:'fa-gavel',label:'Dispute & Eligibility'},
+    {id:'gis',icon:'fa-map-marked-alt',label:'GIS & Geo Tagging'},
+    {id:'qr',icon:'fa-qrcode',label:'QR Verification'},
+    {id:'ml',icon:'fa-brain',label:'ML Prediction'},
+    {id:'logs',icon:'fa-clipboard-list',label:'Activity Logs'},
+    {id:'blockchain',icon:'fa-cubes',label:'Blockchain Explorer'}
+];
 
-            <select id="docType">
-               <option value="Sale Deed">Sale Deed</option>
-               <option value="Tax Receipt">Tax Receipt</option>
-               <option value="Transfer Deed">Transfer Deed</option>
-                </select><br><br>
+const ROLE_ACCESS = {
+    admin:['dashboard','records','transfer','history','documents','tax','mortgage','fraud','dispute','gis','qr','ml','logs','blockchain'],
+    registrar:['dashboard','records','transfer','history','documents','tax','qr','logs'],
+    landowner:['dashboard','records','history','tax','qr','documents'],
+    verifier:['dashboard','documents','fraud','dispute','logs'],
+    bank:['dashboard','records','mortgage','qr','blockchain']
+};
 
-            <input type="file" id="docFile"><br><br>
+const ROLE_LABELS = {admin:'Administrator',registrar:'Registrar',landowner:'Landowner',verifier:'Verifier',bank:'Bank & Lender'};
 
-             <button onclick="uploadDocument()">Upload</button>
+/* ============================================================
+   STATE
+   ============================================================ */
+let ST = {user:null,role:null,page:'dashboard',map:null,mapReady:false,mapData:[],allPolygons:[],allMarkers:[]};
 
-              <div id="uploadStatus"></div>
-
-            <h3>Nearby Lands</h3>
-            <div id="nearby"></div>
-
-            <h3>📄 Documents</h3>
-            <div id="documents">Click a parcel</div>
-        </div>
-    </div>
-
-    <!-- Legend -->
-    <div id="legend">
-        <b>Land Type</b><br>
-        <div><span class="legend-box" style="background:green"></span> Residential</div>
-        <div><span class="legend-box" style="background:red"></span> Commercial</div>
-        <div><span class="legend-box" style="background:orange"></span> Agricultural</div>
-
-        <hr>
-        <b>Status</b><br>
-        <div><span class="legend-box" style="background:yellow"></span> For Sale</div>
-        <div><span class="legend-box" style="background:black"></span> Disputed</div>
-    </div>
-
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-    <script>
-
-        // Map
-        var map = L.map('map').setView([12.97, 77.75], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-        let allLands = [];
-
-        // Land type color
-        function getLandColor(type) {
-            type = (type || "").toLowerCase();
-
-            if (type === "residential") return "green";
-            if (type === "commercial") return "red";
-            if (type === "agricultural") return "orange";
-            return "blue";
-        }
-
-        // Distance
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-
-            const a =
-                Math.sin(dLat / 2) ** 2 +
-                Math.cos(lat1 * Math.PI / 180) *
-                Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) ** 2;
-
-            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-        }
-
-        // MAIN CLICK
-        function handleLandClick(land, marker = null) {
-
-            map.flyTo([land.lat, land.lon], 18);
-
-            showDetails(land);
-            showQR(land);
-            document.getElementById("docParcel").value = land.parcel_id;
-            loadNearby(land);
-            loadDocuments(land);
-
-            fetch("/predict_price", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    area_sqft: land.area,
-                    road_distance_km: 2,
-                    city_distance_km: 5,
-                    nearby_school: "Yes",
-                    nearby_hospital: "No",
-                    year: 2024
-                })
-            })
-                .then(res => res.json())
-                .then(result => {
-
-                    let price = result.predicted_price || 0;
-
-                    document.getElementById("priceBox").innerHTML = `₹ ${price}`;
-
-                    if (marker) {
-                        marker.bindPopup(`
-                <b>${land.parcel_id}</b><br>
-                ₹${price}
-            `).openPopup();
-                    }
-
-                });
-        }
-
-        // LOAD DATA
-        fetch("/api/land")
-            .then(res => res.json())
-            .then(data => {
-
-                allLands = data;
-
-                data.forEach(land => {
-
-                    let baseColor = getLandColor(land.type);
-
-                    let style = {
-                        color: baseColor,
-                        fillColor: baseColor,
-                        fillOpacity: 0.4,
-                        weight: 2
-                    };
-
-                    // 🔥 FOR SALE
-                    if (land.status === "for sale") {
-                        style.color = "yellow";
-                        style.dashArray = "5,5";
-                    }
-
-                    // 🔥 DISPUTED
-                    if (land.status === "disputed") {
-                        style.color = "black";
-                    }
-
-                    let poly = L.polygon(land.polygon, style).addTo(map);
-
-                    // 🔥 blinking for disputed
-                    if (land.status === "disputed") {
-                        let el = poly.getElement();
-                        if (el) el.classList.add("blink");
-                    }
-
-                    let marker = L.marker([land.lat, land.lon]).addTo(map);
-
-                    marker.on("click", () => {
-                        handleLandClick(land, marker);
-                    });
-
-                    poly.on("click", () => {
-                        handleLandClick(land, marker);
-                    });
-
-                });
-
-            });
-
-        // Sidebar
-        function showDetails(land) {
-            document.getElementById("details").innerHTML =
-                `ID: ${land.parcel_id}<br>
-         Owner: ${land.owner}<br>
-         Type: ${land.type}<br>
-         Status: ${land.status}<br>
-         Area: ${land.area}`;
-        }
-
-        // QR
-        function showQR(land) {
-            document.getElementById("qrSection").innerHTML =
-                `<img src="/qr/${land.parcel_id}" width="120">`;
-        }
-
-        // Nearby
-        function loadNearby(land) {
-            let html = "";
-            let found = false;
-
-            allLands.forEach(o => {
-                if (o.parcel_id !== land.parcel_id) {
-                    let d = getDistance(land.lat, land.lon, o.lat, o.lon);
-                    if (d < 1) {
-                        found = true;
-                        html += `${o.parcel_id} (${d.toFixed(2)} km)<br>`;
-                    }
-                }
-            });
-
-            document.getElementById("nearby").innerHTML =
-                found ? html : "No nearby lands";
-        }
-
-        // Search
-        function searchLand() {
-            let id = document.getElementById("searchId").value;
-            let land = allLands.find(l => l.parcel_id === id);
-
-            if (land) handleLandClick(land);
-            else alert("Not found");
-        }
-
-        function loadDocuments(landId) {
-    fetch(`/documents/${landId}`)
-        .then(response => response.json())
-        .then(data => {
-            let container = document.getElementById("documents");
-
-            if (!data || data.length === 0) {
-                container.innerHTML = "<p>No documents found</p>";
-                return;
-            }
-
-            let html = "<ul>";
-
-            data.forEach(doc => {
-                html += `
-                    <li>
-                        📄 ${doc.document_type} 
-                        (${doc.status})
-                        <br>
-                        <a href="https://land-registry-project.onrender.com${doc.view_url}" target="_blank">
-                            View Document
-                        </a>
-                    </li>
-                `;
-            });
-
-            html += "</ul>";
-
-            container.innerHTML = html;
-        })
-        .catch(err => {
-            console.error(err);
-            document.getElementById("documents").innerHTML =
-                "<p style='color:red;'>Error loading documents</p>";
-        });
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function toast(msg,type='info'){
+    const c=document.getElementById('toastBox');
+    const icons={ok:'fa-check-circle',err:'fa-times-circle',info:'fa-info-circle'};
+    const t=document.createElement('div');
+    t.className=`toast t-${type}`;
+    t.innerHTML=`<i class="fas ${icons[type]}"></i>${msg}`;
+    c.appendChild(t);
+    setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(30px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300)},3500);
 }
 
-        function uploadDocument(){
+function openModal(title,html){
+    document.getElementById('modalContent').innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h3 style="font-size:1.05rem;font-weight:700">${title}</h3><button onclick="closeModal()" style="background:none;border:none;color:var(--txt2);cursor:pointer;font-size:1.1rem"><i class="fas fa-times"></i></button></div>${html}`;
+    document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('show')}
 
-    let parcel = document.getElementById("docParcel").value;
-    let type = document.getElementById("docType").value;
-    let file = document.getElementById("docFile").files[0];
-
-    if(!parcel || !file){
-        alert("Fill all fields");
-        return;
+async function api(url,opts={}){
+    try{
+        const full=BASE_URL+url;
+        const res=await fetch(full,{...opts,headers:{'Content-Type':'application/json',...opts.headers}});
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const ct=res.headers.get('content-type');
+        if(ct&&ct.includes('application/json')) return await res.json();
+        return await res.text();
+    }catch(e){
+        console.warn('API error:',url,e);
+        return null;
     }
+}
 
-    let formData = new FormData();
-    formData.append("parcel_id", parcel);
-    formData.append("document_type", type);
-    formData.append("uploaded_by", "U001");
-    formData.append("file", file);
+async function apiForm(url,formData){
+    try{
+        const res=await fetch(BASE_URL+url,{method:'POST',body:formData});
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    }catch(e){console.warn('API form error:',url,e);return null;}
+}
 
-    fetch("/upload_document", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("uploadStatus").innerHTML = "✅ Uploaded";
-    })
-    .catch(err => {
-        document.getElementById("uploadStatus").innerHTML = "❌ Error";
+function $(id){return document.getElementById(id)}
+function qs(sel){return document.querySelector(sel)}
+function qsa(sel){return document.querySelectorAll(sel)}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+function doLogin(e){
+    e.preventDefault();
+    const user=$('loginUser').value.trim();
+    const pass=$('loginPass').value.trim();
+    const role=$('loginRole').value;
+    const err=$('loginErr');
+    if(!user||!pass||!role){err.textContent='Please fill all fields including role';err.style.display='block';return false;}
+    err.style.display='none';
+    ST.user=user;ST.role=role;
+    $('loginWrap').style.display='none';
+    $('appWrap').style.display='block';
+    $('sideUser').textContent=user;
+    $('sideRole').textContent=ROLE_LABELS[role];
+    $('sideRole2').textContent=ROLE_LABELS[role];
+    $('sideAvatar').textContent=user.charAt(0).toUpperCase();
+    buildSidebar();
+    go('dashboard');
+    toast(`Welcome, ${user}!`,'ok');
+    logAct('Login','User logged in as '+ROLE_LABELS[role]);
+    return false;
+}
+
+function quickLogin(){$('loginUser').value='admin';$('loginPass').value='admin123';$('loginRole').value='admin';$('loginForm').dispatchEvent(new Event('submit'));}
+
+function doLogout(){
+    ST.user=null;ST.role=null;ST.page='dashboard';
+    if(ST.map){ST.map.remove();ST.map=null;ST.mapReady=false;ST.allPolygons=[];ST.allMarkers=[];}
+    $('appWrap').style.display='none';
+    $('loginWrap').style.display='';
+    $('loginUser').value='';$('loginPass').value='';$('loginRole').value='';$('loginErr').style.display='none';
+}
+
+/* ============================================================
+   SIDEBAR BUILD
+   ============================================================ */
+function buildSidebar(){
+    const allowed=ROLE_ACCESS[ST.role]||[];
+    $('sideNavItems').innerHTML=MODULES.filter(m=>allowed.includes(m.id)).map(m=>`<div class="nav-item${m.id==='dashboard'?' active':''}" data-p="${m.id}"><i class="fas ${m.icon}"></i><span>${m.label}</span></div>`).join('');
+    $('sideNavItems').addEventListener('click',e=>{const it=e.target.closest('[data-p]');if(it)go(it.dataset.p);});
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function go(page){
+    ST.page=page;
+    qsa('.nav-item[data-p]').forEach(n=>{n.classList.toggle('active',n.dataset.p===page);});
+    $('sideNav').classList.remove('open');
+    const renders={dashboard:renderDashboard,records:renderRecords,transfer:renderTransfer,history:renderHistory,documents:renderDocuments,tax:renderTax,mortgage:renderMortgage,fraud:renderFraud,dispute:renderDispute,gis:renderGIS,qr:renderQR,ml:renderML,logs:renderLogs,blockchain:renderBlockchain};
+    if(renders[page])renders[page]();
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function renderDashboard(){
+    const r=ST.role;
+    let stats='',content='';
+    if(r==='admin'){
+        stats=`
+        <div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Total Properties</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px" id="dsTotalProps">—</div></div>
+        <div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Active Transfers</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--gold)" id="dsTransfers">—</div></div>
+        <div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Active Mortgages</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--purple)" id="dsMortgages">—</div></div>
+        <div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Pending Tax</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--danger)" id="dsTaxPending">—</div></div>
+        <div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Open Disputes</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--warn)" id="dsDisputes">—</div></div>
+        <div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Fraud Alerts</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--danger)" id="dsFraud">—</div></div>`;
+        content=`<div class="card" style="margin-top:16px"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:12px">System Overview</h3><p style="font-size:.82rem;color:var(--txt2)">Full access to all modules. Manage properties, transfers, taxes, mortgages, fraud detection, disputes, GIS mapping, QR verification, ML predictions, activity logs, and blockchain explorer.</p><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:16px">${MODULES.filter(m=>m.id!=='dashboard').map(m=>`<div onclick="go('${m.id}')" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s;font-size:.8rem" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><i class="fas ${m.icon}" style="color:var(--accent);margin-right:6px"></i>${m.label}</div>`).join('')}</div></div>`;
+        loadAdminStats();
+    } else if(r==='registrar'){
+        stats=`<div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Registered Properties</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px">—</div></div><div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Transfers Processed</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--gold)">—</div></div><div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Documents Filed</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--accent)">—</div></div>`;
+        content=`<div class="card" style="margin-top:16px"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:12px">Registrar Dashboard</h3><p style="font-size:.82rem;color:var(--txt2)">Manage property registrations, ownership transfers, document filing, and tax collection.</p></div>`;
+    } else if(r==='landowner'){
+        stats=`<div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">My Properties</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px">—</div></div><div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">My Tax Due</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--danger)">—</div></div><div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">My Documents</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--accent)">—</div></div>`;
+        content=`<div class="card" style="margin-top:16px"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:12px">Landowner Dashboard</h3><p style="font-size:.82rem;color:var(--txt2)">View your properties, check tax status, download documents, and verify QR codes.</p></div>`;
+    } else if(r==='verifier'){
+        stats=`<div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Pending Verifications</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--warn)">—</div></div><div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Fraud Alerts</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--danger)">—</div></div><div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Open Disputes</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--warn)">—</div></div>`;
+        content=`<div class="card" style="margin-top:16px"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:12px">Verifier Dashboard</h3><p style="font-size:.82rem;color:var(--txt2)">Verify documents, review fraud detection results, and manage disputes.</p></div>`;
+    } else if(r==='bank'){
+        stats=`<div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Active Mortgages</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--purple)">—</div></div><div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Total Loan Value</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--gold)">—</div></div><div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Blockchain Txns</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--accent)">—</div></div>`;
+        content=`<div class="card" style="margin-top:16px"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:12px">Bank Dashboard</h3><p style="font-size:.82rem;color:var(--txt2)">Manage mortgages, view property details, and track blockchain transactions.</p></div>`;
+    }
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Dashboard</h2><p>${ROLE_LABELS[ST.role]} Panel</p></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">${stats}</div>${content}`;
+}
+
+async function loadAdminStats(){
+    const props=await api('/properties');
+    if(props&&props.properties)$('dsTotalProps').textContent=props.properties.length;
+    else $('dsTotalProps').textContent='0';
+    const bc=await api('/get_blockchain');
+    if(bc&&Array.isArray(bc))$('dsTransfers').textContent=bc.length;
+    else $('dsTransfers').textContent='0';
+    $('dsMortgages').textContent='—';$('dsTaxPending').textContent='—';$('dsDisputes').textContent='—';$('dsFraud').textContent='—';
+}
+
+/* ============================================================
+   LAND RECORDS
+   ============================================================ */
+function renderRecords(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Land Records</h2><p>View all registered land parcels</p></div>
+    <div class="card" style="margin-bottom:14px"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input class="inp" style="max-width:240px" placeholder="Search by Parcel ID, Owner..." id="recSearch" oninput="filterRecords()"><button class="btn btn-p btn-sm" onclick="loadRecords()"><i class="fas fa-sync-alt"></i> Refresh</button></div></div>
+    <div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>Parcel ID</th><th>Owner</th><th>Survey No</th><th>Village</th><th>District</th><th>Type</th><th>Area (sqft)</th><th>Tax</th><th>Mortgage</th></tr></thead><tbody id="recBody"><tr><td colspan="9" class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></td></tr></tbody></table></div>`;
+    loadRecords();
+}
+
+async function loadRecords(){
+    const data=await api('/properties');
+    const body=$('recBody');
+    if(!data||!data.properties||!data.properties.length){body.innerHTML='<tr><td colspan="9" class="empty-state"><i class="fas fa-database"></i><p>No records found. Connect to backend.</p></td></tr>';return;}
+    window._rawRecords=data.properties;
+    filterRecords();
+}
+
+function filterRecords(){
+    const q=($('recSearch')?.value||'').toLowerCase();
+    const rows=window._rawRecords||[];
+    const filtered=rows.filter(r=>!q||r.toLowerCase().includes(q));
+    $('recBody').innerHTML=filtered.slice(0,50).map((r,i)=>`<tr><td style="font-family:monospace;color:var(--accent);font-weight:600">${r.split(',')[0]?.replace(/['()]/g,'')||'—'}</td><td>${r.split(',')[2]?.replace(/['()]/g,'')||'—'}</td><td>${r.split(',')[1]?.replace(/['()]/g,'')||'—'}</td><td>—</td><td>—</td><td>—</td><td>—</td><td><span class="badge b-yellow">Check</span></td><td><span class="badge b-blue">Check</span></td></tr>`).join('');
+}
+
+/* ============================================================
+   OWNERSHIP TRANSFER
+   ============================================================ */
+function renderTransfer(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Ownership Transfer</h2><p>Initiate property ownership transfer with blockchain verification</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-exchange-alt" style="color:var(--gold);margin-right:6px"></i>Initiate Transfer</h3>
+    <form onsubmit="return doTransfer(event)">
+        <div class="form-grid">
+        <div class="form-group"><label>Parcel ID</label><input class="inp" id="tfParcel" placeholder="e.g. L001" required></div>
+        <div class="form-group"><label>Seller ID</label><input class="inp" id="tfSeller" placeholder="Current owner ID" required></div>
+        <div class="form-group"><label>Buyer ID</label><input class="inp" id="tfBuyer" placeholder="New owner ID" required></div>
+        <div class="form-group"><label>Sale Amount (Rs)</label><input type="number" class="inp" id="tfAmount" placeholder="0" required></div>
+        <div class="form-group" style="grid-column:span 2"><label>Transaction Hash (from Blockchain)</label><input class="inp" id="tfHash" placeholder="Paste blockchain transaction hash" required></div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px">
+        <button type="submit" class="btn btn-p"><i class="fas fa-paper-plane"></i> Submit Transfer</button>
+        <button type="button" class="btn btn-g" onclick="go('blockchain')"><i class="fas fa-cubes"></i> Create Blockchain Txn First</button>
+        </div>
+    </form>
+    <div id="tfResult" style="margin-top:12px"></div>
+    </div>
+    <div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-info-circle" style="color:var(--accent);margin-right:6px"></i>Transfer Requirements</h3>
+    <div style="font-size:.82rem;color:var(--txt2);line-height:1.8">
+    <p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Parcel must have no active disputes</p>
+    <p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Parcel must have no active mortgage</p>
+    <p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>All taxes must be paid</p>
+    <p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Blockchain transaction must be Confirmed</p>
+    <p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Seller must be the current owner</p>
+    <div style="margin-top:14px;padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
+    <p style="font-size:.75rem;color:var(--warn)"><i class="fas fa-exclamation-triangle" style="margin-right:4px"></i>Steps: 1) Create blockchain transaction in Blockchain Explorer 2) Wait for confirmation 3) Copy transaction hash 4) Fill this form and submit</p>
+    </div>
+    </div></div></div>`;
+}
+
+async function doTransfer(e){
+    e.preventDefault();
+    const parcel=$('tfParcel').value.trim();
+    const seller=$('tfSeller').value.trim();
+    const buyer=$('tfBuyer').value.trim();
+    const amount=$('tfAmount').value;
+    const hash=$('tfHash').value.trim();
+    const res=await api('/transfer_property',{method:'POST',body:JSON.stringify({parcel_id:parcel,seller_id:seller,buyer_id:buyer,sale_amount:parseFloat(amount),transaction_hash:hash})});
+    const box=$('tfResult');
+    if(res&&res.message){
+        if(res.error||res.message.includes('blocked')||res.message.includes('not found')||res.message.includes('not confirmed')){
+            box.innerHTML=`<div style="padding:12px;background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.3);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>${res.error||res.message}</div>`;
+            toast('Transfer blocked','err');
+        } else {
+            box.innerHTML=`<div style="padding:12px;background:rgba(56,161,105,.1);border:1px solid rgba(56,161,105,.3);border-radius:8px;font-size:.82rem;color:var(--success)"><i class="fas fa-check-circle" style="margin-right:6px"></i>${res.message}${res.transaction_id?' | Txn ID: '+res.transaction_id:''}</div>`;
+            toast('Transfer submitted successfully!','ok');
+            logAct('Transfer','Initiated transfer for '+parcel);
+        }
+    } else {
+        box.innerHTML=`<div style="padding:12px;background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.3);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>Could not connect to server</div>`;
+        toast('Server connection failed','err');
+    }
+    return false;
+}
+
+/* ============================================================
+   OWNERSHIP HISTORY
+   ============================================================ */
+function renderHistory(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Ownership History</h2><p>View complete ownership chain for any parcel</p></div>
+    <div class="card" style="margin-bottom:14px"><div style="display:flex;gap:10px;align-items:center"><input class="inp" style="max-width:240px" placeholder="Enter Parcel ID (e.g. L001)" id="histParcel"><button class="btn btn-p btn-sm" onclick="loadHistory()"><i class="fas fa-search"></i> Search</button></div></div>
+    <div class="card" id="histResult"><div class="empty-state"><i class="fas fa-history"></i><p>Enter a Parcel ID to view ownership history</p></div></div>`;
+}
+
+async function loadHistory(){
+    const pid=$('histParcel').value.trim();
+    if(!pid){toast('Enter a Parcel ID','err');return;}
+    const box=$('histResult');
+    box.innerHTML='<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
+    const data=await api('/owner_history/'+pid);
+    if(!data||(!Array.isArray(data)&&!data.length)){box.innerHTML='<div class="empty-state"><i class="fas fa-times-circle"></i><p>No history found or server unreachable</p></div>';return;}
+    const rows=Array.isArray(data)?data:(data.history||[]);
+    if(!rows.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No transfer records for this parcel</p></div>';return;}
+    box.innerHTML=`<table><thead><tr><th>Txn ID</th><th>From</th><th>To</th><th>Type</th><th>Amount</th><th>Date</th></tr></thead><tbody>${rows.map(r=>`<tr><td style="font-family:monospace;color:var(--accent)">${r.transaction_id||r.transaction_id||'—'}</td><td>${r.previous_owner||'—'}</td><td>${r.new_owner||'—'}</td><td><span class="badge b-blue">${r.transaction_type||'Transfer'}</span></td><td>Rs ${(r.sale_amount||0).toLocaleString()}</td><td>${r.timestamp||'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+/* ============================================================
+   DOCUMENT STORAGE
+   ============================================================ */
+function renderDocuments(){
+    const isVerifier=ST.role==='verifier';
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Document Storage</h2><p>${isVerifier?'Verify uploaded documents':'Upload and manage property documents'}</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-upload" style="color:var(--accent);margin-right:6px"></i>${isVerifier?'Document Verification':'Upload Document'}</h3>
+    ${isVerifier?`<form onsubmit="return doVerifyDoc(event)">
+        <div class="form-group" style="margin-bottom:12px"><label>Document ID</label><input class="inp" id="vdDocId" placeholder="e.g. DOC001" required></div>
+        <div class="form-group" style="margin-bottom:12px"><label>Your User ID</label><input class="inp" id="vdUserId" placeholder="Your user ID" required></div>
+        <button type="submit" class="btn btn-s"><i class="fas fa-check"></i> Verify Document</button>
+    </form><div id="vdResult" style="margin-top:12px"></div>`
+    :`<form onsubmit="return doUploadDoc(event)">
+        <div class="form-grid">
+        <div class="form-group"><label>Parcel ID</label><input class="inp" id="udParcel" placeholder="e.g. L001" required></div>
+        <div class="form-group"><label>Document Type</label><select class="inp" id="udType" required><option value="Sale Deed">Sale Deed</option><option value="Tax Receipt">Tax Receipt</option><option value="Transfer Deed">Transfer Deed</option><option value="Mortgage Deed">Mortgage Deed</option><option value="Lease Agreement">Lease Agreement</option></select></div>
+        <div class="form-group" style="grid-column:span 2"><label>File (PDF/PNG/JPG)</label><input type="file" class="inp" id="udFile" accept=".pdf,.png,.jpg,.jpeg" required></div>
+        </div>
+        <button type="submit" class="btn btn-p" style="margin-top:12px"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
+    </form><div id="udResult" style="margin-top:12px"></div>`}
+    </div>
+    <div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-folder-open" style="color:var(--gold);margin-right:6px"></i>View Documents</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px"><input class="inp" placeholder="Enter Parcel ID" id="vdSearch"><button class="btn btn-p btn-sm" onclick="loadDocs()"><i class="fas fa-search"></i></button></div>
+    <div id="docsList"><div class="empty-state"><i class="fas fa-file-alt"></i><p>Search for a parcel to view its documents</p></div></div>
+    </div></div>`;
+}
+
+async function doUploadDoc(e){
+    e.preventDefault();
+    const fd=new FormData();
+    fd.append('parcel_id',$('udParcel').value.trim());
+    fd.append('document_type',$('udType').value);
+    fd.append('uploaded_by',ST.user);
+    fd.append('file',$('udFile').files[0]);
+    const res=await apiForm('/upload_document',fd);
+    if(res&&res.message){$('udResult').innerHTML=`<div style="padding:10px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)"><i class="fas fa-check" style="margin-right:6px"></i>${res.message} — ID: ${res.document_id}</div>`;toast('Document uploaded','ok');logAct('Document','Uploaded document for '+$('udParcel').value.trim());}
+    else $('udResult').innerHTML=`<div style="padding:10px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times" style="margin-right:6px"></i>Upload failed</div>`;
+    return false;
+}
+
+async function doVerifyDoc(e){
+    e.preventDefault();
+    const res=await api('/verify_document/'+$('vdDocId').value.trim(),{method:'PUT',body:JSON.stringify({user_id:$('vdUserId').value.trim()})});
+    if(res&&res.message){$('vdResult').innerHTML=`<div style="padding:10px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)"><i class="fas fa-check" style="margin-right:6px"></i>${res.message}</div>`;toast('Document verified','ok');}
+    else $('vdResult').innerHTML=`<div style="padding:10px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times" style="margin-right:6px"></i>Verification failed — check permissions</div>`;
+    return false;
+}
+
+async function loadDocs(){
+    const pid=$('vdSearch').value.trim();
+    if(!pid){toast('Enter Parcel ID','err');return;}
+    const data=await api('/documents/'+pid);
+    const box=$('docsList');
+    if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No documents found</p></div>';return;}
+    box.innerHTML=data.map(d=>`<div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:.82rem;font-weight:600"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:6px"></i>${d.document_type}</div><div style="font-size:.72rem;color:var(--txt2);margin-top:2px">${d.document_id} — ${d.status||'Pending'}</div></div><a href="${BASE_URL}${d.view_url||'/view_document/'+d.document_id}" target="_blank" class="btn btn-g btn-sm"><i class="fas fa-eye"></i> View</a></div>`).join('');
+}
+
+/* ============================================================
+   REVENUE & TAX
+   ============================================================ */
+function renderTax(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Revenue & Tax</h2><p>Generate, view, and pay property tax</p></div>
+    <div class="tab-bar" id="taxTabs"><button class="tab-btn active" onclick="taxTab('generate',this)">Generate Tax</button><button class="tab-btn" onclick="taxTab('view',this)">View Tax</button><button class="tab-btn" onclick="taxTab('pay',this)">Pay Tax</button></div>
+    <div id="taxContent"></div>`;
+    taxTab('generate');
+}
+
+function taxTab(tab,btn){
+    if(btn){qsa('#taxTabs .tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+    const c=$('taxContent');
+    if(tab==='generate'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-calculator" style="color:var(--accent);margin-right:6px"></i>Generate Tax for Property</h3>
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="taxGenParcel" placeholder="e.g. L001"></div><button class="btn btn-p" onclick="doGenTax()"><i class="fas fa-plus"></i> Generate Tax</button></div>
+        <div id="taxGenResult"></div>
+        <div style="margin-top:14px;padding:10px;background:var(--bg);border-radius:8px;font-size:.78rem;color:var(--txt2)"><i class="fas fa-info-circle" style="color:var(--accent);margin-right:4px"></i>Tax is calculated as 1% of the property's current market value for the current financial year.</div>
+        </div>`;
+    } else if(tab==='view'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-list" style="color:var(--gold);margin-right:6px"></i>View Tax Records</h3>
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="taxViewParcel" placeholder="e.g. L001"></div><button class="btn btn-p" onclick="loadTaxView()"><i class="fas fa-search"></i> View</button></div>
+        <div id="taxViewResult"></div></div>`;
+    } else if(tab==='pay'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-money-bill-wave" style="color:var(--success);margin-right:6px"></i>Pay Tax</h3>
+        <form onsubmit="return doPayTax(event)">
+        <div class="form-grid">
+        <div class="form-group"><label>Tax ID</label><input class="inp" id="taxPayId" placeholder="e.g. TX1234" required></div>
+        <div class="form-group"><label>Amount to Pay (Rs)</label><input type="number" class="inp" id="taxPayAmt" placeholder="0" required></div>
+        </div>
+        <button type="submit" class="btn btn-s" style="margin-top:12px"><i class="fas fa-check"></i> Pay Now</button>
+        </form>
+        <div id="taxPayResult" style="margin-top:12px"></div>
+        <div style="margin-top:14px;padding:10px;background:var(--bg);border-radius:8px;font-size:.78rem;color:var(--txt2)"><i class="fas fa-info-circle" style="color:var(--warn);margin-right:4px"></i>Use the "View Tax" tab first to find the Tax ID and pending amount.</div>
+        </div>`;
+    }
+}
+
+async function doGenTax(){
+    const pid=$('taxGenParcel').value.trim();
+    if(!pid){toast('Enter Parcel ID','err');return;}
+    const box=$('taxGenResult');
+    box.innerHTML='<div style="padding:10px;font-size:.82rem;color:var(--txt2)"><i class="fas fa-spinner fa-spin"></i> Generating tax...</div>';
+    const res=await api('/generate_tax/'+pid,{method:'POST'});
+    if(res&&res.tax_amount!==undefined){
+        box.innerHTML=`<div style="padding:14px;background:rgba(56,161,105,.1);border:1px solid rgba(56,161,105,.3);border-radius:10px"><div style="font-size:.85rem;font-weight:600;color:var(--success);margin-bottom:8px"><i class="fas fa-check-circle" style="margin-right:6px"></i>${res.message||'Tax generated'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem"><div><span style="color:var(--txt2)">Parcel:</span> ${res.parcel_id}</div><div><span style="color:var(--txt2)">Tax Amount:</span> <strong style="color:var(--gold)">Rs ${parseFloat(res.tax_amount).toLocaleString()}</strong></div></div></div>`;
+        toast('Tax generated successfully!','ok');logAct('Tax','Generated tax for '+pid);
+    } else {
+        const msg=res?.message||res?.error||'Failed to generate tax';
+        box.innerHTML=`<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>${msg}</div>`;
+        toast(msg,'err');
+    }
+}
+
+async function loadTaxView(){
+    const pid=$('taxViewParcel').value.trim();
+    if(!pid){toast('Enter Parcel ID','err');return;}
+    const box=$('taxViewResult');
+    box.innerHTML='<div style="padding:10px;font-size:.82rem;color:var(--txt2)"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    const data=await api('/tax/'+pid);
+    if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No tax records found</p></div>';return;}
+    box.innerHTML=`<table><thead><tr><th>Tax ID</th><th>Year</th><th>Amount</th><th>Paid</th><th>Status</th><th>Pay Date</th></tr></thead><tbody>${data.map(t=>`<tr><td style="font-family:monospace;color:var(--accent)">${t.tax_id}</td><td>${t.tax_year}</td><td>Rs ${parseFloat(t.tax_amount).toLocaleString()}</td><td>Rs ${parseFloat(t.tax_paid).toLocaleString()}</td><td><span class="badge ${t.payment_status==='Paid'?'b-green':'b-red'}">${t.payment_status}</span></td><td>${t.payment_date||'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+async function doPayTax(e){
+    e.preventDefault();
+    const tid=$('taxPayId').value.trim();
+    const amt=$('taxPayAmt').value;
+    const res=await api('/pay_tax',{method:'POST',body:JSON.stringify({tax_id:tid,tax_paid:parseFloat(amt)})});
+    const box=$('taxPayResult');
+    if(res&&res.message){box.innerHTML=`<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)"><i class="fas fa-check-circle" style="margin-right:6px"></i>${res.message}</div>`;toast('Tax paid!','ok');logAct('Tax','Paid tax '+tid);}
+    else box.innerHTML=`<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>Payment failed</div>`;
+    return false;
+}
+
+/* ============================================================
+   MORTGAGE & LOANS — FIXED: No demo, real API calls
+   ============================================================ */
+function renderMortgage(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Mortgage & Loans</h2><p>Manage property mortgages and loan tracking</p></div>
+    <div class="tab-bar" id="mortTabs"><button class="tab-btn active" onclick="mortTab('add',this)">Add Mortgage</button><button class="tab-btn" onclick="mortTab('view',this)">View Mortgage</button><button class="tab-btn" onclick="mortTab('close',this)">Close Mortgage</button></div>
+    <div id="mortContent"></div>`;
+    mortTab('add');
+}
+
+function mortTab(tab,btn){
+    if(btn){qsa('#mortTabs .tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+    const c=$('mortContent');
+    if(tab==='add'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-plus-circle" style="color:var(--purple);margin-right:6px"></i>Register New Mortgage</h3>
+        <form onsubmit="return doAddMortgage(event)">
+        <div class="form-grid">
+        <div class="form-group"><label>Parcel ID</label><input class="inp" id="mParcel" placeholder="e.g. L001" required></div>
+        <div class="form-group"><label>Owner ID</label><input class="inp" id="mOwner" placeholder="Owner user ID" required></div>
+        <div class="form-group"><label>Bank Name</label><input class="inp" id="mBank" placeholder="e.g. SBI, HDFC" required></div>
+        <div class="form-group"><label>Loan Amount (Rs)</label><input type="number" class="inp" id="mAmount" placeholder="0" required></div>
+        <div class="form-group"><label>Interest Rate (%)</label><input type="number" step="0.1" class="inp" id="mRate" placeholder="8.5" required></div>
+        <div class="form-group"><label>Start Date</label><input type="date" class="inp" id="mStart" required></div>
+        <div class="form-group"><label>End Date</label><input type="date" class="inp" id="mEnd" required></div>
+        </div>
+        <button type="submit" class="btn btn-p" style="margin-top:14px"><i class="fas fa-file-signature"></i> Register Mortgage</button>
+        </form>
+        <div id="mAddResult" style="margin-top:12px"></div>
+        </div>`;
+    } else if(tab==='view'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-search" style="color:var(--accent);margin-right:6px"></i>View Mortgage Details</h3>
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="mViewParcel" placeholder="e.g. L001"></div><button class="btn btn-p" onclick="loadMortgage()"><i class="fas fa-search"></i> View</button></div>
+        <div id="mViewResult"></div></div>`;
+    } else if(tab==='close'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-lock" style="color:var(--success);margin-right:6px"></i>Close Mortgage</h3>
+        <form onsubmit="return doCloseMortgage(event)">
+        <div class="form-group" style="margin-bottom:14px;max-width:300px"><label>Mortgage ID</label><input class="inp" id="mCloseId" placeholder="e.g. M001" required></div>
+        <button type="submit" class="btn btn-s"><i class="fas fa-check"></i> Close Mortgage</button>
+        </form>
+        <div id="mCloseResult" style="margin-top:12px"></div></div>`;
+    }
+}
+
+async function doAddMortgage(e){
+    e.preventDefault();
+    const res=await api('/add_mortgage',{method:'POST',body:JSON.stringify({parcel_id:$('mParcel').value.trim(),owner_id:$('mOwner').value.trim(),bank_name:$('mBank').value.trim(),loan_amount:parseFloat($('mAmount').value),interest_rate:parseFloat($('mRate').value),start_date:$('mStart').value,end_date:$('mEnd').value})});
+    const box=$('mAddResult');
+    if(res&&res.mortgage_id){
+        box.innerHTML=`<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)"><i class="fas fa-check-circle" style="margin-right:6px"></i>${res.message} — Mortgage ID: <strong>${res.mortgage_id}</strong></div>`;
+        toast('Mortgage registered!','ok');logAct('Mortgage','Added mortgage for '+$('mParcel').value.trim());
+    } else {
+        const msg=res?.message||'Failed to add mortgage';
+        box.innerHTML=`<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>${msg}</div>`;
+        toast(msg,'err');
+    }
+    return false;
+}
+
+async function loadMortgage(){
+    const pid=$('mViewParcel').value.trim();
+    if(!pid){toast('Enter Parcel ID','err');return;}
+    const box=$('mViewResult');
+    box.innerHTML='<div style="padding:10px;font-size:.82rem;color:var(--txt2)"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    const data=await api('/get_mortgage/'+pid);
+    if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No mortgage records found</p></div>';return;}
+    box.innerHTML=`<table><thead><tr><th>Mortgage ID</th><th>Parcel</th><th>Owner</th><th>Bank</th><th>Loan Amount</th><th>Rate</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>${data.map(m=>`<tr><td style="font-family:monospace;color:var(--purple)">${m.mortgage_id}</td><td>${m.parcel_id}</td><td>${m.owner_id}</td><td>${m.bank_name}</td><td style="font-weight:600">Rs ${parseFloat(m.loan_amount).toLocaleString()}</td><td>${m.interest_rate}%</td><td>${m.start_date?.split('T')[0]||'—'}</td><td>${m.end_date?.split('T')[0]||'—'}</td><td><span class="badge ${m.mortgage_status==='Active'?'b-yellow':'b-green'}">${m.mortgage_status}</span></td></tr>`).join('')}</tbody></table>`;
+}
+
+async function doCloseMortgage(e){
+    e.preventDefault();
+    const mid=$('mCloseId').value.trim();
+    const res=await api('/close_mortgage',{method:'PUT',body:JSON.stringify({mortgage_id:mid})});
+    const box=$('mCloseResult');
+    if(res&&res.message){box.innerHTML=`<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)"><i class="fas fa-check-circle" style="margin-right:6px"></i>${res.message}</div>`;toast('Mortgage closed','ok');logAct('Mortgage','Closed mortgage '+mid);}
+    else box.innerHTML=`<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>Failed to close mortgage</div>`;
+    return false;
+}
+
+/* ============================================================
+   FRAUD DETECTION
+   ============================================================ */
+function renderFraud(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Fraud Detection</h2><p>Check fraud risk level for any property</p></div>
+    <div class="card" style="margin-bottom:14px"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-shield-alt" style="color:var(--danger);margin-right:6px"></i>Fraud Risk Assessment</h3>
+    <div style="display:flex;gap:10px;align-items:end"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="fraudParcel" placeholder="e.g. L001"></div><button class="btn btn-p" onclick="doFraudCheck()"><i class="fas fa-search"></i> Check Fraud</button></div>
+    <div id="fraudResult" style="margin-top:14px"></div>
+    </div>
+    <div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:12px">Fraud Indicators</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+    <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-size:.82rem;font-weight:600;color:var(--warn)"><i class="fas fa-copy" style="margin-right:6px"></i>Duplicate Survey</div><div style="font-size:.75rem;color:var(--txt2);margin-top:4px">Same survey number used for multiple parcels</div></div>
+    <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-size:.82rem;font-weight:600;color:var(--warn)"><i class="fas fa-users" style="margin-right:6px"></i>Multiple Claims</div><div style="font-size:.75rem;color:var(--txt2);margin-top:4px">Multiple owners claiming same property</div></div>
+    <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"><div style="font-size:.82rem;font-weight:600;color:var(--warn)"><i class="fas fa-exchange-alt" style="margin-right:6px"></i>Abnormal Transfer</div><div style="font-size:.75rem;color:var(--txt2);margin-top:4px">Unusual transfer patterns detected</div></div>
+    </div></div>`;
+}
+
+async function doFraudCheck(){
+    const pid=$('fraudParcel').value.trim();
+    if(!pid){toast('Enter Parcel ID','err');return;}
+    const box=$('fraudResult');
+    box.innerHTML='<div style="padding:10px;font-size:.82rem;color:var(--txt2)"><i class="fas fa-spinner fa-spin"></i> Checking...</div>';
+    const res=await api('/fraud_check/'+pid);
+    if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Server unreachable</div>';return;}
+    if(res.message){box.innerHTML=`<div style="padding:12px;background:var(--bg);border-radius:8px;font-size:.82rem;color:var(--txt2)"><i class="fas fa-info-circle" style="margin-right:6px"></i>${res.message}</div>`;return;}
+    const riskColors={Low:'var(--success)',Medium:'var(--warn)',High:'var(--danger)'};
+    box.innerHTML=`<div style="padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+    <div style="font-size:.85rem;font-weight:600;margin-bottom:10px">Risk Level: <span style="color:${riskColors[res.risk_level]||'var(--txt2)'};font-size:1.1rem">${res.risk_level||'Unknown'}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:.82rem">
+    <div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Duplicate Survey</div><div style="font-weight:700;margin-top:2px;color:${res.duplicate_survey?'var(--danger)':'var(--success)'}">${res.duplicate_survey?'Flagged':'Clear'}</div></div>
+    <div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Multiple Claims</div><div style="font-weight:700;margin-top:2px;color:${res.multiple_claim?'var(--danger)':'var(--success)'}">${res.multiple_claim?'Flagged':'Clear'}</div></div>
+    <div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Abnormal Transfer</div><div style="font-weight:700;margin-top:2px;color:${res.abnormal_transfer?'var(--danger)':'var(--success)'}">${res.abnormal_transfer?'Flagged':'Clear'}</div></div>
+    </div></div>`;
+    logAct('Fraud','Checked fraud for '+pid);
+}
+
+/* ============================================================
+   DISPUTE & ELIGIBILITY
+   ============================================================ */
+function renderDispute(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Dispute & Eligibility</h2><p>File disputes and check property transfer eligibility</p></div>
+    <div class="tab-bar" id="dispTabs"><button class="tab-btn active" onclick="dispTab('file',this)">File Dispute</button><button class="tab-btn" onclick="dispTab('view',this)">View Disputes</button><button class="tab-btn" onclick="dispTab('eligibility',this)">Check Eligibility</button></div>
+    <div id="dispContent"></div>`;
+    dispTab('file');
+}
+
+function dispTab(tab,btn){
+    if(btn){qsa('#dispTabs .tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+    const c=$('dispContent');
+    if(tab==='file'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-gavel" style="color:var(--warn);margin-right:6px"></i>File New Dispute</h3>
+        <form onsubmit="return doFileDispute(event)">
+        <div class="form-grid">
+        <div class="form-group"><label>Parcel ID</label><input class="inp" id="dpParcel" placeholder="e.g. L001" required></div>
+        <div class="form-group"><label>Dispute Type</label><select class="inp" id="dpType" required><option value="Boundary">Boundary Dispute</option><option value="Ownership">Ownership Claim</option><option value="Encroachment">Encroachment</option><option value="Fraud">Fraud Report</option><option value="Other">Other</option></select></div>
+        <div class="form-group"><label>Reported By</label><input class="inp" id="dpReporter" placeholder="Your user ID" required></div>
+        <div class="form-group" style="grid-column:span 2"><label>Description</label><textarea class="inp" id="dpDesc" rows="3" placeholder="Describe the dispute in detail" required style="resize:vertical"></textarea></div>
+        </div>
+        <button type="submit" class="btn btn-w" style="margin-top:12px"><i class="fas fa-gavel"></i> File Dispute</button>
+        </form><div id="dpFileResult" style="margin-top:12px"></div></div>`;
+    } else if(tab==='view'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-list" style="color:var(--accent);margin-right:6px"></i>View Disputes</h3>
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="dpViewParcel" placeholder="e.g. L001"></div><button class="btn btn-p" onclick="loadDisputes()"><i class="fas fa-search"></i> View</button></div>
+        <div id="dpViewResult"></div></div>`;
+    } else if(tab==='eligibility'){
+        c.innerHTML=`<div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-check-double" style="color:var(--success);margin-right:6px"></i>Check Transfer Eligibility</h3>
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="elParcel" placeholder="e.g. L001"></div><button class="btn btn-p" onclick="doEligibility()"><i class="fas fa-check"></i> Check</button></div>
+        <div id="elResult"></div></div>`;
+    }
+}
+
+async function doFileDispute(e){
+    e.preventDefault();
+    const res=await api('/file_dispute',{method:'POST',body:JSON.stringify({parcel_id:$('dpParcel').value.trim(),dispute_type:$('dpType').value,reported_by:$('dpReporter').value.trim(),description:$('dpDesc').value.trim()})});
+    const box=$('dpFileResult');
+    if(res&&res.dispute_id){box.innerHTML=`<div style="padding:12px;background:rgba(214,158,46,.1);border-radius:8px;font-size:.82rem;color:var(--warn)"><i class="fas fa-gavel" style="margin-right:6px"></i>${res.message} — Dispute ID: <strong>${res.dispute_id}</strong></div>`;toast('Dispute filed','ok');logAct('Dispute','Filed dispute for '+$('dpParcel').value.trim());}
+    else box.innerHTML=`<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>Failed to file dispute</div>`;
+    return false;
+}
+
+async function loadDisputes(){
+    const pid=$('dpViewParcel').value.trim();
+    if(!pid){toast('Enter Parcel ID','err');return;}
+    const box=$('dpViewResult');
+    box.innerHTML='<div style="padding:10px;font-size:.82rem;color:var(--txt2)"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    const res=await api('/get_disputes/'+pid);
+    if(!res||!res.disputes||!res.disputes.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No disputes found</p></div>';return;}
+    box.innerHTML=`<table><thead><tr><th>Dispute ID</th><th>Type</th><th>Reported By</th><th>Description</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody>${res.disputes.map(d=>`<tr><td style="font-family:monospace;color:var(--warn)">${d.dispute_id}</td><td>${d.dispute_type}</td><td>${d.reported_by}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.description}</td><td><span class="badge ${d.status==='Resolved'?'b-green':d.status==='Open'?'b-red':'b-yellow'}">${d.status}</span></td><td>${d.created_date?.split('T')[0]||'—'}</td><td>${d.status!=='Resolved'?`<button class="btn btn-s btn-sm" onclick="resolveDispute('${d.dispute_id}')">Resolve</button>`:'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+async function resolveDispute(did){
+    const res=await api('/resolve_dispute/'+did,{method:'POST'});
+    if(res&&res.message){toast(res.message,'ok');loadDisputes();logAct('Dispute','Resolved dispute '+did);}
+    else toast('Failed to resolve','err');
+}
+
+async function doEligibility(){
+    const pid=$('elParcel').value.trim();
+    if(!pid){toast('Enter Parcel ID','err');return;}
+    const box=$('elResult');
+    box.innerHTML='<div style="padding:10px;font-size:.82rem;color:var(--txt2)"><i class="fas fa-spinner fa-spin"></i> Checking eligibility...</div>';
+    const res=await api('/verify_property/'+pid);
+    if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Server unreachable</div>';return;}
+    if(res.status==='approved'){
+        box.innerHTML=`<div style="padding:16px;background:rgba(56,161,105,.1);border:1px solid rgba(56,161,105,.3);border-radius:10px"><div style="font-size:1rem;font-weight:700;color:var(--success);margin-bottom:8px"><i class="fas fa-check-circle" style="margin-right:6px"></i>Property is Eligible for Transfer</div><p style="font-size:.82rem;color:var(--txt2)">${res.message||'All checks passed.'}</p></div>`;
+    } else {
+        box.innerHTML=`<div style="padding:16px;background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.3);border-radius:10px"><div style="font-size:1rem;font-weight:700;color:var(--danger);margin-bottom:8px"><i class="fas fa-times-circle" style="margin-right:6px"></i>Transfer Blocked</div><p style="font-size:.82rem;color:var(--txt2)">Reason: ${res.reason||'Unknown'}</p></div>`;
+    }
+}
+
+/* ============================================================
+   GIS & GEO TAGGING — Integrated from your map.html
+   ============================================================ */
+function renderGIS(){
+    $('mainArea').innerHTML=`<div class="gis-layout">
+    <div class="gis-map-wrap">
+        <div id="gisMap"></div>
+        <div class="gis-legend">
+            <b>Land Type</b>
+            <div class="leg-row"><div class="leg-box" style="background:green"></div> Residential</div>
+            <div class="leg-row"><div class="leg-box" style="background:red"></div> Commercial</div>
+            <div class="leg-row"><div class="leg-box" style="background:orange"></div> Agricultural</div>
+            <hr style="margin:6px 0;border-color:#ddd">
+            <b>Status</b>
+            <div class="leg-row"><div class="leg-box" style="background:yellow;border:1px solid #999"></div> For Sale</div>
+            <div class="leg-row"><div class="leg-box" style="background:#333"></div> Disputed</div>
+        </div>
+    </div>
+    <div class="gis-panel">
+        <h4>Search Parcel</h4>
+        <div style="display:flex;gap:6px;margin-bottom:6px"><input class="inp" id="gisSearch" placeholder="Parcel ID" style="font-size:.8rem;padding:7px 10px"><button class="btn btn-p btn-sm" onclick="gisSearchLand()">Search</button></div>
+        <h4>Land Details</h4>
+        <div id="gisDetails" style="font-size:.8rem;color:var(--txt2);padding:8px;background:var(--bg);border-radius:6px;min-height:60px">Click a parcel on map</div>
+        <h4>Predicted Price</h4>
+        <div id="gisPriceBox" style="padding:8px;background:var(--bg);border-radius:6px;min-height:30px;color:var(--txt2);font-size:.82rem">Click a parcel</div>
+        <h4>QR Code</h4>
+        <div id="gisQR" style="text-align:center;padding:8px;min-height:40px">—</div>
+        <h4>Nearby Lands</h4>
+        <div id="gisNearby" style="font-size:.8rem;color:var(--txt2);padding:8px;background:var(--bg);border-radius:6px;min-height:40px">—</div>
+        <h4>Upload Document</h4>
+        <input class="inp" id="gisDocParcel" placeholder="Parcel ID" style="font-size:.78rem;padding:7px 10px;margin-bottom:4px"><br>
+        <select class="inp" id="gisDocType" style="font-size:.78rem;padding:7px 10px;margin-bottom:4px"><option value="Sale Deed">Sale Deed</option><option value="Tax Receipt">Tax Receipt</option><option value="Transfer Deed">Transfer Deed</option></select><br>
+        <input type="file" class="inp" id="gisDocFile" style="font-size:.78rem;padding:7px 10px;margin-bottom:4px"><br>
+        <button class="btn btn-p btn-sm" onclick="gisUploadDoc()" style="width:100%;justify-content:center"><i class="fas fa-upload"></i> Upload</button>
+        <div id="gisUploadStatus" style="font-size:.78rem;margin-top:4px"></div>
+        <h4>Documents</h4>
+        <div id="gisDocs" style="font-size:.8rem;color:var(--txt2);padding:8px;background:var(--bg);border-radius:6px;min-height:40px">Click a parcel</div>
+    </div>
+    </div>`;
+    /* Initialize map after DOM is ready and page is visible */
+    setTimeout(initGISMap,200);
+}
+
+function initGISMap(){
+    if(ST.map){ST.map.remove();ST.map=null;}
+    ST.allPolygons=[];ST.allMarkers=[];
+    const el=document.getElementById('gisMap');
+    if(!el)return;
+    ST.map=L.map('gisMap').setView([12.97,77.75],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap',maxZoom:18}).addTo(ST.map);
+    ST.mapReady=true;
+    loadGISData();
+}
+
+function getLandColor(type){
+    type=(type||'').toLowerCase();
+    if(type==='residential')return'green';if(type==='commercial')return'red';if(type==='agricultural'||type==='agriculture')return'orange';return'blue';
+}
+
+function getDistance(lat1,lon1,lat2,lon2){
+    const R=6371;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;
+    const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R*(2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+
+async function loadGISData(){
+    const data=await api('/api/land');
+    if(!data||!Array.isArray(data)){console.warn('No GIS data from server');return;}
+    ST.mapData=data;
+    data.forEach(land=>{
+        let baseColor=getLandColor(land.type);
+        let style={color:baseColor,fillColor:baseColor,fillOpacity:.4,weight:2};
+        if(land.status==='for sale'){style.color='yellow';style.dashArray='5,5';}
+        if(land.status==='disputed'){style.color='#333';}
+
+        const poly=L.polygon(land.polygon||[],style).addTo(ST.map);
+        if(land.status==='disputed'){const el=poly.getElement();if(el)el.classList.add('blink');}
+        ST.allPolygons.push(poly);
+
+        const marker=L.marker([land.lat,land.lon]).addTo(ST.map);
+        marker.on('click',()=>handleGISClick(land,marker));
+        poly.on('click',()=>handleGISClick(land,marker));
+        ST.allMarkers.push({marker,land});
     });
 }
 
-    </script>
+function handleGISClick(land,marker){
+    if(!ST.map)return;
+    ST.map.flyTo([land.lat,land.lon],18);
+    /* Details */
+    document.getElementById('gisDetails').innerHTML=`<div style="line-height:1.8"><strong style="color:var(--accent)">${land.parcel_id}</strong><br>Owner: ${land.owner}<br>Type: ${land.type}<br>Status: ${land.status}<br>Area: ${land.area} sqft</div>`;
+    /* QR */
+    document.getElementById('gisQR').innerHTML=`<img src="${BASE_URL}/qr/${land.parcel_id}" width="120" style="border-radius:8px" onerror="this.outerHTML='<span style=\\'color:var(--txt3);font-size:.78rem\\'>QR unavailable</span>'">`;
+    document.getElementById('gisDocParcel').value=land.parcel_id;
+    /* Nearby */
+    let nearbyHtml='';let found=false;
+    ST.mapData.forEach(o=>{if(o.parcel_id!==land.parcel_id){const d=getDistance(land.lat,land.lon,o.lat,o.lon);if(d<1){found=true;nearbyHtml+=`<div>${o.parcel_id} (${d.toFixed(2)} km)</div>`;}}});
+    document.getElementById('gisNearby').innerHTML=found?nearbyHtml:'No nearby lands';
+    /* Documents */
+    loadGISDocs(land.parcel_id);
+    /* ML Prediction */
+    document.getElementById('gisPriceBox').innerHTML='<i class="fas fa-spinner fa-spin"></i> Predicting...';
+    api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:land.area,road_distance_km:2,city_distance_km:5,nearby_school:'Yes',nearby_hospital:'No',year:2024})}).then(res=>{
+        if(res&&res.predicted_price!==undefined){
+            const price=res.predicted_price;
+            document.getElementById('gisPriceBox').innerHTML=`<span style="color:var(--success)">Rs ${parseFloat(price).toLocaleString()}</span>`;
+            if(marker)marker.bindPopup(`<b>${land.parcel_id}</b><br>Rs ${parseFloat(price).toLocaleString()}`).openPopup();
+        } else {
+            document.getElementById('gisPriceBox').innerHTML='<span style="color:var(--warn)">Prediction unavailable</span>';
+        }
+    });
+}
 
+async function loadGISDocs(pid){
+    const data=await api('/documents/'+pid);
+    const box=document.getElementById('gisDocs');
+    if(!data||!Array.isArray(data)||!data.length){box.innerHTML='No documents';return;}
+    box.innerHTML=data.map(d=>`<div style="margin-bottom:4px"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:4px"></i>${d.document_type} (${d.status}) <a href="${BASE_URL}${d.view_url||'/view_document/'+d.document_id}" target="_blank" style="color:var(--accent);font-size:.75rem;margin-left:4px">View</a></div>`).join('');
+}
+
+function gisSearchLand(){
+    const id=document.getElementById('gisSearch').value.trim();
+    const found=ST.allMarkers.find(m=>m.land.parcel_id===id);
+    if(found)handleGISClick(found.land,found.marker);else toast('Parcel not found','err');
+}
+
+async function gisUploadDoc(){
+    const parcel=document.getElementById('gisDocParcel').value;
+    const type=document.getElementById('gisDocType').value;
+    const file=document.getElementById('gisDocFile').files[0];
+    if(!parcel||!file){document.getElementById('gisUploadStatus').innerHTML='<span style="color:var(--danger)">Fill all fields</span>';return;}
+    const fd=new FormData();fd.append('parcel_id',parcel);fd.append('document_type',type);fd.append('uploaded_by',ST.user||'U001');fd.append('file',file);
+    const res=await apiForm('/upload_document',fd);
+    document.getElementById('gisUploadStatus').innerHTML=res&&res.message?`<span style="color:var(--success)">Uploaded — ${res.document_id}</span>`:'<span style="color:var(--danger)">Error</span>';
+}
+
+/* ============================================================
+   QR VERIFICATION
+   ============================================================ */
+function renderQR(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>QR Verification</h2><p>Verify property authenticity via QR code or Parcel ID</p></div>
+    <div class="card" style="max-width:500px">
+    <div style="text-align:center;margin-bottom:20px"><div style="width:80px;height:80px;border-radius:16px;background:var(--accentGlow);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto"><i class="fas fa-qrcode" style="font-size:2rem;color:var(--accent)"></i></div></div>
+    <h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px;text-align:center">Verify Property</h3>
+    <div class="form-group" style="margin-bottom:14px"><label>Parcel ID</label><input class="inp" id="qrParcel" placeholder="e.g. L001"></div>
+    <button class="btn btn-p" style="width:100%;justify-content:center" onclick="doQRVerify()"><i class="fas fa-check"></i> Verify Property</button>
+    <div id="qrResult" style="margin-top:14px"></div>
+    <div style="margin-top:14px;padding:10px;background:var(--bg);border-radius:8px;font-size:.78rem;color:var(--txt2);text-align:center">You can also scan the QR code printed on property documents to verify authenticity.</div>
+    </div>`;
+}
+
+async function doQRVerify(){
+    const pid=$('qrParcel').value.trim();
+    if(!pid){toast('Enter Parcel ID','err');return;}
+    const box=$('qrResult');
+    box.innerHTML='<div style="text-align:center;padding:10px"><i class="fas fa-spinner fa-spin"></i></div>';
+    const res=await api('/verify_property/'+pid);
+    if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger);text-align:center">Server unreachable</div>';return;}
+    if(res.status==='approved'){
+        box.innerHTML=`<div style="padding:16px;background:rgba(56,161,105,.1);border:1px solid rgba(56,161,105,.3);border-radius:10px;text-align:center"><div style="font-size:1.5rem;color:var(--success);margin-bottom:8px"><i class="fas fa-check-circle"></i></div><div style="font-size:1rem;font-weight:700;color:var(--success);margin-bottom:4px">Property Verified</div><p style="font-size:.82rem;color:var(--txt2)">${res.message||'Property is authentic and eligible for transfer.'}</p></div>`;
+    } else {
+        box.innerHTML=`<div style="padding:16px;background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.3);border-radius:10px;text-align:center"><div style="font-size:1.5rem;color:var(--danger);margin-bottom:8px"><i class="fas fa-times-circle"></i></div><div style="font-size:1rem;font-weight:700;color:var(--danger);margin-bottom:4px">Verification Failed</div><p style="font-size:.82rem;color:var(--txt2)">${res.reason||'Property could not be verified.'}</p></div>`;
+    }
+}
+
+/* ============================================================
+   ML PREDICTION
+   ============================================================ */
+function renderML(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>ML Price Prediction</h2><p>Predict land market value using machine learning model</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px"><i class="fas fa-brain" style="color:var(--purple);margin-right:6px"></i>Input Parameters</h3>
+    <form onsubmit="return doMLPredict(event)">
+    <div class="form-grid">
+    <div class="form-group"><label>Area (sq.ft)</label><input type="number" class="inp" id="mlArea" placeholder="e.g. 2400" required></div>
+    <div class="form-group"><label>Road Distance (km)</label><input type="number" step="0.1" class="inp" id="mlRoad" placeholder="e.g. 2" required></div>
+    <div class="form-group"><label>City Distance (km)</label><input type="number" step="0.1" class="inp" id="mlCity" placeholder="e.g. 5" required></div>
+    <div class="form-group"><label>Year</label><input type="number" class="inp" id="mlYear" value="2024" required></div>
+    <div class="form-group"><label>Nearby School</label><select class="inp" id="mlSchool" required><option value="Yes">Yes</option><option value="No">No</option></select></div>
+    <div class="form-group"><label>Nearby Hospital</label><select class="inp" id="mlHosp" required><option value="Yes">Yes</option><option value="No">No</option></select></div>
+    </div>
+    <button type="submit" class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px"><i class="fas fa-magic"></i> Predict Price</button>
+    </form>
+    <div id="mlResult" style="margin-top:14px"></div>
+    </div>
+    <div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Model Information</h3>
+    <div style="font-size:.82rem;color:var(--txt2);line-height:1.8">
+    <p><i class="fas fa-chart-line" style="color:var(--purple);margin-right:6px"></i>Model: Trained on historical land transaction data</p>
+    <p><i class="fas fa-database" style="color:var(--accent);margin-right:6px"></i>Features: Area, distances, amenities, year</p>
+    <p><i class="fas fa-cogs" style="color:var(--gold);margin-right:6px"></i>Algorithm: Scikit-learn Regressor</p>
+    <div style="margin-top:14px;padding:10px;background:var(--bg);border-radius:8px"><p style="font-size:.75rem"><i class="fas fa-info-circle" style="color:var(--accent);margin-right:4px"></i>Predictions are estimates based on model training data. Actual market values may vary based on additional factors.</p></div>
+    </div></div></div>`;
+}
+
+async function doMLPredict(e){
+    e.preventDefault();
+    const box=$('mlResult');
+    box.innerHTML='<div style="text-align:center;padding:10px"><i class="fas fa-spinner fa-spin"></i><p style="font-size:.82rem;color:var(--txt2);margin-top:4px">Running prediction...</p></div>';
+    const res=await api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:parseFloat($('mlArea').value),road_distance_km:parseFloat($('mlRoad').value),city_distance_km:parseFloat($('mlCity').value),nearby_school:$('mlSchool').value,nearby_hospital:$('mlHosp').value,year:parseInt($('mlYear').value)})});
+    if(res&&res.predicted_price!==undefined){
+        const p=parseFloat(res.predicted_price);
+        box.innerHTML=`<div style="padding:20px;background:var(--bg);border:1px solid var(--accent);border-radius:12px;text-align:center"><div style="font-size:.78rem;color:var(--txt2);margin-bottom:6px">Predicted Market Value</div><div style="font-size:1.8rem;font-weight:700;color:var(--success)">Rs ${p.toLocaleString()}</div><div style="font-size:.72rem;color:var(--txt3);margin-top:6px">Based on ${$('mlArea').value} sqft, ${$('mlRoad').value}km from road, ${$('mlCity').value}km from city</div></div>`;
+        toast('Prediction complete','ok');
+    } else {
+        box.innerHTML=`<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>${res?.error||'Prediction failed — server unreachable'}</div>`;
+    }
+    return false;
+}
+
+/* ============================================================
+   ACTIVITY LOGS
+   ============================================================ */
+function renderLogs(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Activity Logs</h2><p>Track all system activities and login events</p></div>
+    <div class="card" style="margin-bottom:14px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="loadLogs()"><i class="fas fa-sync-alt"></i> Refresh</button><button class="btn btn-g btn-sm" onclick="loadUserLogs()"><i class="fas fa-user"></i> My Activity</button></div></div>
+    <div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>ID</th><th>User</th><th>Action</th><th>Parcel</th><th>Description</th><th>IP</th><th>Timestamp</th></tr></thead><tbody id="logsBody"><tr><td colspan="7" class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></td></tr></tbody></table></div>`;
+    loadLogs();
+}
+
+async function loadLogs(){
+    const data=await api('/get_login_activity');
+    const body=$('logsBody');
+    if(!data||!Array.isArray(data)||!data.length){body.innerHTML='<tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i><p>No activity logs found</p></td></tr>';return;}
+    body.innerHTML=data.slice(0,50).map(l=>`<tr><td style="font-family:monospace;font-size:.75rem">${l.login_id||'—'}</td><td>${l.user_id||'—'}</td><td><span class="badge b-blue">${l.action_type||'—'}</span></td><td style="font-family:monospace">${l.parcel_id||'—'}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.description||'—'}</td><td style="font-size:.75rem;color:var(--txt2)">${l.ip_address||'—'}</td><td style="font-size:.75rem;color:var(--txt2)">${l.timestamp||'—'}</td></tr>`).join('');
+}
+
+async function loadUserLogs(){
+    const data=await api('/user_activity/'+ST.user);
+    const body=$('logsBody');
+    if(!data||!Array.isArray(data)||!data.length){body.innerHTML='<tr><td colspan="7" class="empty-state"><i class="fas fa-inbox"></i><p>No activity found for your account</p></td></tr>';return;}
+    body.innerHTML=data.map(l=>`<tr><td style="font-family:monospace;font-size:.75rem">${l.login_id||'—'}</td><td>${l.user_id||'—'}</td><td><span class="badge b-blue">${l.action_type||'—'}</span></td><td style="font-family:monospace">${l.parcel_id||'—'}</td><td>${l.description||'—'}</td><td style="font-size:.75rem;color:var(--txt2)">${l.ip_address||'—'}</td><td style="font-size:.75rem;color:var(--txt2)">${l.timestamp||'—'}</td></tr>`).join('');
+}
+
+function logAct(action,desc){
+    api('/log_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',action_type:action,description:desc,ip_address:'client'})});
+    api('/login_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',ip_address:'client'})});
+}
+
+/* ============================================================
+   BLOCKCHAIN EXPLORER
+   ============================================================ */
+function renderBlockchain(){
+    $('mainArea').innerHTML=`<div class="section-head"><h2>Blockchain Explorer</h2><p>View blockchain ledger and create new transactions</p></div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-p" onclick="loadBlockchain()"><i class="fas fa-sync-alt"></i> Refresh Chain</button>
+    <button class="btn btn-w" onclick="showNewBlockModal()"><i class="fas fa-plus"></i> Create Block</button>
+    <button class="btn btn-s" onclick="verifyChain()"><i class="fas fa-check-double"></i> Verify Integrity</button>
+    </div>
+    <div id="bcChain"></div>
+}
+
+async function loadBlockchain(){
+    const box=$('bcChain');
+    box.innerHTML='<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading blockchain...</p></div>';
+    const data=await api('/get_blockchain');
+    if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-cubes"></i><p>No blockchain data found</p></div>';return;}
+    box.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">${data.slice().reverse().map(b=>`
+    <div class="block-card ${b.confirmation_status==='Confirmed'?'confirmed':'pending'}">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+            <div><span style="font-family:monospace;font-weight:700;color:var(--accent)">${b.block_id||'—'}</span> <span style="font-size:.72rem;color:var(--txt2)">Block #${b.block_number||'—'}</span></div>
+            <span class="badge ${b.confirmation_status==='Confirmed'?'b-green':'b-yellow'}">${b.confirmation_status||'Unknown'}</span>
+        </div>
+        <div style="font-size:.78rem;color:var(--txt2);line-height:1.7">
+        <div><span style="color:var(--txt3)">Tx Hash:</span> <span style="font-family:monospace;font-size:.7rem;word-break:break-all">${b.transaction_hash||'—'}</span></div>
+        <div><span style="color:var(--txt3)">Prev Hash:</span> <span style="font-family:monospace;font-size:.7rem;word-break:break-all">${b.previous_hash||'—'}</span></div>
+        <div><span style="color:var(--txt3)">Gas Fee:</span> ${b.gas_fee||'—'} | <span style="color:var(--txt3)">Time:</span> ${b.timestamp||'—'}</div>
+        </div>
+        ${b.confirmation_status!=='Confirmed'?`<button class="btn btn-s btn-sm" style="margin-top:8px" onclick="confirmBlock('${b.transaction_hash}')"><i class="fas fa-check"></i> Confirm</button>`:''}
+    </div>`).join('')}</div>`;
+}
+
+function showNewBlockModal(){
+    openModal('Create Blockchain Block',`<form onsubmit="return doCreateBlock(event)">
+    <div class="form-group" style="margin-bottom:12px"><label>Gas Fee</label><input type="number" class="inp" id="bcGas" placeholder="e.g. 0.005" step="0.001" required></div>
+    <button type="submit" class="btn btn-p" style="width:100%;justify-content:center"><i class="fas fa-cubes"></i> Create Block</button>
+    </form><div id="bcCreateResult" style="margin-top:12px"></div>`);
+}
+
+async function doCreateBlock(e){
+    e.preventDefault();
+    const res=await api('/add_blockchain_transaction',{method:'POST',body:JSON.stringify({gas_fee:parseFloat($('bcGas').value)})});
+    const box=$('bcCreateResult');
+    if(res&&res.block_id){
+        box.innerHTML=`<div style="padding:10px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)"><i class="fas fa-check" style="margin-right:6px"></i>Block created: ${res.block_id} | Hash: <span style="font-family:monospace;font-size:.7rem">${res.transaction_hash?.substring(0,20)}...</span></div>`;
+        toast('Block created','ok');logAct('Blockchain','Created block '+res.block_id);
+        setTimeout(()=>{closeModal();loadBlockchain();},1500);
+    } else box.innerHTML=`<div style="padding:10px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)"><i class="fas fa-times" style="margin-right:6px"></i>Failed to create block</div>`;
+    return false;
+}
+
+async function confirmBlock(hash){
+    const res=await api('/confirm_blockchain',{method:'PUT',body:JSON.stringify({transaction_hash:hash})});
+    if(res&&res.message){toast('Block confirmed','ok');loadBlockchain();}
+    else toast('Failed to confirm','err');
+}
+
+async function verifyChain(){
+    const res=await api('/verify_blockchain');
+    if(res&&res.blockchain_valid!==undefined){
+        if(res.blockchain_valid)toast('Blockchain integrity verified — all blocks valid','ok');
+        else toast('Tampering detected at block #'+res.block_number,'err');
+    } else toast('Could not verify chain','err');
+}
+</script>
 </body>
-
 </html>
