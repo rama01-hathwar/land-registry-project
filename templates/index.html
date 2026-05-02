@@ -117,7 +117,7 @@ tr:hover td{background:rgba(14,165,160,.03)}
 
 <div class="toast-box" id="toastBox"></div>
 
-<!-- LOGIN -->
+
 <!-- LOGIN -->
 <div id="loginWrap" class="login-wrap">
 <div class="login-box">
@@ -361,7 +361,54 @@ function renderTransfer(){
     $('mainArea').innerHTML='<div class="section-head"><h2>Ownership Transfer</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Initiate Transfer</h3><form id="transferForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="tfParcel" required></div><div class="form-group"><label>Seller ID</label><input class="inp" id="tfSeller" required></div><div class="form-group"><label>Buyer ID</label><input class="inp" id="tfBuyer" required></div><div class="form-group"><label>Amount</label><input type="number" class="inp" id="tfAmount" required></div><div class="form-group" style="grid-column:span 2"><label>Transaction Hash</label><input class="inp" id="tfHash" required></div></div><div style="margin-top:14px;display:flex;gap:8px"><button type="submit" class="btn btn-p"><i class="fas fa-paper-plane"></i> Submit</button><button type="button" class="btn btn-g" onclick="go(\'blockchain\')"><i class="fas fa-cubes"></i> Create Txn First</button></div></form><div id="tfResult" style="margin-top:12px"></div></div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Requirements</h3><div style="font-size:.82rem;color:var(--txt2);line-height:2"><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>No active disputes</p><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>No active mortgage</p><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Taxes paid</p><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Blockchain confirmed</p><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Seller is owner</p></div></div></div>';
     $('transferForm').onsubmit=doTransfer;
 }
-function doTransfer(e){e.preventDefault();api('/transfer_property',{method:'POST',body:JSON.stringify({parcel_id:$('tfParcel').value.trim(),seller_id:$('tfSeller').value.trim(),buyer_id:$('tfBuyer').value.trim(),sale_amount:parseFloat($('tfAmount').value),transaction_hash:$('tfHash').value.trim()})}).then(function(res){var box=$('tfResult');if(res&&res.message){if(res.error||res.message.indexOf('blocked')!==-1){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">'+(res.error||res.message)+'</div>';toast('Blocked','err');}else{box.innerHTML='<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Submitted!','ok');logAct('Transfer',$('tfParcel').value.trim());}}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Server unreachable</div>';toast('Failed','err');}return false;}
+function doTransfer(e){
+    e.preventDefault();
+
+    api('/transfer_property',{
+        method:'POST',
+        body:JSON.stringify({
+            parcel_id:$('tfParcel').value.trim(),
+            seller_id:$('tfSeller').value.trim(),
+            buyer_id:$('tfBuyer').value.trim(),
+            sale_amount:parseFloat($('tfAmount').value),
+            transaction_hash:$('tfHash').value.trim()
+        })
+    }).then(function(res){
+
+        var box = $('tfResult');
+
+        if(res && res.message){
+
+            if(res.error || res.message.indexOf('blocked') !== -1){
+
+                box.innerHTML =
+                '<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">' +
+                (res.error || res.message) +
+                '</div>';
+
+                toast('Blocked','err');
+
+            } else {
+
+                box.innerHTML =
+                '<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">' +
+                res.message +
+                '</div>';
+
+                toast('Submitted!','ok');
+                logAct('Transfer', $('tfParcel').value.trim());
+            }
+
+        } else {
+
+            box.innerHTML =
+            '<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Server unreachable</div>';
+
+            toast('Failed','err');
+        }
+
+    });  // ✅ THIS WAS MISSING
+}
 
 /* ===== HISTORY ===== */
 function renderHistory(){
