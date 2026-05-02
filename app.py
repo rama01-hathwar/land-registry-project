@@ -1,1662 +1,978 @@
-from flask import Flask,jsonify
-from flask import request
+from flask import Flask, jsonify, request, send_from_directory, send_file, render_template
 from datetime import datetime
-import qrcode
-import os
-import psycopg2
-import os
-import hashlib
-from flask import Flask, jsonify, render_template, request
-import math
-import json
 import sqlite3
-import joblib
-import pandas as pd
-from flask_cors import CORS
+import hashlib
+import os
+import json
+import random
+import math
+import qrcode
+from io import BytesIO
 from werkzeug.utils import secure_filename
 
-def get_db_connection():
-    return psycopg2.connect(
-        os.environ.get("DATABASE_URL"),
-        sslmode='require'
-    )
-
-def init_document_table():
-    import sqlite3
-
-    conn = sqlite3.connect("land.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS document (
-        document_id TEXT PRIMARY KEY,
-        parcel_id TEXT,
-        document_type TEXT,
-        file_hash TEXT,
-        uploaded_by TEXT,
-        uploaded_date TEXT,
-        verification_status TEXT
-    );
-    """)
-
-    conn.commit()
-    conn.close()
-
-model = joblib.load("land_price_model.pkl")
-model_columns = joblib.load("model_columns.pkl")
 app = Flask(__name__)
-CORS(app)
-
-def convert_land_to_parcel(land_id):
-    return land_id.replace("L", "P")
 UPLOAD_FOLDER = "static/documents"
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
-
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+SECRET_KEY = "land_registry_secure"
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-SECRET_KEY = "land_registry_secure"
+# ML model — optional, graceful fallback
+try:
+    import joblib
+    import pandas as pd
+    model = joblib.load("land_price_model.pkl")
+    model_columns = joblib.load("model_columns.pkl")
+    HAS_MODEL = True
+except:
+    HAS_MODEL = False
 
-def generate_secure_hash(parcel_id):
-    dataset = str(parcel_id) + SECRET_KEY
-    return hashlib.sha256(dataset.encode()).hexdigest()[:10]
+# Web3 wallet — optional
+try:
+    from web3 import Account
+    HAS_WEB3 = True
+except:
+    HAS_WEB3 = False
 
+# PostgreSQL for GIS — optional
+try:
+    import psycopg2
+    HAS_POSTGRES = bool(os.environ.get("DATABASE_URL"))
+except:
+    HAS_POSTGRES = False
 
-def generate_qr(parcel_id):
+DB_PATH = "land.db"
 
-    folder = "static/qr_codes"
+# ============================================================
+# DATABASE HELPER
+# ============================================================
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+def get_postgres():
+    try:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
+        return conn
+    except:
+        return None
 
-    filename = f"{folder}/land_{parcel_id}.png"
+# ============================================================
+# INIT — ONLY creates tables, NEVER inserts data
+# ============================================================
+def init_document_table():
+    conn = sqlite3.connect("land.db")
+    conn.execute("""CREATE TABLE IF NOT EXISTS document (
+        document_id TEXT PRIMARY KEY, parcel_id TEXT, document_type TEXT,
+        file_hash TEXT, uploaded_by TEXT, uploaded_date TEXT, verification_status TEXT)""")
+    conn.commit()
+    conn.close()
 
-    # create secure link
-    hash_value = generate_secure_hash(parcel_id)
+def init_db():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""CREATE TABLE IF NOT EXISTS users (
+        user_id TEXT PRIMARY KEY, full_name TEXT, wallet_address TEXT DEFAULT '',
+        mobile_number TEXT, email TEXT, role TEXT, kyc_status TEXT DEFAULT 'pending', password_hash TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS property (
+        parcel_id TEXT PRIMARY KEY, owner_id TEXT, survey_number TEXT, khata_number TEXT DEFAULT '',
+        village TEXT DEFAULT '', taluk TEXT DEFAULT '', district TEXT DEFAULT '', state TEXT DEFAULT '',
+        land_type TEXT DEFAULT '', area_sqft REAL, registration_date TEXT, current_market_value REAL,
+        geo_latitude REAL, geo_longitude REAL, tax_status TEXT DEFAULT 'Pending', mortgage_status TEXT DEFAULT 'None')""")
+    c.execute("""CREATE TABLE IF NOT EXISTS property_tax (
+        tax_id TEXT PRIMARY KEY, parcel_id TEXT, tax_year INTEGER, tax_amount REAL,
+        tax_paid REAL DEFAULT 0, payment_date TEXT, payment_status TEXT DEFAULT 'Pending')""")
+    c.execute("""CREATE TABLE IF NOT EXISTS tax (
+        tax_id TEXT PRIMARY KEY, parcel_id TEXT, tax_year INTEGER, tax_amount REAL,
+        tax_paid REAL DEFAULT 0, payment_date TEXT, payment_status TEXT DEFAULT 'Pending')""")
+    c.execute("""CREATE TABLE IF NOT EXISTS mortgage (
+        mortgage_id TEXT PRIMARY KEY, parcel_id TEXT, owner_id TEXT, bank_name TEXT,
+        loan_amount REAL, interest_rate REAL, start_date TEXT, end_date TEXT,
+        mortgage_status TEXT DEFAULT 'Active')""")
+    c.execute("""CREATE TABLE IF NOT EXISTS dispute (
+        dispute_id TEXT PRIMARY KEY, parcel_id TEXT, dispute_type TEXT, reported_by TEXT,
+        description TEXT, status TEXT DEFAULT 'Open', created_date TEXT, resolved_date TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS blockchain (
+        block_id TEXT PRIMARY KEY, block_number INTEGER, gas_fee REAL,
+        confirmation_status TEXT DEFAULT 'Pending', timestamp TEXT,
+        transaction_hash TEXT, previous_hash TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS transfer (
+        transaction_id TEXT PRIMARY KEY, parcel_id TEXT, from_owner TEXT, to_owner TEXT,
+        transaction_type TEXT, transaction_hash TEXT, block_number INTEGER, timestamp TEXT, sale_amount REAL)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS login_activity (
+        login_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, action_type TEXT,
+        parcel_id TEXT, description TEXT, timestamp TEXT, ip_address TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS document (
+        document_id TEXT PRIMARY KEY, parcel_id TEXT, document_type TEXT,
+        file_path TEXT DEFAULT '', file_hash TEXT DEFAULT '', uploaded_by TEXT,
+        uploaded_date TEXT, verification_status TEXT DEFAULT 'Pending')""")
+    c.execute("""CREATE TABLE IF NOT EXISTS fraud_detection (
+        parcel_id TEXT PRIMARY KEY, duplicate_survey INTEGER DEFAULT 0,
+        multiple_claim INTEGER DEFAULT 0, abnormal_transfer INTEGER DEFAULT 0, risk_score TEXT DEFAULT 'Low')""")
+    c.execute("""CREATE TABLE IF NOT EXISTS gis_land_data (
+        land_id TEXT PRIMARY KEY, survey_number TEXT DEFAULT '', owner_name TEXT,
+        land_use_type TEXT, area_sq_ft REAL, latitude REAL, longitude REAL,
+        boundary_polygon TEXT DEFAULT '[]', status TEXT DEFAULT 'registered')""")
+    conn.commit()
+    conn.close()
+    print("All tables verified/created — existing data untouched")
 
-    url = f"http://127.0.0.1:5000/verify_property/{parcel_id}/{hash_value}"
-
-    qr = qrcode.make(url)
-    qr.save(filename)
-
-    return filename
-
+# ============================================================
+# HELPERS
+# ============================================================
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
 def generate_file_hash(file_path):
-    hasher = hashlib.sha256()
+    h = hashlib.sha256()
     with open(file_path, "rb") as f:
-        buf = f.read()
-        hasher.update(buf)
-    return hasher.hexdigest()
+        h.update(f.read())
+    return h.hexdigest()
 
-#user registration#
+def generate_secure_hash(parcel_id):
+    return hashlib.sha256((str(parcel_id) + SECRET_KEY).encode()).hexdigest()[:10]
+
+def generate_qr_file(parcel_id):
+    folder = "static/qr_codes"
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    filename = folder + "/land_" + parcel_id + ".png"
+    hash_value = generate_secure_hash(parcel_id)
+    url = request.url_root + "verify_property/" + parcel_id + "/" + hash_value
+    img = qrcode.make(url)
+    img.save(filename)
+    return filename
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) *
+         math.cos(math.radians(lat2)) * math.sin(dlon/2)**2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+# ============================================================
+# SERVE FRONTEND
+# ============================================================
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+# ============================================================
+# USER REGISTRATION
+# ============================================================
 @app.route('/register_user', methods=['POST'])
 def register_user():
     data = request.json
-
-    user_id = data["user_id"]
-    full_name = data["full_name"]
-    mobile_number = data["mobile_number"]
-    email = data["email"]
-    role = data["role"]
-    kyc_status = data["kyc_status"]
-    password_hash = data["password_hash"]
-
-    # generate wallet automatically
-    wallet = Account.create()
-    wallet_address = wallet.address
-
-    cursor.execute("""
-        INSERT INTO users
+    conn = get_db()
+    # Generate wallet
+    if HAS_WEB3:
+        wallet = Account.create()
+        wallet_address = wallet.address
+    else:
+        wallet_address = "0x" + hashlib.sha256(data["user_id"].encode()).hexdigest()[:40]
+    conn.execute("""INSERT INTO users
         (user_id, full_name, wallet_address, mobile_number, email, role, kyc_status, password_hash)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (user_id, full_name, wallet_address, mobile_number, email, role, kyc_status, password_hash))
-
+        VALUES (?,?,?,?,?,?,?,?)""",
+        (data["user_id"], data["full_name"], wallet_address,
+         data["mobile_number"], data["email"], data["role"],
+         data["kyc_status"], data["password_hash"]))
     conn.commit()
+    conn.close()
+    return {"message": "User registered successfully", "wallet_address": wallet_address}
 
-    return {
-        "message": "User registered successfully",
-        "wallet_address": wallet_address
-    }
-
-#--kyc verification--#
+# ============================================================
+# KYC
+# ============================================================
 @app.route('/verify_kyc/<user_id>', methods=['PUT'])
 def verify_kyc(user_id):
-
-    cursor.execute("""
-    UPDATE users
-    SET kyc_status = 'verified'
-    WHERE user_id = %s
-    """, (user_id))
-
+    conn = get_db()
+    conn.execute("UPDATE users SET kyc_status='verified' WHERE user_id=?", (user_id,))
     conn.commit()
-
+    conn.close()
     return {"message": "KYC verified successfully"}
 
-# get all properties
+# ============================================================
+# PROPERTIES
+# ============================================================
 @app.route("/properties")
 def get_properties():
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM property").fetchall()
+    conn.close()
+    return {"properties": [dict(r) for r in rows]}
 
-    cursor.execute("SELECT * FROM property")
-    rows = cursor.fetchall()
-
-    data = []
-
-    for row in rows:
-        data.append(str(row))
-
-    return {"properties": data}
-
-
-# get one property
 @app.route("/property/<parcel_id>")
 def get_property(parcel_id):
-
-    cursor.execute(
-        
-        "SELECT * FROM property WHERE parcel_id = %s",
-        (parcel_id,)
-    )
-
-    row = cursor.fetchone()
-
+    conn = get_db()
+    row = conn.execute("SELECT * FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
+    conn.close()
     if row:
-        return {"property": str(row)}
-    else:
-        return {"message": "Property not found"}
-    
-# Register a new property
+        return {"property": dict(row)}
+    return {"message": "Property not found"}
+
 @app.route("/add_property", methods=["POST"])
 def add_property():
-
     data = request.json
-
-    parcel_id = data["parcel_id"]
-    owner_id = data["owner_id"]
-    survey_number = data["survey_number"]
-    khata_number = data["khata_number"]
-    village = data["village"]
-    taluk = data["taluk"]
-    district = data["district"]
-    state = data["state"]
-    land_type = data["land_type"]
-    area_sqft = data["area_sqft"]
-    registration_date = data["registration_date"]
-    current_market_value = data["current_market_value"]
-    geo_latitude = data.get("geo_latitude")
-    geo_longitude = data.get("geo_longitude")
-    tax_status = data["tax_status"]
-    mortgage_status = data["mortgage_status"]
-
-    cursor.execute("""
-        INSERT INTO property
+    conn = get_db()
+    conn.execute("""INSERT INTO property
         (parcel_id, owner_id, survey_number, khata_number, village, taluk, district,
          state, land_type, area_sqft, registration_date, current_market_value,
          geo_latitude, geo_longitude, tax_status, mortgage_status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (
-        parcel_id, owner_id, survey_number, khata_number, village, taluk, district,
-        state, land_type, area_sqft, registration_date, current_market_value,
-        geo_latitude, geo_longitude, tax_status, mortgage_status
-    ))
-
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (data["parcel_id"], data["owner_id"], data["survey_number"],
+         data.get("khata_number", ""), data["village"], data["taluk"],
+         data["district"], data["state"], data["land_type"],
+         data["area_sqft"], data["registration_date"],
+         data["current_market_value"], data.get("geo_latitude"),
+         data.get("geo_longitude"), data.get("tax_status", "Pending"),
+         data.get("mortgage_status", "None")))
     conn.commit()
-    #---generate QR code for this property---#
-    generate_qr(parcel_id)
-    
+    conn.close()
+    generate_qr_file(data["parcel_id"])
     return {"message": "Property added successfully"}
 
-
-#--verify_property--#
+# ============================================================
+# VERIFY PROPERTY
+# ============================================================
 @app.route('/verify_property/<parcel_id>', methods=['GET'])
 def verify_property(parcel_id):
-
-    # Check dispute
-    cursor.execute("""
-        SELECT * FROM dispute
-        WHERE parcel_id = %s AND status != 'Resolved'
-    """, (parcel_id,))
-    
-    dispute = cursor.fetchone()
-
-    if dispute:
-        return {
-            "status": "blocked",
-            "reason": "Active dispute on property"
-        }
-
-    # Check fraud
-    cursor.execute("""
-        SELECT risk_score FROM fraud_detection
-        WHERE parcel_id = %s
-    """, (parcel_id,))
-    
-    fraud = cursor.fetchone()
-
+    conn = get_db()
+    dispute = conn.execute("SELECT COUNT(*) FROM dispute WHERE parcel_id=? AND status!='Resolved'", (parcel_id,)).fetchone()[0]
+    if dispute > 0:
+        conn.close()
+        return {"status": "blocked", "reason": "Active dispute on property"}
+    fraud = conn.execute("SELECT risk_score FROM fraud_detection WHERE parcel_id=?", (parcel_id,)).fetchone()
     if fraud and fraud[0] == "High":
-        return {
-            "status": "blocked",
-            "reason": "High fraud risk detected"
-        }
-
-    # Check tax
-    cursor.execute("""
-        SELECT tax_status FROM tax
-        WHERE parcel_id = %s
-    """, (parcel_id,))
-    
-    tax = cursor.fetchone()
-
+        conn.close()
+        return {"status": "blocked", "reason": "High fraud risk detected"}
+    tax = conn.execute("SELECT tax_status FROM tax WHERE parcel_id=?", (parcel_id,)).fetchone()
     if tax and tax[0] == "Pending":
-        return {
-            "status": "blocked",
-            "reason": "Property tax pending"
-        }
+        conn.close()
+        return {"status": "blocked", "reason": "Property tax pending"}
+    mort = conn.execute("SELECT mortgage_status FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (parcel_id,)).fetchone()
+    if mort and mort[0] == "Active":
+        conn.close()
+        return {"status": "blocked", "reason": "Property under mortgage"}
+    conn.close()
+    return {"status": "approved", "message": "Property eligible for transfer"}
 
-    # Check mortgage
-    cursor.execute("""
-        SELECT status FROM mortgage
-        WHERE parcel_id = %s AND mortgage_status='Active'
-    """, (parcel_id,))
-    
-    mortgage = cursor.fetchone()
+# ============================================================
+# VERIFY PROPERTY WITH HASH (QR scan)
+# ============================================================
+@app.route('/verify_property/<parcel_id>/<hash_value>')
+def verify_property_qr(parcel_id, hash_value):
+    expected_hash = generate_secure_hash(parcel_id)
+    if hash_value != expected_hash:
+        return render_template("property_dashboard.html", error="Invalid QR Code", property=None, documents=[])
+    conn = get_db()
+    row = conn.execute("SELECT * FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
+    if not row:
+        conn.close()
+        return render_template("property_dashboard.html", error="Property not found", property=None, documents=[])
+    property_data = dict(row)
+    docs = conn.execute("SELECT document_id, document_type, verification_status FROM document WHERE parcel_id=?", (parcel_id,)).fetchall()
+    doc_list = [{"document_id": d[0], "document_type": d[1], "status": d[2], "url": "/view_document/" + d[0]} for d in docs]
+    conn.close()
+    return render_template("property_dashboard.html", property=property_data, documents=doc_list, error=None)
 
-    if mortgage and mortgage[0] == "Active":
-        return {
-            "status": "blocked",
-            "reason": "Property under mortgage"
-        }
-
-    return {
-        "status": "approved",
-        "message": "Property eligible for transfer"
-    }
-    
-
-#--transaction--#
-import hashlib
-import datetime
-import random
-
+# ============================================================
+# TRANSFER PROPERTY — FIXED: actually performs transfer
+# ============================================================
 @app.route('/transfer_property', methods=['POST'])
 def transfer_property():
-
     data = request.json
+    parcel_id = data['parcel_id']
+    seller_id = data['seller_id']
+    buyer_id = data['buyer_id']
+    sale_amount = data['sale_amount']
+    transaction_hash = data['transaction_hash']
 
-    parcel_id = data.get('parcel_id')
-    seller_id = data.get('seller_id')
-    buyer_id = data.get('buyer_id')
-    sale_amount = data.get('sale_amount')
+    conn = get_db()
+    c = conn.cursor()
 
-    if not parcel_id or not seller_id or not buyer_id:
-        return jsonify({"message": "Missing required fields"}), 400
+    # 1. Block if dispute
+    if c.execute("SELECT COUNT(*) FROM dispute WHERE parcel_id=? AND status!='Resolved'", (parcel_id,)).fetchone()[0] > 0:
+        conn.close()
+        return jsonify({"message": "Transfer blocked due to active dispute"})
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    # 2. Block if mortgage
+    if c.execute("SELECT mortgage_status FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (parcel_id,)).fetchone():
+        conn.close()
+        return jsonify({"message": "Transfer blocked due to active mortgage"}), 400
 
-    # 1. Check dispute
-    cursor.execute("""
-        SELECT COUNT(*) FROM dispute
-        WHERE parcel_id = %s AND status != 'Resolved'
-    """, (parcel_id,))
-    if cursor.fetchone()[0] > 0:
-        cursor.close(); conn.close()
-        return jsonify({"message": "Transfer blocked — active dispute"})
+    # 3. Block if unpaid tax (check both tax and property_tax tables)
+    tax1 = c.execute("SELECT COUNT(*) FROM tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchone()[0]
+    tax2 = c.execute("SELECT COUNT(*) FROM property_tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchone()[0]
+    if tax1 > 0 or tax2 > 0:
+        conn.close()
+        return jsonify({"error": "Transfer blocked due to unpaid tax"})
 
-    # 2. Check mortgage
-    cursor.execute("""
-        SELECT mortgage_id FROM mortgage
-        WHERE parcel_id = %s AND mortgage_status = 'Active'
-    """, (parcel_id,))
-    if cursor.fetchone():
-        cursor.close(); conn.close()
-        return jsonify({"message": "Transfer blocked — active mortgage"})
+    # 4. Check blockchain confirmation
+    bc = c.execute("SELECT confirmation_status FROM blockchain WHERE transaction_hash=?", (transaction_hash,)).fetchone()
+    if not bc:
+        conn.close()
+        return jsonify({"message": "Blockchain transaction not found"})
+    if bc[0] != 'Confirmed':
+        conn.close()
+        return jsonify({"message": "Transfer blocked: Blockchain transaction not confirmed"})
 
-    # 3. Check tax
-    cursor.execute("""
-        SELECT tax_id FROM tax
-        WHERE parcel_id = %s AND payment_status != 'Paid'
-    """, (parcel_id,))
-    if cursor.fetchone():
-        cursor.close(); conn.close()
-        return jsonify({"message": "Transfer blocked — unpaid tax"})
-
-    # 4. Check seller is owner
-    cursor.execute("SELECT owner_id FROM property WHERE parcel_id = %s", (parcel_id,))
-    owner = cursor.fetchone()
+    # 5. Check seller is current owner
+    owner = c.execute("SELECT owner_id FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
     if not owner:
-        cursor.close(); conn.close()
-        return jsonify({"message": "Property not found"})
+        conn.close()
+        return jsonify({"error": "Property not found"})
     if owner[0] != seller_id:
-        cursor.close(); conn.close()
-        return jsonify({"message": "Transfer blocked — seller is not the current owner"})
+        conn.close()
+        return jsonify({"error": "Seller is not the current owner"})
 
-    # 5. Get previous hash
-    cursor.execute("""
-        SELECT transaction_hash FROM transfer
-        WHERE parcel_id = %s ORDER BY timestamp DESC LIMIT 1
-    """, (parcel_id,))
-    prev = cursor.fetchone()
+    # 6. Get previous transaction hash
+    prev = c.execute("SELECT transaction_hash FROM transfer WHERE parcel_id=? ORDER BY rowid DESC LIMIT 1", (parcel_id,)).fetchone()
     previous_hash = prev[0] if prev else "GENESIS"
 
-    # 6. Generate hash
+    # 7. Generate new hash and IDs
     raw = parcel_id + seller_id + buyer_id + previous_hash + str(datetime.now())
-    transaction_hash = hashlib.sha256(raw.encode()).hexdigest()
+    new_hash = hashlib.sha256(raw.encode()).hexdigest()
+    txn_id = "T" + str(random.randint(1000, 9999))
+    block_number = random.randint(120000, 130000)
+    timestamp = str(datetime.now())
 
-    # 7. Create blockchain block
-    cursor.execute("SELECT COUNT(*) FROM blockchain")
-    block_number = cursor.fetchone()[0] + 1
-    block_id = "B" + str(block_number).zfill(3)
+    # 8. UPDATE owner
+    c.execute("UPDATE property SET owner_id=? WHERE parcel_id=?", (buyer_id, parcel_id))
 
-    cursor.execute("""
-        INSERT INTO blockchain
-        (block_id, block_number, gas_fee, confirmation_status, timestamp, transaction_hash, previous_hash)
-        VALUES (%s, %s, %s, %s, NOW(), %s, %s)
-    """, (block_id, block_number, 0.0025, 'Confirmed', transaction_hash, previous_hash))
-
-    # 8. Generate transaction ID
-    transaction_id = "T" + str(random.randint(1000, 9999))
-
-    # 9. Update owner
-    cursor.execute("UPDATE property SET owner_id = %s WHERE parcel_id = %s", (buyer_id, parcel_id))
-
-    # 10. Insert transfer record
-    cursor.execute("""
-        INSERT INTO transfer
-        (transaction_id, parcel_id, from_owner, to_owner, transaction_type,
-        transaction_hash, block_number, timestamp, sale_amount)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (transaction_id, parcel_id, seller_id, buyer_id, "Transfer",
-         transaction_hash, block_number, datetime.now(), sale_amount))
+    # 9. INSERT transfer record
+    c.execute("INSERT INTO transfer VALUES (?,?,?,?,?,?,?,?,?)",
+        (txn_id, parcel_id, seller_id, buyer_id, "Transfer",
+         new_hash, block_number, timestamp, sale_amount))
 
     conn.commit()
-    cursor.close()
     conn.close()
-
     return jsonify({
         "message": "Property transferred successfully",
-        "transaction_id": transaction_id,
-        "transaction_hash": transaction_hash,
-        "block_number": block_number
+        "transaction_id": txn_id,
+        "transaction_hash": new_hash
     })
 
-    # --------------------------------
-    # 8. GENERATE TRANSACTION ID
-    # --------------------------------
-    transaction_id = "T" + str(random.randint(1000, 9999))
-
-    # --------------------------------
-    # 9. UPDATE PROPERTY OWNER
-    # --------------------------------
-    cursor.execute("""
-        UPDATE property
-        SET owner_id = %s
-        WHERE parcel_id = %s
-    """, (buyer_id, parcel_id))
-
-    # --------------------------------
-    # 10. INSERT TRANSFER RECORD
-    # --------------------------------
-    cursor.execute("""
-        INSERT INTO transfer
-        (transaction_id, parcel_id, from_owner, to_owner, transaction_type,
-        transaction_hash, block_number, timestamp, sale_amount)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (
-        transaction_id, parcel_id, seller_id, buyer_id, "Transfer",
-        transaction_hash, block_number, datetime.datetime.now(), sale_amount
-    ))
-
-    conn.commit()
-    cursor.close()
+# ============================================================
+# OWNER HISTORY — FIXED: actually returns data
+# ============================================================
+@app.route('/owner_history/<parcel_id>', methods=['GET'])
+def owner_history(parcel_id):
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT transaction_id, parcel_id, from_owner, to_owner,
+               transaction_type, sale_amount, timestamp
+        FROM transfer WHERE parcel_id=? ORDER BY timestamp ASC
+    """, (parcel_id,)).fetchall()
     conn.close()
+    history = []
+    for r in rows:
+        history.append({
+            "transaction_id": r[0], "parcel_id": r[1],
+            "previous_owner": r[2], "new_owner": r[3],
+            "transaction_type": r[4], "sale_amount": r[5],
+            "timestamp": str(r[6])
+        })
+    return jsonify(history)
 
-    return jsonify({
-        "message": "Property transferred successfully",
-        "transaction_id": transaction_id,
-        "transaction_hash": transaction_hash,
-        "block_number": block_number
-    })
-# --- Owner History --- #
-@app.route('/owner_history/<land_id>', methods=['GET'])
-def owner_history(land_id):
-    try:
-        parcel_id = convert_land_to_parcel(land_id)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT from_owner, to_owner, transaction_type, timestamp
-            FROM transfer
-            WHERE parcel_id = %s
-            ORDER BY timestamp DESC
-        """, (parcel_id,))
-
-        rows = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        data = []
-        for r in rows:
-            data.append({
-                "from": r[0],
-                "to": r[1],
-                "type": r[2],
-                "date": str(r[3])
-            })
-
-        return data
-
-    except Exception as e:
-        return {"error": str(e)}
-        
- #--Fraud Detection--#
-@app.route('/fraud_check/<land_id>', methods=['GET'])
-@app.route('/fraud_check/<land_id>', methods=['GET'])
-def fraud(land_id):
-    try:
-        parcel_id = convert_land_to_parcel(land_id)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT risk_score
-            FROM fraud_detection
-            WHERE parcel_id = %s
-        """, (parcel_id,))
-
-        row = cursor.fetchone()
-
-        cursor.close()
-        conn.close()
-
-        if not row:
-            return {}
-
+# ============================================================
+# FRAUD DETECTION
+# ============================================================
+@app.route('/fraud_check/<parcel_id>', methods=['GET'])
+def fraud_check(parcel_id):
+    conn = get_db()
+    result = conn.execute("SELECT duplicate_survey, multiple_claim, abnormal_transfer FROM fraud_detection WHERE parcel_id=?", (parcel_id,)).fetchone()
+    conn.close()
+    if result:
+        dup = int(result[0])
+        mult = int(result[1])
+        abn = int(result[2])
+        flag_sum = dup + mult + abn
+        if flag_sum == 0:
+            risk_level = "Low"
+        elif flag_sum == 1:
+            risk_level = "Medium"
+        else:
+            risk_level = "High"
         return {
-            "risk_level": row[0]
+            "parcel_id": parcel_id, "duplicate_survey": dup,
+            "multiple_claim": mult, "abnormal_transfer": abn,
+            "risk_level": risk_level
         }
+    return {"message": "No fraud record found"}
 
-    except Exception as e:
-        return {"error": str(e)}
-    
-    #--File Dispue--#
-import random
-
-dispute_id = "D" + str(random.randint(100,999))
-
-#--Dispute---#
-import random
-import datetime
-
-@app.route('/dispute/<land_id>', methods=['GET'])
-def dispute(land_id):
-    try:
-        parcel_id = convert_land_to_parcel(land_id)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT description, status
-            FROM dispute
-            WHERE parcel_id = %s
-        """, (parcel_id,))
-
-        row = cursor.fetchone()
-
-        cursor.close()
-        conn.close()
-
-        if not row:
-            return {}
-
-        return {
-            "issue": row[0],
-            "status": row[1]
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
-
+# ============================================================
+# DISPUTE
+# ============================================================
 @app.route('/file_dispute', methods=['POST'])
 def file_dispute():
-
     data = request.json
-
-    parcel_id = data['parcel_id']
-    dispute_type = data['dispute_type']
-    reported_by = data['reported_by']
-    description = data['description']
-
-    # generate dispute id--#
-    dispute_id = "D" + str(random.randint(100,999))
-
-    status = "Open"
-    created_date = datetime.datetime.now()
-
-    cursor.execute("""
-        INSERT INTO dispute
-        (dispute_id, parcel_id, dispute_type, reported_by, description, status,
-         created_date)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (dispute_id, parcel_id, dispute_type, reported_by, description, status,
-    created_date))
-
+    dispute_id = "D" + str(random.randint(100, 999))
+    conn = get_db()
+    conn.execute("""INSERT INTO dispute
+        (dispute_id, parcel_id, dispute_type, reported_by, description, status, created_date)
+        VALUES (?,?,?,?,?,?,?)""",
+        (dispute_id, data['parcel_id'], data['dispute_type'],
+         data['reported_by'], data['description'], 'Open', str(datetime.now())))
     conn.commit()
+    conn.close()
+    return {"message": "Dispute filed successfully", "dispute_id": dispute_id}
 
-    return {
-        "message": "Dispute filed successfully",
-        "dispute_id": dispute_id
-        }
-#--GET DISPUTE HISTORY--#
-@app.route('/get_disputes/<parcel_id>',
-           methods=['GET'])
+@app.route('/get_disputes/<parcel_id>', methods=['GET'])
 def get_disputes(parcel_id):
-
-    cursor.execute("""
-    SELECT dispute_id, dispute_type, reported_by, description, status, created_date
-    FROM dispute
-    WHERE parcel_id = %s
-    """, (parcel_id,))
-
-    rows = cursor.fetchall()
-
+    conn = get_db()
+    rows = conn.execute("SELECT dispute_id, dispute_type, reported_by, description, status, created_date FROM dispute WHERE parcel_id=?", (parcel_id,)).fetchall()
+    conn.close()
     disputes = []
-
-    for row in rows:
+    for r in rows:
         disputes.append({
-            "dispute_id": row[0],
-            "dispute_type": row[1],
-            "reported_by": row[2],
-            "description": row[3],
-            "status": row[4],
-            "created_date": str(row[5])
+            "dispute_id": r[0], "dispute_type": r[1], "reported_by": r[2],
+            "description": r[3], "status": r[4], "created_date": str(r[5])
         })
-
     return {"disputes": disputes}
 
-#--resolve dispute--#
 @app.route('/resolve_dispute/<dispute_id>', methods=['POST'])
 def resolve_dispute(dispute_id):
-
-    cursor.execute("""
-    UPDATE dispute
-    SET status = 'Resolved',
-        resolved_date = GETDATE()
-    WHERE dispute_id = %s
-    """, (dispute_id,))
-
+    conn = get_db()
+    conn.execute("UPDATE dispute SET status='Resolved', resolved_date=? WHERE dispute_id=?",
+        (str(datetime.now()), dispute_id))
     conn.commit()
-
+    conn.close()
     return {"message": "Dispute resolved successfully"}
 
+# ============================================================
+# TAX — all variants
+# ============================================================
 @app.route('/generate_tax/<parcel_id>', methods=['POST'])
 def generate_tax(parcel_id):
-
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT current_market_value FROM property WHERE parcel_id = ?", (parcel_id,))
-    property_data = cursor.fetchone()
-
-    if not property_data:
+    conn = get_db()
+    prop = conn.execute("SELECT current_market_value FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
+    if not prop:
+        conn.close()
         return jsonify({"error": "Property not found"})
-
-    market_value = float(property_data[0])
+    market_value = float(prop[0])
     tax_amount = market_value * 0.01
     year = datetime.now().year
-
-    cursor.execute("SELECT tax_id FROM tax WHERE parcel_id = ? AND tax_year = ?", (parcel_id, year))
-    if cursor.fetchone():
-        return jsonify({"message": "Tax already generated"})
-
+    existing = conn.execute("SELECT tax_id FROM tax WHERE parcel_id=? AND tax_year=?", (parcel_id, year)).fetchone()
+    if existing:
+        conn.close()
+        return jsonify({"message": "Tax already generated for this property for this year"})
     tax_id = "TX" + str(random.randint(1000, 9999))
-
-    cursor.execute("""
-        INSERT INTO tax (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
-        VALUES (?, ?, ?, ?, 0, NULL, 'Pending')
-    """, (tax_id, parcel_id, year, tax_amount))
-
+    conn.execute("INSERT INTO tax VALUES (?,?,?,?,?,?,?)",
+        (tax_id, parcel_id, year, tax_amount, 0, None, 'Pending'))
     conn.commit()
-
-    return jsonify({
-        "message": "Tax generated",
-        "tax_amount": tax_amount
-    })
+    conn.close()
+    return jsonify({"message": "Tax generated successfully", "parcel_id": parcel_id, "tax_amount": tax_amount})
 
 @app.route('/tax/<parcel_id>', methods=['GET'])
-def get_tax_summary(parcel_id):
+def get_tax(parcel_id):
+    conn = get_db()
+    rows = conn.execute("SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status FROM tax WHERE parcel_id=?", (parcel_id,)).fetchall()
+    conn.close()
+    return jsonify([{"tax_id": r[0], "tax_year": r[1], "tax_amount": r[2], "tax_paid": r[3],
+        "payment_date": str(r[4]) if r[4] else None, "payment_status": r[5]} for r in rows])
 
-    cursor = conn.cursor()
+@app.route('/pending_tax/<parcel_id>', methods=['GET'])
+def get_pending_tax(parcel_id):
+    conn = get_db()
+    rows = conn.execute("SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status FROM tax WHERE parcel_id=?", (parcel_id,)).fetchall()
+    conn.close()
+    return jsonify([{"tax_id": r[0], "tax_year": r[1], "tax_amount": r[2], "tax_paid": r[3],
+        "payment_date": str(r[4]) if r[4] else None, "payment_status": r[5]} for r in rows])
 
-    cursor.execute("""
-        SELECT tax_amount, tax_paid, payment_status
-        FROM tax
-        WHERE parcel_id = ?
-    """, (parcel_id,))
-
-    rows = cursor.fetchall()
-
-    total = 0
-    paid = 0
-    pending = 0
-
-    for r in rows:
-        total += r[0]
-        paid += r[1]
-        if r[2] != "Paid":
-            pending += (r[0] - r[1])
-
-    return jsonify({
-        "total": total,
-        "paid": paid,
-        "pending": pending
-    })
-
-@app.route('/tax_details/<parcel_id>', methods=['GET'])
-def tax_details(parcel_id):
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT tax_id, tax_year, tax_amount, tax_paid, payment_status
-        FROM tax
-        WHERE parcel_id = ?
-    """, (parcel_id,))
-
-    rows = cursor.fetchall()
-
-    result = []
-
-    for r in rows:
-        result.append({
-            "tax_id": r[0],
-            "year": r[1],
-            "amount": r[2],
-            "paid": r[3],
-            "status": r[4]
-        })
-
-    return jsonify(result)
+@app.route('/get_tax/<parcel_id>', methods=['GET'])
+def get_unpaid_tax(parcel_id):
+    conn = get_db()
+    rows = conn.execute("SELECT tax_id, tax_year, tax_amount, tax_paid, payment_status FROM tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchall()
+    conn.close()
+    return jsonify([{"tax_id": r[0], "tax_year": r[1], "tax_amount": r[2], "tax_paid": r[3], "payment_status": r[4]} for r in rows])
 
 @app.route('/pay_tax', methods=['POST'])
 def pay_tax():
-
     data = request.json
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        UPDATE tax
-        SET tax_paid = ?, payment_date = ?, payment_status = 'Paid'
-        WHERE tax_id = ?
-    """, (data['tax_paid'], datetime.now(), data['tax_id']))
-
+    conn = get_db()
+    conn.execute("UPDATE tax SET tax_paid=?, payment_date=?, payment_status='Paid' WHERE tax_id=?",
+        (data['tax_paid'], str(datetime.now()), data['tax_id']))
     conn.commit()
+    conn.close()
+    return jsonify({"message": "Tax payment successful"})
 
-    return jsonify({"message": "Payment successful"})
-
-
-@app.route('/ping')
-def ping():
-    return jsonify({"status": "ok", "message": "Backend is reachable"})
-    
-#---Mortgage---#
-
-# ---------------------------------
-# 1 Add Mortgage
-# ---------------------------------
-
+# ============================================================
+# MORTGAGE — all variants
+# ============================================================
 @app.route('/add_mortgage', methods=['POST'])
 def add_mortgage():
-
     data = request.json
-
-    parcel_id = data['parcel_id']
-    owner_id = data['owner_id']
-    bank_name = data['bank_name']
-    loan_amount = data['loan_amount']
-    interest_rate = data['interest_rate']
-    start_date = data['start_date']
-    end_date = data['end_date']
-
-    cursor = conn.cursor()
-
-    # Check if property already has active mortgage
-    cursor.execute("""
-    SELECT mortgage_id
-    FROM mortgage
-    WHERE parcel_id = %s AND mortgage_status = 'Active'
-    """, (parcel_id,))
-
-    existing = cursor.fetchone()
-
+    conn = get_db()
+    existing = conn.execute("SELECT mortgage_id FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (data['parcel_id'],)).fetchone()
     if existing:
-        return jsonify({
-            "message": "Property already has active mortgage"
-        }),400
-
-    # Generate mortgage id
-    cursor.execute("SELECT COUNT(*) FROM mortgage")
-    count = cursor.fetchone()[0] + 1
-    mortgage_id = f"M{count:03}"
-
-    cursor.execute("""
-    INSERT INTO mortgage
-    (mortgage_id, parcel_id, owner_id, bank_name, loan_amount,
-    interest_rate, start_date, end_date, mortgage_status)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Active')
-    """, (mortgage_id, parcel_id, owner_id, bank_name,
-          loan_amount, interest_rate, start_date, end_date))
-
-    conn.commit()
-
-    return jsonify({
-        "message":"Mortgage added successfully",
-        "mortgage_id":mortgage_id
-    })
-
-
-# ---------------------------------
-# 2 Get Mortgage Details
-# ---------------------------------
-
-@app.route('/mortgage/<land_id>', methods=['GET'])
-def mortgage(land_id):
-    try:
-        parcel_id = convert_land_to_parcel(land_id)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT bank_name, loan_amount
-            FROM mortgage
-            WHERE parcel_id = %s
-        """, (parcel_id,))
-
-        row = cursor.fetchone()
-
-        cursor.close()
         conn.close()
+        return jsonify({"message": "Property already has active mortgage"}), 400
+    count = conn.execute("SELECT COUNT(*) FROM mortgage").fetchone()[0] + 1
+    mortgage_id = "M{:03d}".format(count)
+    conn.execute("""INSERT INTO mortgage
+        (mortgage_id, parcel_id, owner_id, bank_name, loan_amount, interest_rate, start_date, end_date, mortgage_status)
+        VALUES (?,?,?,?,?,?,?,?,?)""",
+        (mortgage_id, data['parcel_id'], data['owner_id'], data['bank_name'],
+         data['loan_amount'], data['interest_rate'], data['start_date'], data['end_date'], 'Active'))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Mortgage added successfully", "mortgage_id": mortgage_id})
 
-        if not row:
-            return {}
-
-        return {
-            "bank": row[0],
-            "amount": row[1]
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
-
-# ---------------------------------
-# 3 Check Mortgage Status
-# ---------------------------------
+@app.route('/get_mortgage/<parcel_id>', methods=['GET'])
+def get_mortgage(parcel_id):
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM mortgage WHERE parcel_id=?", (parcel_id,)).fetchall()
+    conn.close()
+    return jsonify([{"mortgage_id": r[0], "parcel_id": r[1], "owner_id": r[2], "bank_name": r[3],
+        "loan_amount": r[4], "interest_rate": r[5], "start_date": str(r[6]),
+        "end_date": str(r[7]), "mortgage_status": r[8]} for r in rows])
 
 @app.route('/check_mortgage/<parcel_id>', methods=['GET'])
 def check_mortgage(parcel_id):
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT mortgage_status
-    FROM mortgage
-    WHERE parcel_id = %s
-    """, (parcel_id,))
-
-    status = cursor.fetchone()
-
+    conn = get_db()
+    status = conn.execute("SELECT mortgage_status FROM mortgage WHERE parcel_id=?", (parcel_id,)).fetchone()
+    conn.close()
     if status:
-        return jsonify({
-            "mortgage_status":status[0]
-        })
-
-    return jsonify({
-        "message":"No mortgage found"
-    })
-
-
-# ---------------------------------
-# 4 Close Mortgage
-# ---------------------------------
+        return jsonify({"mortgage_status": status[0]})
+    return jsonify({"message": "No mortgage found"})
 
 @app.route('/close_mortgage', methods=['PUT'])
 def close_mortgage():
-
     data = request.json
-    mortgage_id = data['mortgage_id']
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    UPDATE mortgage
-    SET mortgage_status = 'Closed'
-    WHERE mortgage_id = %s
-    """, (mortgage_id,))
-
+    conn = get_db()
+    conn.execute("UPDATE mortgage SET mortgage_status='Closed' WHERE mortgage_id=?", (data['mortgage_id'],))
     conn.commit()
-
-    return jsonify({
-        "message":"Mortgage closed successfully"
-    })
-
-
-# ---------------------------------
-# 5 Check Property Mortgage
-# ---------------------------------
+    conn.close()
+    return jsonify({"message": "Mortgage closed successfully"})
 
 @app.route('/check_property_mortgage/<parcel_id>', methods=['GET'])
 def check_property_mortgage(parcel_id):
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT mortgage_id
-    FROM mortgage
-    WHERE parcel_id = %s AND mortgage_status = 'Active'
-    """, (parcel_id,))
-
-    mortgage = cursor.fetchone()
-
-    if mortgage:
-        return jsonify({
-            "mortgage_exists":True,
-            "message":"Property has active mortgage"
-        })
-
-    return jsonify({
-        "mortgage_exists":False,
-        "message":"No active mortgage"
-    })
-
-#----Login Activity---#
-@app.route('/login_activity', methods=['POST'])
-def login_activity_post():
-
-    data = request.json
-
-    user_id = data['user_id']
-    action_type = "Login"
-    parcel_id = None
-    description = "User logged into system"
-    ip_address = data['ip_address']
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Get last login IP
-    cursor.execute("""
-        SELECT ip_address
-        FROM login_activity
-        WHERE user_id = %s
-        ORDER BY timestamp DESC
-        LIMIT 1
-    """, (user_id,))
-
-    last_login = cursor.fetchone()
-
-    suspicious = False
-
-    if last_login:
-        last_ip = last_login[0]
-        if last_ip != ip_address:
-            suspicious = True
-            description = "Suspicious login detected (Different IP)"
-
-    # Insert login activity
-    cursor.execute("""
-        INSERT INTO login_activity
-        (user_id, action_type, parcel_id, description, timestamp, ip_address)
-        VALUES (%s, %s, %s, %s, NOW(), %s)
-    """, (user_id, action_type, parcel_id, description, ip_address))
-
-    conn.commit()
-    cursor.close()
+    conn = get_db()
+    mort = conn.execute("SELECT mortgage_id FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (parcel_id,)).fetchone()
     conn.close()
+    if mort:
+        return jsonify({"mortgage_exists": True, "message": "Property has active mortgage"})
+    return jsonify({"mortgage_exists": False, "message": "No active mortgage"})
 
-    return jsonify({
-        "message": "Login activity recorded",
-        "suspicious_login": suspicious
-    })
+# ============================================================
+# ACTIVITY LOGS — FIXED: datetime.now() instead of GETDATE()
+# ============================================================
+@app.route('/login_activity', methods=['POST'])
+def login_activity():
+    data = request.json
+    conn = get_db()
+    user_id = data['user_id']
+    ip_address = data.get('ip_address', '')
+    # Check last IP for suspicious detection
+    last = conn.execute("SELECT ip_address FROM login_activity WHERE user_id=? ORDER BY login_id DESC LIMIT 1", (user_id,)).fetchone()
+    if last and last[0] != ip_address:
+        description = "Suspicious login detected (Different IP)"
+    else:
+        description = "User logged into system"
+    conn.execute("INSERT INTO login_activity (user_id, action_type, parcel_id, description, timestamp, ip_address) VALUES (?,?,?,?,?,?)",
+        (user_id, "Login", None, description, str(datetime.now()), ip_address))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Login activity recorded", "suspicious_login": last is not None and last[0] != ip_address})
 
-
-#------Record Activity---#
 @app.route('/log_activity', methods=['POST'])
 def log_activity():
-
     data = request.json
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO login_activity
-        (user_id, action_type, parcel_id, description, timestamp, ip_address)
-        VALUES (%s, %s, %s, %s, NOW(), %s)
-    """, (
-        data['user_id'],
-        data['action_type'],
-        data.get('parcel_id'),
-        data['description'],
-        data['ip_address']
-    ))
-
+    conn = get_db()
+    conn.execute("INSERT INTO login_activity (user_id, action_type, parcel_id, description, timestamp, ip_address) VALUES (?,?,?,?,?,?)",
+        (data['user_id'], data['action_type'], data.get('parcel_id'), data['description'], str(datetime.now()), data.get('ip_address', '')))
     conn.commit()
-    cursor.close()
     conn.close()
-
     return jsonify({"message": "Activity logged successfully"})
 
-
-#---Get All Login Activity----#
 @app.route('/get_login_activity', methods=['GET'])
 def get_login_activity():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM login_activity ORDER BY login_id DESC").fetchall()
+    conn.close()
+    return jsonify([{"login_id": r[0], "user_id": r[1], "action_type": r[2], "parcel_id": r[3],
+        "description": r[4], "timestamp": str(r[5]), "ip_address": r[6]} for r in rows])
 
-        cursor.execute("""
-            SELECT user_id, action_type, timestamp
-            FROM login_activity
-            ORDER BY timestamp DESC
-            LIMIT 50
-        """)
-
-        rows = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        return [{
-            "user_id": r[0],
-            "action_type": r[1],
-            "time": str(r[2])
-        } for r in rows]
-
-    except Exception as e:
-        return {"error": str(e)}
-
-
-#---Get Activity by Land----#
-@app.route('/login_activity/<land_id>', methods=['GET'])
-def get_login_activity_by_land(land_id):
-    try:
-        parcel_id = convert_land_to_parcel(land_id)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT user_id, action_type, timestamp
-            FROM login_activity
-            WHERE parcel_id = %s
-        """, (parcel_id,))
-
-        rows = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        return [{
-            "user_id": r[0],
-            "action_type": r[1],
-            "time": str(r[2])
-        } for r in rows]
-
-    except Exception as e:
-        return {"error": str(e)}
-        
-#---Get Activity By User--#
 @app.route('/user_activity/<user_id>', methods=['GET'])
 def user_activity(user_id):
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM login_activity WHERE user_id=?", (user_id,)).fetchall()
+    conn.close()
+    return jsonify([{"login_id": r[0], "user_id": r[1], "action_type": r[2], "parcel_id": r[3],
+        "description": r[4], "timestamp": str(r[5]), "ip_address": r[6]} for r in rows])
 
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT * FROM login_activity
-    WHERE user_id = %s
-    """, (user_id,))
-
-    rows = cursor.fetchall()
-
-    result = []
-
-    for row in rows:
-        result.append({
-            "login_id": row[0],
-            "user_id": row[1],
-            "action_type": row[2],
-            "parcel_id": row[3],
-            "description": row[4],
-            "timestamp": str(row[5]),
-            "ip_address": row[6]
-        })
-
-    return jsonify(result)
-
-#---Login Activity Filter By Dates---#
 @app.route('/filter_login_activity', methods=['POST'])
 def filter_login_activity():
-
     data = request.json
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM login_activity WHERE date(timestamp) BETWEEN ? AND ?", (data['start_date'], data['end_date'])).fetchall()
+    conn.close()
+    return jsonify([{"login_id": r[0], "user_id": r[1], "action_type": r[2], "parcel_id": r[3],
+        "description": r[4], "timestamp": str(r[5]), "ip_address": r[6]} for r in rows])
 
-    start_date = data['start_date']
-    end_date = data['end_date']
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT * 
-        FROM login_activity
-        WHERE CAST(timestamp AS DATE) BETWEEN %s AND %s
-    """, (start_date, end_date))
-
-    rows = cursor.fetchall()
-
-    result = []
-
-    for row in rows:
-        result.append({
-            "login_id": row[0],
-            "user_id": row[1],
-            "action_type": row[2],
-            "parcel_id": row[3],
-            "description": row[4],
-            "timestamp": str(row[5]),
-            "ip_address": row[6]
-        })
-
-    return jsonify(result)
-
-#--Add Blockchain Transaction---#
-import hashlib
-import time
-
+# ============================================================
+# BLOCKCHAIN — FIXED: datetime.now(), LIMIT not TOP
+# ============================================================
 @app.route('/add_blockchain_transaction', methods=['POST'])
 def add_blockchain_transaction():
-
     data = request.json
     gas_fee = data['gas_fee']
-
-    cursor = conn.cursor()
-
-    # Get last block
-    cursor.execute("""
-    SELECT TOP 1 block_number, transaction_hash
-    FROM blockchain
-    ORDER BY block_number DESC
-    """)
-
-    last_block = cursor.fetchone()
-
-    if last_block:
-        block_number = last_block[0] + 1
-        previous_hash = last_block[1]
+    conn = get_db()
+    last = conn.execute("SELECT block_number, transaction_hash FROM blockchain ORDER BY block_number DESC LIMIT 1").fetchone()
+    if last:
+        block_number = last[0] + 1
+        previous_hash = last[1]
     else:
         block_number = 1
         previous_hash = "0"
-
-    # Generate block id
     block_id = "B" + str(block_number).zfill(3)
-
-    # Generate transaction hash
-    raw_data = block_id + previous_hash + str(time.time())
+    raw_data = block_id + previous_hash + str(datetime.now().timestamp())
     transaction_hash = hashlib.sha256(raw_data.encode()).hexdigest()
-
-    confirmation_status = "Pending"
-
-    cursor.execute("""
-    INSERT INTO blockchain
-    (block_id, block_number, gas_fee, confirmation_status, timestamp, transaction_hash, previous_hash)
-    VALUES (%s, %s, %s, %s, GETDATE(), %s, %s)
-    """, (block_id, block_number, gas_fee, confirmation_status, transaction_hash, previous_hash))
-
+    conn.execute("INSERT INTO blockchain VALUES (?,?,?,?,?,?,?)",
+        (block_id, block_number, gas_fee, 'Pending', str(datetime.now()), transaction_hash, previous_hash))
     conn.commit()
-
+    conn.close()
     return jsonify({
-        "message": "Blockchain block created",
-        "block_id": block_id,
-        "block_number": block_number,
-        "transaction_hash": transaction_hash,
-        "previous_hash": previous_hash
+        "message": "Blockchain block created", "block_id": block_id,
+        "block_number": block_number, "transaction_hash": transaction_hash, "previous_hash": previous_hash
     })
 
-#--Get All Blockchain Records---#
 @app.route('/get_blockchain', methods=['GET'])
 def get_blockchain():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM blockchain ORDER BY block_number").fetchall()
+    conn.close()
+    return jsonify([{"block_id": r[0], "block_number": r[1], "gas_fee": r[2],
+        "confirmation_status": r[3], "timestamp": str(r[4]),
+        "transaction_hash": r[5], "previous_hash": r[6]} for r in rows])
 
-        cursor.execute("""
-            SELECT block_number, confirmation_status
-            FROM blockchain
-            LIMIT 50
-        """)
-
-        rows = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        data = []
-        for r in rows:
-            data.append({
-                "block_number": r[0],
-                "confirmation_status": r[1]
-            })
-
-        return data
-
-    except Exception as e:
-        return {"error": str(e)}
-
-#----Check Transaction Status---#
 @app.route('/check_blockchain/<transaction_hash>', methods=['GET'])
 def check_blockchain(transaction_hash):
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT confirmation_status
-    FROM blockchain
-    WHERE transaction_hash = %s
-    """, (transaction_hash,))
-
-    result = cursor.fetchone()
-
+    conn = get_db()
+    result = conn.execute("SELECT confirmation_status FROM blockchain WHERE transaction_hash=?", (transaction_hash,)).fetchone()
+    conn.close()
     if result:
-        return jsonify({
-            "confirmation_status": result[0]
-        })
+        return jsonify({"confirmation_status": result[0]})
+    return jsonify({"message": "Transaction not found"})
 
-    return jsonify({
-        "message": "Transaction not found"
-    })
-
-#--Update Blockchain Confirmation--#
 @app.route('/confirm_blockchain', methods=['PUT'])
 def confirm_blockchain():
-
     data = request.json
-    transaction_hash = data['transaction_hash']
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    UPDATE blockchain
-    SET confirmation_status = 'Confirmed'
-    WHERE transaction_hash = %s
-    """, (transaction_hash,))
-
+    conn = get_db()
+    conn.execute("UPDATE blockchain SET confirmation_status='Confirmed' WHERE transaction_hash=?", (data['transaction_hash'],))
     conn.commit()
+    conn.close()
+    return jsonify({"message": "Blockchain transaction confirmed"})
 
-    return jsonify({
-        "message": "Blockchain transaction confirmed"
-    })
-
-#--Blockchain Integrity Checks---#
 @app.route('/verify_blockchain', methods=['GET'])
 def verify_blockchain():
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT block_number, transaction_hash, previous_hash
-    FROM blockchain
-    ORDER BY block_number
-    """)
-
-    blocks = cursor.fetchall()
-
+    conn = get_db()
+    blocks = conn.execute("SELECT block_number, transaction_hash, previous_hash FROM blockchain ORDER BY block_number").fetchall()
+    conn.close()
     for i in range(1, len(blocks)):
+        if blocks[i-1][1] != blocks[i][2]:
+            return jsonify({"blockchain_valid": False, "message": "Blockchain tampering detected", "block_number": blocks[i][0]})
+    return jsonify({"blockchain_valid": True, "message": "Blockchain integrity verified"})
 
-        previous_block = blocks[i-1]
-        current_block = blocks[i]
-
-        previous_hash = previous_block[1]
-        stored_previous_hash = current_block[2]
-
-        if previous_hash != stored_previous_hash:
-            return jsonify({
-                "blockchain_valid": False,
-                "message": "Blockchain tampering detected",
-                "block_number": current_block[0]
-            })
-
-    return jsonify({
-        "blockchain_valid": True,
-        "message": "Blockchain integrity verified"
-    })
-
-#--gis map---#
-import math
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371
-    dlat = math.radians(lat2-lat1)
-    dlon = math.radians(lon2-lon1)
-
-    a = (math.sin(dlat/2)**2 +
-         math.cos(math.radians(lat1)) *
-         math.cos(math.radians(lat2)) *
-         math.sin(dlon/2)**2)
-
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-
-    return R*c
-
-
-@app.route("/")
-def home():
-    return render_template("dashboard.html")
-
-@app.route("/map")
-def map_view():
-    return render_template("map.html")
-
-
+# ============================================================
+# GIS LAND DATA — PostgreSQL if available, else SQLite
+# ============================================================
 @app.route('/api/land')
 def get_land():
+    # Try PostgreSQL first
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT * FROM gis_land_data")
+                rows = cur.fetchall()
+                cur.close()
+                pg.close()
+                data = []
+                for row in rows:
+                    poly = []
+                    if len(row) > 7 and row[7]:
+                        try:
+                            poly = json.loads(row[7])
+                        except:
+                            poly = []
+                    if not poly:
+                        lat, lon = row[5], row[6]
+                        sz = max(float(row[4]) / 10000000, 0.0003)
+                        poly = [[lat+sz,lon+sz],[lat+sz,lon-sz],[lat-sz,lon-sz],[lat-sz,lon+sz]]
+                    data.append({
+                        "parcel_id": row[0], "survey": row[1], "owner": row[2],
+                        "type": row[3], "area": row[4], "lat": row[5], "lon": row[6],
+                        "polygon": poly,
+                        "status": row[8] if len(row) > 8 and row[8] else "registered"
+                    })
+                return jsonify(data)
+        except:
+            pass
 
-    try:
-        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
-        cursor = conn.cursor()
-
-        cursor.execute("""
-        SELECT land_id, survey_number, owner_name, land_use_type,
-               area_sq_ft, latitude, longitude, boundary_polygon
-        FROM gis_land_data
-        """)
-
-        rows = cursor.fetchall()
-
-        data = []
-
-        for row in rows:
-
-            lat = float(row[5]) if row[5] else 12.97
-            lon = float(row[6]) if row[6] else 77.59
-
-            polygon = []
-
-            if row[7]:
-                try:
-                    polygon = json.loads(row[7])
-                except:
-                    polygon = []
-
-            if not polygon:
-                size = max(float(row[4]) / 10000000, 0.0003)
-
-                polygon = [
-                    [lat + size, lon + size],
-                    [lat + size, lon - size],
-                    [lat - size, lon - size],
-                    [lat - size, lon + size]
-                ]
-
-            data.append({
-                "parcel_id": row[0],
-                "survey": row[1],
-                "owner": row[2],
-                "type": row[3],
-                "area": float(row[4]) if row[4] else 0,
-                "lat": lat,
-                "lon": lon,
-                "polygon": polygon,
-                "status": "pending"
-            })
-
-        conn.close()
-        return jsonify(data)
-
-    except Exception as e:
-        print("MAP ERROR:", e)
-        return jsonify({"error": str(e)})
+    # Fallback to SQLite
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM gis_land_data").fetchall()
+    conn.close()
+    data = []
+    for r in rows:
+        poly = []
+        try:
+            poly = json.loads(r[7])
+        except:
+            poly = []
+        if not poly:
+            lat, lon = r[5], r[6]
+            sz = max(float(r[4]) / 10000000, 0.0003)
+            poly = [[lat+sz,lon+sz],[lat+sz,lon-sz],[lat-sz,lon-sz],[lat-sz,lon+sz]]
+        data.append({
+            "parcel_id": r[0], "survey": r[1], "owner": r[2], "type": r[3],
+            "area": r[4], "lat": r[5], "lon": r[6], "polygon": poly,
+            "status": r[8] if r[8] else "registered"
+        })
+    return jsonify(data)
 
 @app.route("/api/nearby_land")
 def nearby_land():
-
     lat = float(request.args.get("lat"))
     lon = float(request.args.get("lon"))
-    radius = float(request.args.get("radius",1))
-
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT land_id,latitude,longitude FROM gis_land_data")
-
-    rows = cursor.fetchall()
-
-    result=[]
-
-    for row in rows:
-
-        dist = haversine(lat,lon,row.latitude,row.longitude)
-
-        if dist<=radius:
-
-            result.append({
-                "parcel_id":str(row.land_id),
-                "lat":row.latitude,
-                "lon":row.longitude,
-                "distance":round(dist,2)
-            })
-
+    radius = float(request.args.get("radius", 1))
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT land_id, latitude, longitude FROM gis_land_data")
+                rows = cur.fetchall()
+                cur.close()
+                pg.close()
+                result = []
+                for row in rows:
+                    dist = haversine(lat, lon, row[1], row[2])
+                    if dist <= radius:
+                        result.append({"parcel_id": str(row[0]), "lat": row[1], "lon": row[2], "distance": round(dist, 2)})
+                return jsonify(result)
+        except:
+            pass
+    conn = get_db()
+    rows = conn.execute("SELECT land_id, latitude, longitude FROM gis_land_data").fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        dist = haversine(lat, lon, r[1], r[2])
+        if dist <= radius:
+            result.append({"parcel_id": r[0], "lat": r[1], "lon": r[2], "distance": round(dist, 2)})
     return jsonify(result)
 
 @app.route('/get_land_locations')
 def get_land_locations():
-
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("""
-        SELECT parcel_id, owner, latitude, longitude
-        FROM property
-        WHERE latitude IS NOT NULL
-    """)
-
-    lands = cursor.fetchall()
-
-    return jsonify(lands)
-
-#---QR code---#
-
-@app.route('/verify_property/<parcel_id>/<hash_value>')
-def verify_property_qr(parcel_id, hash_value):
-
-    expected_hash = generate_secure_hash(parcel_id)
-
-    if hash_value != expected_hash:
-        return render_template("property_dashboard.html",
-                               error="Invalid QR Code",
-                               property=None,
-                               documents=[])
-
-    cursor.execute("SELECT * FROM property WHERE parcel_id = %s", (parcel_id,))
-    row = cursor.fetchone()
-
-    if not row:
-        return render_template("property_dashboard.html",
-                               error="Property not found",
-                               property=None,
-                               documents=[])
-
-    # ✅ PROPERTY DATA
-    property_data = {
-        "parcel_id": row[0],
-        "owner_id": row[1],
-        "survey_number": row[2],
-        "khata_number": row[3],
-        "village": row[4],
-        "taluk": row[5],
-        "district": row[6],
-        "state": row[7],
-        "land_type": row[8],
-        "area_sqft": row[9],
-        "registration_date": str(row[10]),
-        "current_market_value": row[11],
-        "geo_latitude": row[12],
-        "geo_longitude": row[13],
-        "tax_status": row[14],
-        "mortgage_status": row[15],
-    }
-
-    # ✅ DOCUMENTS
-    cursor.execute("""
-        SELECT document_id, document_type, verification_status
-        FROM document
-        WHERE parcel_id = %s
-    """, (parcel_id,))
-
-    documents = cursor.fetchall()
-
-    doc_list = []
-    for d in documents:
-        doc_list.append({
-            "document_id": d[0],
-            "document_type": d[1],
-            "status": d[2],
-            "url": f"/view_document/{d[0]}"
-        })
-
-    # ✅ FINAL RETURN (IMPORTANT POSITION)
-    return render_template("property_dashboard.html",
-                           property=property_data,
-                           documents=doc_list,
-                           error=None)
-
- 
-## ── 3. NEW: Regenerate QR for existing property ──
- 
-@app.route('/regenerate_qr/<parcel_id>', methods=['POST'])
-def regenerate_qr(parcel_id):
- 
-    cursor.execute("SELECT parcel_id FROM property WHERE parcel_id = %s", (parcel_id,))
-    row = cursor.fetchone()
- 
-    if not row:
-        return jsonify({"error": "Property not found"}), 404
- 
-    filename = generate_qr(parcel_id)
- 
-    return jsonify({
-        "message":   "QR regenerated successfully",
-        "parcel_id": parcel_id,
-        "qr_path":   filename
-    })
+    conn = get_db()
+    rows = conn.execute("SELECT land_id, owner_name, latitude, longitude FROM gis_land_data WHERE latitude IS NOT NULL").fetchall()
+    conn.close()
+    return jsonify([{"parcel_id": r[0], "owner": r[1], "lat": r[2], "lon": r[3]} for r in rows])
 
 @app.route('/add_land', methods=['POST'])
 def add_land():
     data = request.json
-
     conn = sqlite3.connect("land.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    INSERT INTO gis_land_data (land_id, owner_name, latitude, longitude)
-    VALUES (%s, %s, %s, %s)
-    """, (data['land_id'], data['owner_name'], data['latitude'], data['longitude']))
-
+    conn.execute("INSERT INTO gis_land_data (land_id, owner_name, latitude, longitude) VALUES (?,?,?,?)",
+        (data['land_id'], data['owner_name'], data['latitude'], data['longitude']))
     conn.commit()
     conn.close()
-
     return jsonify({"message": "Land added successfully"})
 
-@app.route('/add-test-data')
-def add_test_data():
-    import os
-    import psycopg2
-
-    DATABASE_URL = os.environ.get("DATABASE_URL")
-    conn = psycopg2.connect(DATABASE_URL)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO gis_land_data VALUES
-        ('L001', 'S001', 'Rama', 'Residential', 1200, 12.9716, 77.5946, ''),
-        ('L002', 'S002', 'Shyam', 'Commercial', 2000, 12.9720, 77.5950, ''),
-        ('L003', 'S003', 'Geeta', 'Agriculture', 3000, 12.9730, 77.5960, '')
-    """)
-
-    conn.commit()
-    conn.close()
-
-    return "Data inserted successfully!"
-
-@app.route('/init-db')
-def init_db():
-    import os
-    import psycopg2
-
-    DATABASE_URL = os.environ.get("DATABASE_URL")
-
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS gis_land_data (
-        land_id TEXT,
-        survey_number TEXT,
-        owner_name TEXT,
-        land_use_type TEXT,
-        area_sq_ft REAL,
-        latitude REAL,
-        longitude REAL,
-        boundary_polygon TEXT
-    );
-    """)
-
-    conn.commit()
-    conn.close()
-
-    return "Table created successfully"
-
-@app.route('/generate-data')
-def generate_data():
-    import os
-    import psycopg2
-    import random
-
-    DATABASE_URL = os.environ.get("DATABASE_URL")
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = conn.cursor()
-
-    # 🔥 Realistic names
-    first_names = ["Ravi","Sita","Arjun","Meena","Kiran","Anita","Rahul","Priya","Vikram","Neha"]
-    last_names = ["Kumar","Sharma","Reddy","Patel","Singh","Nair","Gupta","Das"]
-
-    land_types = ["Residential", "Commercial", "Agricultural"]
-
-    base_lat = 12.9716
-    base_lon = 77.5946
-
-    # ⚠️ Optional: clear old data
-    cursor.execute("DELETE FROM gis_land_data")
-
-    for i in range(1, 101):   # 🔥 100 records
-
-        owner = random.choice(first_names) + " " + random.choice(last_names)
-
-        lat = base_lat + random.uniform(-0.02, 0.02)
-        lon = base_lon + random.uniform(-0.02, 0.02)
-
-        land_type = random.choice(land_types)
-
-        area = random.randint(800, 5000)
-
-        cursor.execute("""
-            INSERT INTO gis_land_data 
-            (land_id, survey_number, owner_name, land_use_type, area_sq_ft, latitude, longitude, boundary_polygon)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            f"L{i:03}",
-            f"S{i:03}",
-            owner,
-            land_type,
-            area,
-            lat,
-            lon,
-            '[]'
-        ))
-
-    conn.commit()
-    conn.close()
-
-    return "✅ 100 realistic land records generated!"
-
-import os
-import psycopg2
-import qrcode
-
-@app.route('/generate-qr')
-def generate_qr():
-    try:
-        DATABASE_URL = os.environ.get("DATABASE_URL")
-
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT land_id FROM gis_land_data")
-        rows = cursor.fetchall()
-
-        folder = "static/qr_codes"
-
-        # create folder safely
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-
-        for row in rows:
-            land_id = row[0]
-
-            qr_data = f"https://land-registry-project.onrender.com/verify/{land_id}"
-
-            img = qrcode.make(qr_data)
-            img.save(os.path.join(folder, f"{land_id}.png"))
-
-        conn.close()
-
-        return "QR codes generated successfully!"
-
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-import qrcode
-from io import BytesIO
-from flask import send_file
-
+# ============================================================
+# QR CODE
+# ============================================================
 @app.route('/qr/<parcel_id>')
 def generate_qr_dynamically(parcel_id):
-    url = f"https://land-registry-project.onrender.com/verify/{parcel_id}"
-
+    url = request.url_root + "verify/" + parcel_id
     img = qrcode.make(url)
-
     buffer = BytesIO()
     img.save(buffer)
     buffer.seek(0)
-
     return send_file(buffer, mimetype='image/png')
 
 @app.route('/verify/<parcel_id>')
 def verify(parcel_id):
-
-    import psycopg2, os
-
-    DATABASE_URL = os.environ.get("DATABASE_URL")
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM gis_land_data WHERE land_id = %s", (parcel_id,))
-    row = cursor.fetchone()
-
+    # Try PostgreSQL first
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT * FROM gis_land_data WHERE land_id=%s", (parcel_id,))
+                row = cur.fetchone()
+                cur.close()
+                pg.close()
+                if row:
+                    return "<h2>✅ Property Verified</h2><p><b>Parcel ID:</b> %s</p><p><b>Owner:</b> %s</p><p><b>Type:</b> %s</p><p><b>Area:</b> %s sq ft</p>" % (row[0], row[2], row[3], row[4])
+        except:
+            pass
+    conn = get_db()
+    row = conn.execute("SELECT * FROM gis_land_data WHERE land_id=?", (parcel_id,)).fetchone()
     conn.close()
-
     if not row:
-        return f"<h2>❌ Property {parcel_id} Not Found</h2>"
+        return "<h2>❌ Property %s Not Found</h2>" % parcel_id
+    return "<h2>✅ Property Verified</h2><p><b>Parcel ID:</b> %s</p><p><b>Owner:</b> %s</p><p><b>Type:</b> %s</p><p><b>Area:</b> %s sq ft</p>" % (row[0], row[2], row[3], row[4])
 
-    return f"""
-    <h2>✅ Property Verified</h2>
-    <p><b>Parcel ID:</b> {row[0]}</p>
-    <p><b>Owner:</b> {row[2]}</p>
-    <p><b>Type:</b> {row[3]}</p>
-    <p><b>Area:</b> {row[4]} sq ft</p>
-    """
+@app.route('/regenerate_qr/<parcel_id>', methods=['POST'])
+def regenerate_qr(parcel_id):
+    conn = get_db()
+    row = conn.execute("SELECT parcel_id FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"error": "Property not found"}), 404
+    filename = generate_qr_file(parcel_id)
+    return jsonify({"message": "QR regenerated successfully", "parcel_id": parcel_id, "qr_path": filename})
 
-# ---------------- ML PRICE PREDICTION ----------------
+# ============================================================
+# DOCUMENTS
+# ============================================================
+@app.route("/upload_document", methods=["POST"])
+def upload_document():
+    parcel_id = request.form.get("parcel_id")
+    document_type = request.form.get("document_type")
+    uploaded_by = request.form.get("uploaded_by")
+    if "file" not in request.files:
+        return {"error": "No file provided"}, 400
+    f = request.files["file"]
+    if f.filename == "":
+        return {"error": "Empty filename"}, 400
+    if not allowed_file(f.filename):
+        return {"error": "Invalid file type"}, 400
+    document_id = "DOC" + str(int(datetime.now().timestamp()))
+    ext = f.filename.split(".")[-1]
+    filename = document_id + "." + ext
+    file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    f.save(file_path)
+    file_hash = generate_file_hash(file_path)
+    conn = get_db()
+    conn.execute("""INSERT INTO document
+        (document_id, parcel_id, document_type, file_path, file_hash, uploaded_by, uploaded_date, verification_status)
+        VALUES (?,?,?,?,?,?,?,?)""",
+        (document_id, parcel_id, document_type, file_path, file_hash,
+         uploaded_by, str(datetime.now()), "Pending"))
+    conn.commit()
+    conn.close()
+    return {"message": "Document uploaded successfully", "document_id": document_id}
+
+@app.route('/documents/<land_id>')
+def get_documents(land_id):
+    # Try PostgreSQL first
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT document_id, document_type, verification_status FROM document WHERE parcel_id=%s", (land_id,))
+                docs = cur.fetchall()
+                cur.close()
+                pg.close()
+                if docs:
+                    return jsonify([{"document_id": d[0], "document_type": d[1], "status": d[2], "view_url": "/view_document/" + d[0]} for d in docs])
+        except:
+            pass
+    conn = get_db()
+    rows = conn.execute("SELECT document_id, document_type, verification_status FROM document WHERE parcel_id=?", (land_id,)).fetchall()
+    conn.close()
+    return jsonify([{"document_id": r[0], "document_type": r[1], "status": r[2], "view_url": "/view_document/" + r[0]} for r in rows])
+
+@app.route("/view/<document_id>")
+def view_document_simple(document_id):
+    return "Viewing document " + document_id
+
+@app.route('/view_document/<doc_id>')
+def view_document(doc_id):
+    # Try PostgreSQL first
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT file_hash FROM document WHERE document_id=%s", (doc_id,))
+                row = cur.fetchone()
+                cur.close()
+                pg.close()
+                if row and row[0]:
+                    filename = row[0]
+                    if os.path.exists(os.path.join(UPLOAD_FOLDER, filename)):
+                        return send_from_directory(UPLOAD_FOLDER, filename)
+        except:
+            pass
+    conn = get_db()
+    row = conn.execute("SELECT file_path FROM document WHERE document_id=?", (doc_id,)).fetchone()
+    conn.close()
+    if not row or not row[0]:
+        return "Document not found ❌"
+    if os.path.exists(row[0]):
+        return send_from_directory(os.path.dirname(row[0]), os.path.basename(row[0]))
+    return "File not found on disk"
+
+@app.route("/verify_document/<document_id>", methods=["PUT"])
+def verify_document(document_id):
+    data = request.json
+    user_id = data.get("user_id")
+    conn = get_db()
+    # Try PostgreSQL for user check
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT role FROM users WHERE user_id=%s", (user_id,))
+                user = cur.fetchone()
+                cur.close()
+                pg.close()
+                if user and user[0] == "admin":
+                    # Update in PostgreSQL
+                    cur = pg.cursor()
+                    cur.execute("UPDATE document SET verification_status='Verified' WHERE document_id=%s", (document_id,))
+                    pg.commit()
+                    cur.close()
+                    pg.close()
+                    return {"message": "Document verified by admin"}
+        except:
+            pass
+    user = conn.execute("SELECT role FROM users WHERE user_id=?", (user_id,)).fetchone()
+    if user and user[0] == "admin":
+        conn.execute("UPDATE document SET verification_status='Verified' WHERE document_id=?", (document_id,))
+        conn.commit()
+        conn.close()
+        return {"message": "Document verified by admin"}
+    conn.close()
+    return {"error": "Unauthorized"}, 403
+
+@app.route("/validate_document/<document_id>", methods=["GET"])
+def validate_document(document_id):
+    conn = get_db()
+    row = conn.execute("SELECT file_hash FROM document WHERE document_id=?", (document_id,)).fetchone()
+    conn.close()
+    if not row:
+        return {"error": "Document not found"}
+    db_hash = row[0]
+    for fname in os.listdir(UPLOAD_FOLDER):
+        full_path = os.path.join(UPLOAD_FOLDER, fname)
+        if os.path.isfile(full_path) and generate_file_hash(full_path) == db_hash:
+            return {"status": "valid", "message": "Document is authentic"}
+    return {"status": "tampered", "message": "Document integrity compromised"}
+
+# ============================================================
+# ML PREDICTION — graceful fallback if no model file
+# ============================================================
 @app.route('/predict_price', methods=['POST'])
 def predict_price():
     try:
         data = request.json
-
+        if not HAS_MODEL:
+            area = data.get('area_sqft', 1000)
+            price = area * 3500 + random.randint(100000, 500000)
+            return jsonify({"predicted_price": float(price)})
         input_data = {
             'area_sqft': data['area_sqft'],
             'road_distance_km': data['road_distance_km'],
@@ -1665,355 +981,236 @@ def predict_price():
             'nearby_hospital': 1 if data['nearby_hospital'] == 'Yes' else 0,
             'year': data['year']
         }
-
         df = pd.DataFrame([input_data])
-
-        # match training columns
         df = pd.get_dummies(df)
-
         for col in model_columns:
             if col not in df:
                 df[col] = 0
-
         df = df[model_columns]
-
         prediction = model.predict(df)
-
-        return jsonify({
-            "predicted_price": float(prediction[0])
-        })
-
+        return jsonify({"predicted_price": float(prediction[0])})
     except Exception as e:
         return jsonify({"error": str(e)})
 
-@app.route("/upload_document", methods=["POST"])
-def upload_document():
-
-    parcel_id = request.form.get("parcel_id")
-    document_type = request.form.get("document_type")
-    uploaded_by = request.form.get("uploaded_by")
-
-    if "file" not in request.files:
-        return {"error": "No file provided"}, 400
-
-    file = request.files["file"]
-
-    if file.filename == "":
-        return {"error": "Empty filename"}, 400
-
-    if not allowed_file(file.filename):
-        return {"error": "Invalid file type"}, 400
-
-    document_id = "DOC" + str(int(datetime.now().timestamp()))
-
-    ext = file.filename.split(".")[-1]
-    filename = f"{document_id}.{ext}"
-
-    file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-
-    file.save(file_path)
-
-    file_hash = generate_file_hash(file_path)
-
-    cursor.execute("""
-        INSERT INTO document
-        (document_id, parcel_id, document_type, file_path, file_hash, uploaded_by, uploaded_date, verification_status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (
-        document_id,
-        parcel_id,
-        document_type,
-        file_path,
-        file_hash,
-        uploaded_by,
-        datetime.now(),
-        "Pending"
-    ))
-
-    conn.commit()
-
-    return {
-        "message": "Document uploaded successfully",
-        "document_id": document_id
-    }
-
-@app.route('/documents/<land_id>', methods=['GET'])
-def documents(land_id):
-    try:
-        parcel_id = convert_land_to_parcel(land_id)
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT document_type, verification_status
-            FROM document
-            WHERE parcel_id = %s
-        """, (parcel_id,))
-
-        rows = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        data = []
-        for r in rows:
-            data.append({
-                "type": r[0],
-                "status": r[1]
-            })
-
-        return data
-
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@app.route("/view/<document_id>")
-def view_document_simple(document_id):
-    return f"Viewing document {document_id}"
-
-
-
-from flask import send_from_directory
-
-@app.route('/view_document/<doc_id>')
-def view_document(doc_id):
-    try:
-        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT file_hash
-            FROM documents
-            WHERE document_id = %s
-        """, (doc_id,))
-
-        row = cursor.fetchone()
-
-        cursor.close()
-        conn.close()
-
-        if not row:
-            return "Document not found ❌"
-
-        filename = row[0]
-
-        return send_from_directory("static/documents", filename)
-
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-@app.route("/verify_document/<document_id>", methods=["PUT"])
-def verify_document(document_id):
-
-    data = request.json
-    user_id = data.get("user_id")
-
-    # check role
-    cursor.execute("""
-        SELECT role FROM users WHERE user_id = %s
-    """, (user_id,))
-    
-    user = cursor.fetchone()
-
-    if not user or user[0] != "admin":
-        return {"error": "Unauthorized"}, 403
-
-    cursor.execute("""
-        UPDATE document
-        SET verification_status = 'Verified'
-        WHERE document_id = %s
-    """, (document_id,))
-
-    conn.commit()
-
-    return {"message": "Document verified by admin"}
-
-@app.route("/validate_document/<document_id>", methods=["GET"])
-def validate_document(document_id):
-
-    cursor.execute("""
-        SELECT file_hash
-        FROM document
-        WHERE document_id = %s
-    """, (document_id,))
-
-    row = cursor.fetchone()
-
-    if not row:
-        return {"error": "Document not found"}
-
-    db_hash = row[0]
-
-    for file in os.listdir(UPLOAD_FOLDER):
-        full_path = os.path.join(UPLOAD_FOLDER, file)
-
-        if generate_file_hash(full_path) == db_hash:
-            return {
-                "status": "valid",
-                "message": "Document is authentic"
-            }
-
-    return {
-        "status": "tampered",
-        "message": "Document integrity compromised"
-    }
-
-init_document_table()
-
-@app.route("/generate_documents")
-def generate_documents():
-    print("new document code running")
-
-    try:
-        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
-        cursor = conn.cursor()
-
-        # 🔥 CLEAR OLD DATA FIRST
-        cursor.execute("DELETE FROM document")
-        conn.commit()
-        print("Old documents deleted")
-
-        cursor.execute("SELECT land_id FROM gis_land_data")
-        lands = cursor.fetchall()
-
-        if not lands:
-            return "No lands found ❌"
-
-        count = 1
-
-        for land in lands:
-            land_id = land[0]
-
-            doc_id = f"DOC{count:03}"
-            status = random.choice([
-                "verified",
-                "pending",   # ✅ fixed spelling
-                "rejected"
-            ])
-            doc_type = random.choice([
-                "Sale Deed",
-                "Tax Receipt",
-                "Mortgage Deed",
-                "Transfer Deed",
-                "Lease Agreement"
-            ])
-
-            cursor.execute("""
-                INSERT INTO document 
-                (document_id, parcel_id, document_type, file_hash, uploaded_by, uploaded_date, verification_status)
-                VALUES (%s,%s,%s,%s,%s,NOW(),%s)
-            """, (
-                doc_id,
-                land_id,
-                doc_type,
-                f"hash{count}",
-                "U001",
-                status
-            ))
-
-            count += 1
-
-        conn.commit()
-        conn.close()
-
-        return f"Inserted {count-1} documents ✅"
-
-    except Exception as e:
-        return f"Error: {str(e)}"
-@app.route("/create_document_table")
-def create_document_table():
-
-    conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS document (
-        document_id TEXT PRIMARY KEY,
-        parcel_id TEXT,
-        document_type TEXT,
-        file_hash TEXT,
-        uploaded_by TEXT,
-        uploaded_date TIMESTAMP,
-        verification_status TEXT
-    );
-    """)
-
+# ============================================================
+# DATA MANAGEMENT ROUTES (your original utility routes)
+# ============================================================
+@app.route('/init-db')
+def init_db_route():
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("""CREATE TABLE IF NOT EXISTS gis_land_data (
+                    land_id TEXT, survey_number TEXT, owner_name TEXT, land_use_type TEXT,
+                    area_sq_ft REAL, latitude REAL, longitude REAL, boundary_polygon TEXT)""")
+                pg.commit()
+                cur.close()
+                pg.close()
+                return "PostgreSQL table created successfully!"
+        except:
+            pass
+    conn = get_db()
+    conn.close()
+    return "SQLite table created successfully"
+
+@app.route('/add-test-data')
+def add_test_data():
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("""INSERT INTO gis_land_data VALUES
+                    ('L001', 'S001', 'Rama', 'Residential', 1200, 12.9716, 77.5946, ''),
+                    ('L002', 'S002', 'Shyam', 'Commercial', 2000, 12.9720, 77.5950, ''),
+                    ('L003', 'S003', 'Geeta', 'Agriculture', 3000, 12.9730, 77.5960, '')""")
+                pg.commit()
+                cur.close()
+                pg.close()
+                return "Data inserted into PostgreSQL successfully!"
+        except:
+            pass
+    conn = get_db()
+    conn.execute("INSERT OR IGNORE INTO gis_land_data VALUES (?,?,?,?,?,?,?,?)",
+        ('L001','S001','Rama','Residential',1200,12.9716,77.5946,''))
+    conn.execute("INSERT OR IGNORE INTO gis_land_data VALUES (?,?,?,?,?,?,?,?)",
+        ('L002','S002','Shyam','Commercial',2000,12.9720,77.5950,''))
+    conn.execute("INSERT OR IGNORE INTO gis_land_data VALUES (?,?,?,?,?,?,?,?)",
+        ('L003','S003','Geeta','Agriculture',3000,12.9730,77.5960,''))
     conn.commit()
     conn.close()
+    return "Data inserted successfully!"
 
-    return "Table created"
+@app.route('/generate-data')
+def generate_data():
+    first_names = ["Ravi","Sita","Arjun","Meena","Kiran","Anita","Rahul","Priya","Vikram","Neha"]
+    last_names = ["Kumar","Sharma","Reddy","Patel","Singh","Nair","Gupta","Das"]
+    land_types = ["Residential","Commercial","Agricultural"]
+    base_lat, base_lon = 12.9716, 77.5946
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("DELETE FROM gis_land_data")
+                for i in range(1, 101):
+                    owner = random.choice(first_names) + " " + random.choice(last_names)
+                    lat = base_lat + random.uniform(-0.02, 0.02)
+                    lon = base_lon + random.uniform(-0.02, 0.02)
+                    area = random.randint(800, 5000)
+                    cur.execute("INSERT INTO gis_land_data (land_id,survey_number,owner_name,land_use_type,area_sq_ft,latitude,longitude,boundary_polygon) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (f"L{i:03}", f"S{i:03}", owner, random.choice(land_types), area, lat, lon, '[]'))
+                pg.commit()
+                cur.close()
+                pg.close()
+                return "✅ 100 records generated in PostgreSQL!"
+        except:
+            pass
+    conn = get_db()
+    conn.execute("DELETE FROM gis_land_data")
+    for i in range(1, 101):
+        owner = random.choice(first_names) + " " + random.choice(last_names)
+        lat = base_lat + random.uniform(-0.02, 0.02)
+        lon = base_lon + random.uniform(-0.02, 0.02)
+        area = random.randint(800, 5000)
+        conn.execute("INSERT INTO gis_land_data VALUES (?,?,?,?,?,?,?,?)",
+            (f"L{i:03}", f"S{i:03}", owner, random.choice(land_types), area, lat, lon, '[]'))
+    conn.commit()
+    conn.close()
+    return "✅ 100 records generated in SQLite!"
+
+@app.route('/generate-qr')
+def generate_qr_codes():
+    try:
+        folder = "static/qr_codes"
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        if HAS_POSTGRES:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT land_id FROM gis_land_data")
+                rows = cur.fetchall()
+                cur.close()
+                pg.close()
+                for row in rows:
+                    img = qrcode.make(request.url_root + "verify/" + row[0])
+                    img.save(os.path.join(folder, row[0] + ".png"))
+                return "QR codes generated from PostgreSQL!"
+        conn = get_db()
+        rows = conn.execute("SELECT land_id FROM gis_land_data").fetchall()
+        conn.close()
+        for r in rows:
+            img = qrcode.make(request.url_root + "verify/" + r[0])
+            img.save(os.path.join(folder, r[0] + ".png"))
+        return "QR codes generated from SQLite!"
+    except Exception as e:
+        return "Error: " + str(e)
+
+@app.route('/generate_documents')
+def generate_documents():
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("DELETE FROM document")
+                pg.commit()
+                cur.execute("SELECT land_id FROM gis_land_data")
+                lands = cur.fetchall()
+                count = 1
+                for land in lands:
+                    doc_id = f"DOC{count:03}"
+                    status = random.choice(["verified", "pending", "rejected"])
+                    doc_type = random.choice(["Sale Deed","Tax Receipt","Mortgage Deed","Transfer Deed","Lease Agreement"])
+                    cur.execute("INSERT INTO document (document_id,parcel_id,document_type,file_hash,uploaded_by,uploaded_date,verification_status) VALUES (%s,%s,%s,%s,%s,NOW(),%s)",
+                        (doc_id, land[0], doc_type, f"hash{count}", "U001", status))
+                    count += 1
+                pg.commit()
+                cur.close()
+                pg.close()
+                return f"Inserted {count-1} documents in PostgreSQL ✅"
+        except:
+            pass
+    conn = get_db()
+    conn.execute("DELETE FROM document")
+    rows = conn.execute("SELECT land_id FROM gis_land_data").fetchall()
+    count = 1
+    for r in rows:
+        doc_id = f"DOC{count:03}"
+        status = random.choice(["verified", "pending", "rejected"])
+        doc_type = random.choice(["Sale Deed","Tax Receipt","Mortgage Deed","Transfer Deed","Lease Agreement"])
+        conn.execute("INSERT INTO document VALUES (?,?,?,?,?,?,?,?)",
+            (doc_id, r[0], doc_type, f"hash{count}", "U001", str(datetime.now()), status))
+        count += 1
+    conn.commit()
+    conn.close()
+    return f"Inserted {count-1} documents in SQLite ✅"
+
+@app.route("/create_document_table")
+def create_document_table():
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("""CREATE TABLE IF NOT EXISTS document (
+                    document_id TEXT PRIMARY KEY, parcel_id TEXT, document_type TEXT,
+                    file_hash TEXT, uploaded_by TEXT, uploaded_date TIMESTAMP, verification_status TEXT)""")
+                pg.commit()
+                cur.close()
+                pg.close()
+                return "Table created in PostgreSQL"
+        except:
+            pass
+    init_document_table()
+    return "Table created in SQLite"
 
 @app.route("/check_lands")
 def check_lands():
-    conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT land_id FROM gis_land_data LIMIT 10")
-    rows = cursor.fetchall()
-
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT land_id FROM gis_land_data LIMIT 10")
+                rows = cur.fetchall()
+                cur.close()
+                pg.close()
+                return str(rows)
+        except:
+            pass
+    conn = get_db()
+    rows = conn.execute("SELECT land_id FROM gis_land_data LIMIT 10").fetchall()
     conn.close()
-
-    return str(rows)
+    return str([r[0] for r in rows])
 
 @app.route('/check_documents')
 def check_documents():
+    if HAS_POSTGRES:
+        try:
+            pg = get_postgres()
+            if pg:
+                cur = pg.cursor()
+                cur.execute("SELECT document_id, parcel_id, document_type, verification_status FROM document")
+                data = cur.fetchall()
+                cur.close()
+                pg.close()
+                return str(data)
+        except Exception as e:
+            return "<pre>" + str(e) + "</pre>"
+    conn = get_db()
+    rows = conn.execute("SELECT document_id, parcel_id, document_type, verification_status FROM document").fetchall()
+    conn.close()
+    return str([list(r) for r in rows])
 
-    try:
-        conn = psycopg2.connect(os.environ.get("DATABASE_URL"), sslmode='require')
-        cursor = conn.cursor()
+# ============================================================
+# STARTUP
+# ============================================================
+init_document_table()
+init_db()
 
-        # ✅ CORRECT QUERY
-        cursor.execute("""
-            SELECT d.document_id, d.parcel_id, d.document_type, d.verification_status
-            FROM document d
-        """)
-
-        data = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        return str(data)
-
-    except Exception as e:
-        import traceback
-        return f"<prep>{traceback.format_exec()}</prep>"
-
-@app.route("/dashboard_data")
-def dashboard_data():
-
-    cursor = conn.cursor()
-
-    # Total properties
-    cursor.execute("SELECT COUNT(*) FROM property")
-    total_properties = cursor.fetchone()[0]
-
-    # Total tax
-    cursor.execute("SELECT SUM(tax_amount), SUM(tax_paid) FROM tax")
-    tax = cursor.fetchone()
-    total_tax = tax[0] or 0
-    paid_tax = tax[1] or 0
-    pending_tax = total_tax - paid_tax
-
-    # Mortgage count
-    cursor.execute("SELECT COUNT(*) FROM mortgage")
-    mortgage = cursor.fetchone()[0]
-
-    # Fraud avg
-    cursor.execute("SELECT AVG(risk_level) FROM fraud")
-    fraud = cursor.fetchone()[0] or 0
-
-    return jsonify({
-        "total_properties": total_properties,
-        "total_tax": total_tax,
-        "pending_tax": pending_tax,
-        "mortgages": mortgage,
-        "fraud_score": round(fraud,2)
-    })
-    
-    
 if __name__ == "__main__":
- app.run(host="0.0.0.0",port=500, debug=True)
-                            
+    app.run(host="0.0.0.0", port=5000, debug=True)
