@@ -1605,6 +1605,12 @@ def check_property():
     conn.close()
     return jsonify([r[0] for r in rows])
 
+@app.route('/force_generate')
+def force_generate():
+    generate_full_data_internal()
+    return "Generated"
+
+
 
 
 # ============================================================
@@ -1613,6 +1619,7 @@ def check_property():
 init_document_table()
 init_db()
 def generate_full_data_internal():
+    print("GENERATOR RUNNING")
     conn = get_db()
     c = conn.cursor()
 
