@@ -1528,8 +1528,8 @@ def check_lands():
     conn = get_db()
     rows = conn.execute("SELECT land_id FROM gis_land_data LIMIT 10").fetchall()
     conn.close()
-    data=[r[0]for r in rows]
-    return str(rows)
+
+    return jsonify([r[0] for r in rows if r[0] is not None])
 
 @app.route('/check_documents')
 def check_documents():
@@ -1549,6 +1549,47 @@ def check_documents():
     rows = conn.execute("SELECT document_id, parcel_id, document_type, verification_status FROM document").fetchall()
     conn.close()
     return str([list(r) for r in rows])
+
+@app.route('/debug_gis')
+def debug_gis():
+    conn = get_db()
+    c = conn.cursor()
+
+    try:
+        rows = c.execute("SELECT * FROM gis_land_data LIMIT 10").fetchall()
+        
+        # Get column names
+        col_names = [description[0] for description in c.description]
+
+        data = []
+        for r in rows:
+            row_dict = {}
+            for i in range(len(col_names)):
+                row_dict[col_names[i]] = r[i]
+            data.append(row_dict)
+
+        conn.close()
+
+        return jsonify({
+            "columns": col_names,
+            "rows": data,
+            "count": len(data)
+        })
+
+    except Exception as e:
+        conn.close()
+        return jsonify({"error": str(e)})
+
+@app.route('/fix-gis')
+def fix_gis():
+    conn = get_db()
+    c = conn.cursor()
+
+    c.execute("DELETE FROM gis_land_data")
+    conn.commit()
+
+    conn.close()
+    return "GIS cleared"
 
 # ============================================================
 # STARTUP
