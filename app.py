@@ -1521,6 +1521,7 @@ def check_lands():
     conn = get_db()
     rows = conn.execute("SELECT land_id FROM gis_land_data LIMIT 10").fetchall()
     conn.close()
+    data=[r[0]for r in rows]
     return str(rows)
 
 @app.route('/check_documents')
