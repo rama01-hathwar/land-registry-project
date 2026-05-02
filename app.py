@@ -1591,6 +1591,20 @@ def fix_gis():
     conn.close()
     return "GIS cleared"
 
+@app.route('/count_lands')
+def count_lands():
+    conn = get_db()
+    count = conn.execute("SELECT COUNT(*) FROM gis_land_data").fetchone()[0]
+    conn.close()
+    return str(count)
+
+@app.route('/check_property')
+def check_property():
+    conn = get_db()
+    rows = conn.execute("SELECT parcel_id FROM property LIMIT 10").fetchall()
+    conn.close()
+    return jsonify([r[0] for r in rows])
+
 # ============================================================
 # STARTUP
 # ============================================================
