@@ -238,17 +238,20 @@ function updateConnBadge(){
     if(ST.backendUp){el.className='conn-badge conn-ok';el.innerHTML='<i class="fas fa-circle" style="font-size:6px"></i> Backend Connected';}
     else{el.className='conn-badge conn-off';el.innerHTML='<i class="fas fa-circle" style="font-size:6px"></i> Demo Mode';}
 }
-function api(url,opts){
-    opts=opts||{};
-    return fetch(BASE_URL+url,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}})
-    .then(function(res){ST.backendUp=true;updateConnBadge();if(!res.ok)throw new Error(res.status);var ct=res.headers.get('content-type');if(ct&&ct.indexOf('application/json')!==-1)return res.json();return res.text();})
-    .catch(function(e){ST.backendUp=false;updateConnBadge();return null;});
+function api(url, options){
+    return fetch(url, options)
+    .then(async res => {
+
+        let data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || data.error || "Request failed");
+        }
+
+        return data;
+    });
 }
-function apiForm(url,formData){
-    return fetch(BASE_URL+url,{method:'POST',body:formData})
-    .then(function(res){ST.backendUp=true;updateConnBadge();if(!res.ok)throw new Error(res.status);return res.json();})
-    .catch(function(e){ST.backendUp=false;updateConnBadge();return null;});
-}
+
 function logAct(a,d){api('/log_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',action_type:a,description:d,ip_address:'client'})});api('/login_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',ip_address:'client'})});}
 function testConn() {
     fetch(BASE_URL + '/')
@@ -373,41 +376,32 @@ function doTransfer(e){
             sale_amount:parseFloat($('tfAmount').value),
             transaction_hash:$('tfHash').value.trim()
         })
-    }).then(function(res){
+    })
+    .then(function(res){
 
         var box = $('tfResult');
 
-        if(res && res.message){
+        box.innerHTML =
+        '<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">' +
+        res.message +
+        '</div>';
 
-            if(res.error || res.message.indexOf('blocked') !== -1){
+        toast('Submitted!','ok');
+        logAct('Transfer', $('tfParcel').value.trim());
 
-                box.innerHTML =
-                '<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">' +
-                (res.error || res.message) +
-                '</div>';
+    })
+    .catch(function(err){
 
-                toast('Blocked','err');
+        var box = $('tfResult');
 
-            } else {
+        box.innerHTML =
+        '<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">' +
+        err.message +
+        '</div>';
 
-                box.innerHTML =
-                '<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">' +
-                res.message +
-                '</div>';
-
-                toast('Submitted!','ok');
-                logAct('Transfer', $('tfParcel').value.trim());
-            }
-
-        } else {
-
-            box.innerHTML =
-            '<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Server unreachable</div>';
-
-            toast('Failed','err');
-        }
-
-    });  // ✅ THIS WAS MISSING
+        toast('Failed','err');
+        console.error(err);
+    });
 }
 
 /* ===== HISTORY ===== */
