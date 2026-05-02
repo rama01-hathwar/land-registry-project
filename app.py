@@ -1243,15 +1243,15 @@ def generate_full_data():
         c.execute("DELETE FROM ownership_history")
         c.execute("DELETE FROM blockchain")
 
-        conn.commit()   # 🔥 VERY IMPORTANT
+        conn.commit()  # 🔥 VERY IMPORTANT
 
-        # ================= DATA LIST =================
+        # ================= CONSTANTS =================
         statuses = ["registered", "pending", "disputed", "verified"]
         land_types = ["Residential", "Commercial", "Agricultural"]
 
         base_lat, base_lon = 12.9716, 77.5946
 
-        # ================= GENERATE =================
+        # ================= GENERATE DATA =================
         for i in range(1, 1000):
 
             parcel_id = f"L{i:03}"
@@ -1260,6 +1260,7 @@ def generate_full_data():
 
             lat = base_lat + random.uniform(-0.02, 0.02)
             lon = base_lon + random.uniform(-0.02, 0.02)
+
             area = random.randint(800, 5000)
             value = random.randint(1000000, 10000000)
 
@@ -1274,35 +1275,43 @@ def generate_full_data():
             )
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
-                parcel_id, owner_id, f"S{i:03}", f"K{i:03}",
-                "Village", "Taluk", "District", "State",
+                parcel_id,
+                owner_id,
+                f"S{i:03}",
+                f"K{i:03}",
+                "Village",
+                "Taluk",
+                "District",
+                "State",
                 random.choice(land_types),
                 area,
                 now,
                 value,
-                lat, lon,
+                lat,
+                lon,
                 "Pending",
                 "None"
             ))
 
             # ================= GIS =================
-           c.execute("""
-INSERT INTO gis_land_data (
-    land_id, survey_number, owner_name, land_use_type,
-    area_sq_ft, latitude, longitude, boundary_polygon, status
-)
-VALUES (?,?,?,?,?,?,?,?,?)
-""", (
-    f"L{i:03}",   # 🔥 FIX HERE
-    f"S{i:03}",
-    "Owner " + str(i),
-    random.choice(["Residential","Commercial","Agricultural"]),
-    area,
-    lat,
-    lon,
-    '[]',
-    random.choice(["registered","pending","disputed","verified"])
-))
+            c.execute("""
+            INSERT INTO gis_land_data (
+                land_id, survey_number, owner_name, land_use_type,
+                area_sq_ft, latitude, longitude, boundary_polygon, status
+            )
+            VALUES (?,?,?,?,?,?,?,?,?)
+            """, (
+                parcel_id,   # 🔥 SAME AS PROPERTY (VERY IMPORTANT)
+                f"S{i:03}",
+                "Owner " + str(i),
+                random.choice(land_types),
+                area,
+                lat,
+                lon,
+                '[]',
+                random.choice(statuses)
+            ))
+
             # ================= TAX =================
             c.execute("""
             INSERT INTO tax (
@@ -1311,7 +1320,8 @@ VALUES (?,?,?,?,?,?,?,?,?)
             )
             VALUES (?,?,?,?,?,?,?)
             """, (
-                f"TAX{i:03}", parcel_id,
+                f"TAX{i:03}",
+                parcel_id,
                 2024,
                 random.randint(1000, 5000),
                 random.randint(0, 2000),
@@ -1327,7 +1337,8 @@ VALUES (?,?,?,?,?,?,?,?,?)
             )
             VALUES (?,?,?,?,?,?,?)
             """, (
-                f"PTAX{i:03}", parcel_id,
+                f"PTAX{i:03}",
+                parcel_id,
                 2024,
                 random.randint(2000, 8000),
                 random.randint(0, 4000),
@@ -1343,11 +1354,14 @@ VALUES (?,?,?,?,?,?,?,?,?)
             )
             VALUES (?,?,?,?,?,?,?,?,?)
             """, (
-                f"M{i:03}", parcel_id, owner_id,
+                f"M{i:03}",
+                parcel_id,
+                owner_id,
                 "ICICI Bank",
                 random.randint(50000, 500000),
                 round(random.uniform(7.5, 10.5), 2),
-                now, now,
+                now,
+                now,
                 "Closed"
             ))
 
@@ -1360,11 +1374,14 @@ VALUES (?,?,?,?,?,?,?,?,?)
                 )
                 VALUES (?,?,?,?,?,?,?,?)
                 """, (
-                    f"D{i:03}", parcel_id,
-                    "Ownership", owner_id,
-                    "Test dispute",
+                    f"D{i:03}",
+                    parcel_id,
+                    "Ownership",
+                    owner_id,
+                    "Auto dispute",
                     "Open",
-                    now, ""
+                    now,
+                    ""
                 ))
 
             # ================= BLOCKCHAIN =================
@@ -1376,7 +1393,8 @@ VALUES (?,?,?,?,?,?,?,?,?)
             )
             VALUES (?,?,?,?,?,?,?)
             """, (
-                f"B{i:03}", i,
+                f"B{i:03}",
+                i,
                 0.001,
                 "Confirmed",
                 now,
@@ -1406,7 +1424,6 @@ VALUES (?,?,?,?,?,?,?,?,?)
 
     except Exception as e:
         return f"❌ ERROR: {str(e)}"
-
 @app.route('/reset-db')
 def reset_db():
     init_db()
