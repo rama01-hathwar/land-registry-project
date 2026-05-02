@@ -239,16 +239,28 @@ function updateConnBadge(){
     else{el.className='conn-badge conn-off';el.innerHTML='<i class="fas fa-circle" style="font-size:6px"></i> Demo Mode';}
 }
 function api(url, options){
-    return fetch(url, options)
+    return fetch(url, {
+        headers: {
+            'Content-Type': 'application/json'   // 🔥 THIS FIX
+        },
+        ...options
+    })
     .then(async res => {
 
-        let data = await res.json();
+        let text = await res.text();
 
-        if (!res.ok) {
-            throw new Error(data.message || data.error || "Request failed");
+        try {
+            let data = JSON.parse(text);
+
+            if (!res.ok) {
+                throw new Error(data.message || data.error || "Request failed");
+            }
+
+            return data;
+
+        } catch {
+            throw new Error("Server returned HTML instead of JSON");
         }
-
-        return data;
     });
 }
 
