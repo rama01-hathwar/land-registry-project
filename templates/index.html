@@ -567,24 +567,32 @@ function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMark
    INIT — event listeners
    ============================================================ */
 document.addEventListener('DOMContentLoaded', function() {
-    });
+
     $('logoutBtn').addEventListener('click', doLogout);
+
     $('mobToggleBtn').addEventListener('click', function(){
         $('sideNav').classList.toggle('open');
     });
+
     $('modalBg').addEventListener('click', function(e){
         if (e.target === $('modalBg')) closeModal();
     });
+
     updateConnBadge();
-    fetch(BASE_URL + '/properties', {method: 'GET'}).then(function(r) {
+
+    fetch(BASE_URL + '/properties', {method: 'GET'})
+    .then(function(r) {
         return r.json();
-    }).then(function() {
+    })
+    .then(function() {
         ST.backendUp = true;
         updateConnBadge();
-    }).catch(function() {
+    })
+    .catch(function() {
         ST.backendUp = false;
         updateConnBadge();
     });
+
 });
 </script>
 </body>
