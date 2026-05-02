@@ -1106,165 +1106,18 @@ def generate_data():
 
 @app.route('/generate-full-data')
 def generate_full_data():
-    import random
-    from datetime import datetime
+    try:
+        conn = get_db()
+        c = conn.cursor()
 
-    conn = get_db()
-    c = conn.cursor()
+        # simple test
+        c.execute("SELECT 1")
+        conn.close()
 
-    # Clear tables (order matters for FK-like relations)
-    c.execute("DELETE FROM ownership_history")
-    c.execute("DELETE FROM transfer")
-    c.execute("DELETE FROM blockchain")
-    c.execute("DELETE FROM dispute")
-    c.execute("DELETE FROM mortgage")
-    c.execute("DELETE FROM property_tax")
-    c.execute("DELETE FROM tax")
-    c.execute("DELETE FROM document")
-    c.execute("DELETE FROM fraud_detection")
-    c.execute("DELETE FROM gis_land_data")
-    c.execute("DELETE FROM property")
-    # (users/login_activity left intact)
+        return "TEST OK"
 
-    first_names = ["Ravi","Sita","Arjun","Meena","Kiran"]
-    last_names  = ["Kumar","Reddy","Sharma","Patel"]
-    land_types  = ["Residential","Commercial","Agricultural"]
-
-    base_lat, base_lon = 12.9716, 77.5946
-
-    for i in range(1, 501):
-        parcel_id = f"L{i:03}"
-        owner_id  = f"U{i:03}"
-        owner_name = random.choice(first_names) + " " + random.choice(last_names)
-
-        lat = base_lat + random.uniform(-0.02, 0.02)
-        lon = base_lon + random.uniform(-0.02, 0.02)
-
-        area  = random.randint(800, 5000)
-        value = random.randint(1_000_000, 10_000_000)
-
-        tax_status      = random.choice(["Paid","Pending"])
-        mortgage_status = random.choice(["None","Active"])
-
-        now = datetime.now().isoformat()
-
-        # ===== PROPERTY (16 cols in your schema) =====
-        c.execute("""
-        INSERT INTO property
-        (parcel_id, owner_id, survey_number, khata_number,
-         village, taluk, district, state,
-         land_type, area_sqft, registration_date,
-         current_market_value, geo_latitude, geo_longitude,
-         tax_status, mortgage_status)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        """, (
-            parcel_id, owner_id, f"S{i:03}", f"K{i:03}",
-            "Village","Taluk","District","State",
-            random.choice(land_types),
-            area, now,
-            value, lat, lon,
-            tax_status, mortgage_status
-        ))
-
-        # ===== GIS =====
-        c.execute("""
-        INSERT INTO gis_land_data
-        (land_id, survey_number, owner_name, land_use_type,
-         area_sq_ft, latitude, longitude, boundary_polygon, status)
-        VALUES (?,?,?,?,?,?,?,?,?)
-        """, (
-            parcel_id, f"S{i:03}", owner_name,
-            random.choice(land_types),
-            area, lat, lon, '[]', 'registered'
-        ))
-
-        # ===== TAX (your schema has tax_year, tax_paid, payment_date) =====
-        tax_amount = random.randint(1000, 5000)
-        tax_paid   = random.randint(0, tax_amount)
-        pay_status = "Paid" if tax_paid >= tax_amount else "Pending"
-
-        c.execute("""
-        INSERT INTO tax
-        (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
-        VALUES (?,?,?,?,?,?,?)
-        """, (
-            f"TAX{i:03}", parcel_id, 2024,
-            tax_amount, tax_paid, now, pay_status
-        ))
-
-        # ===== PROPERTY TAX =====
-        pt_amount = random.randint(2000, 8000)
-        pt_paid   = random.randint(0, pt_amount)
-        pt_status = "Paid" if pt_paid >= pt_amount else "Pending"
-
-        c.execute("""
-        INSERT INTO property_tax
-        (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
-        VALUES (?,?,?,?,?,?,?)
-        """, (
-            f"PTAX{i:03}", parcel_id, 2024,
-            pt_amount, pt_paid, now, pt_status
-        ))
-
-        # ===== MORTGAGE =====
-        c.execute("""
-        INSERT INTO mortgage
-        (mortgage_id, parcel_id, owner_id, bank_name,
-         loan_amount, interest_rate, start_date, end_date, mortgage_status)
-        VALUES (?,?,?,?,?,?,?,?,?)
-        """, (
-            f"M{i:03}", parcel_id, owner_id, "ICICI Bank",
-            random.randint(50_000, 500_000),
-            round(random.uniform(7.5, 10.5), 2),
-            now, now,
-            mortgage_status if mortgage_status != "None" else "Closed"
-        ))
-
-        # ===== DISPUTE (20% chance) =====
-        if random.random() < 0.2:
-            c.execute("""
-            INSERT INTO dispute
-            (dispute_id, parcel_id, dispute_type, reported_by,
-             description, status, created_date, resolved_date)
-            VALUES (?,?,?,?,?,?,?,?)
-            """, (
-                f"D{i:03}", parcel_id, "Ownership", owner_id,
-                "Auto-generated dispute", "Open", now, None
-            ))
-
-        # ===== BLOCKCHAIN (optional but helps transfer demo) =====
-        block_hash = f"HASH{i:03}"
-        c.execute("""
-        INSERT INTO blockchain
-        (block_id, block_number, gas_fee, confirmation_status, timestamp, transaction_hash, previous_hash)
-        VALUES (?,?,?,?,?,?,?)
-        """, (
-            f"B{i:03}", 120000 + i, round(random.uniform(0.001, 0.01), 6),
-            "Confirmed", now, block_hash, f"PREV{i:03}"
-        ))
-
-        # ===== OWNERSHIP HISTORY (GENESIS) =====
-        c.execute("""
-        INSERT INTO ownership_history
-        (parcel_id, seller_id, buyer_id, transfer_date, transaction_hash)
-        VALUES (?,?,?,?,?)
-        """, (
-            parcel_id, "GENESIS", owner_id, now, "INIT_HASH"
-        ))
-
-        # ===== FRAUD (baseline) =====
-        c.execute("""
-        INSERT INTO fraud_detection
-        (parcel_id, duplicate_survey, multiple_claim, abnormal_transfer, risk_score)
-        VALUES (?,?,?,?,?)
-        """, (
-            parcel_id, 0, 0, 0, "Low"
-        ))
-
-    conn.commit()
-    conn.close()
-
-    return "✅ FULL DATA GENERATED SUCCESSFULLY"
+    except Exception as e:
+        return f"ERROR: {str(e)}"
 
 
 @app.route('/generate-qr')
