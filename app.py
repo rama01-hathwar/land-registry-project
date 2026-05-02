@@ -1125,7 +1125,7 @@ def generate_full_data():
 
     base_lat, base_lon = 12.9716, 77.5946
 
-    for i in range(1, 501):
+    for i in range(1, 1001):
 
         parcel_id = f"L{i:03}"
         owner_id = f"U{i:03}"
