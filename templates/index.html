@@ -1,197 +1,523 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>LandChain Nexus</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIS Land Registry System</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-body { font-family: Arial; margin: 0; }
+:root{--bg:#0C1222;--bg2:#151E30;--bg3:#1C2740;--card:#1E2A42;--accent:#0EA5A0;--accent2:#0D8F8B;--accentGlow:rgba(14,165,160,.15);--gold:#D4A843;--danger:#E53E3E;--success:#38A169;--warn:#D69E2E;--info:#3B82F6;--purple:#8B5CF6;--txt:#E8EDF5;--txt2:#7B8BA5;--txt3:#4A5568;--border:#263044;--border2:#314563}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--txt);overflow-x:hidden;min-height:100vh}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideR{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,30px)}}
+@keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-40px)}}
+.blink{animation:blink 1s infinite}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:var(--bg)}
+.login-wrap::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(14,165,160,.2),transparent 70%);top:-150px;right:-150px;animation:float1 12s ease-in-out infinite}
+.login-wrap::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(212,168,67,.15),transparent 70%);bottom:-120px;left:-120px;animation:float2 10s ease-in-out infinite}
+.login-box{background:rgba(21,30,48,.9);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:440px;position:relative;z-index:2}
+.sidebar{width:250px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);position:fixed;left:0;top:0;z-index:40;display:flex;flex-direction:column;transition:transform .3s}
+.sidebar-head{padding:16px;border-bottom:1px solid var(--border)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;color:var(--txt2);transition:all .15s;white-space:nowrap;position:relative}
+.nav-item:hover{background:rgba(14,165,160,.08);color:var(--txt)}
+.nav-item.active{background:rgba(14,165,160,.12);color:var(--accent);font-weight:600}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--accent);border-radius:0 2px 2px 0}
+.nav-item i{width:18px;text-align:center;font-size:.85rem}
+.main{margin-left:250px;min-height:100vh;padding:20px 28px;transition:padding .2s}
+.main.no-pad{padding:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:all .2s}
+.stat-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.btn{padding:9px 18px;border-radius:8px;font-weight:600;font-size:.82rem;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
+.btn-d{background:var(--danger);color:#fff}.btn-d:hover{background:#c53030}
+.btn-s{background:var(--success);color:#fff}.btn-s:hover{background:#2f855a}
+.btn-w{background:var(--gold);color:#000}.btn-w:hover{background:#b8942e}
+.btn-g{background:transparent;color:var(--txt2);border:1px solid var(--border)}.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:.75rem}
+.inp{width:100%;padding:9px 13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-family:inherit;font-size:.85rem;outline:none;transition:border .15s}
+.inp:focus{border-color:var(--accent)}
+.inp::placeholder{color:var(--txt3)}
+select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%237B8BA5' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--txt2);border-bottom:1px solid var(--border);font-weight:600}
+td{padding:10px 14px;border-bottom:1px solid rgba(38,48,68,.5);font-size:.83rem}
+tr:hover td{background:rgba(14,165,160,.03)}
+.badge{padding:3px 9px;border-radius:12px;font-size:.7rem;font-weight:600;display:inline-block}
+.b-green{background:rgba(56,161,105,.15);color:#38A169}
+.b-red{background:rgba(229,62,62,.15);color:#E53E3E}
+.b-yellow{background:rgba(214,158,46,.15);color:#D69E2E}
+.b-blue{background:rgba(14,165,160,.15);color:#0EA5A0}
+.b-purple{background:rgba(139,92,246,.15);color:#8B5CF6}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-bg.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:580px;width:95%;max-height:85vh;overflow-y:auto;animation:fadeIn .2s ease}
+.toast-box{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:6px}
+.toast{padding:12px 18px;border-radius:10px;font-size:.83rem;font-weight:500;animation:slideR .3s ease;min-width:260px;display:flex;align-items:center;gap:8px}
+.t-ok{background:rgba(56,161,105,.15);border:1px solid rgba(56,161,105,.3);color:#38A169}
+.t-err{background:rgba(229,62,62,.15);border:1px solid rgba(229,62,62,.3);color:#E53E3E}
+.t-info{background:rgba(14,165,160,.15);border:1px solid rgba(14,165,160,.3);color:#0EA5A0}
+.section-head{margin-bottom:20px}
+.section-head h2{font-size:1.4rem;font-weight:700}
+.section-head p{font-size:.82rem;color:var(--txt2);margin-top:2px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:.75rem;font-weight:500;color:var(--txt2)}
+.tab-bar{display:flex;gap:4px;margin-bottom:16px;background:var(--bg);padding:4px;border-radius:10px;border:1px solid var(--border)}
+.tab-btn{padding:7px 14px;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:500;border:none;background:transparent;color:var(--txt2);transition:all .15s;font-family:inherit}
+.tab-btn.active{background:var(--accent);color:#fff}
+.empty-state{text-align:center;padding:40px 20px;color:var(--txt2)}
+.empty-state i{font-size:2rem;margin-bottom:10px;opacity:.4}
+.empty-state p{font-size:.85rem}
 
-h1 {
-  background: #2c3e50;
-  color: white;
-  padding: 10px;
-  text-align: center;
+/* GIS — FIXED: no negative margins, proper sizing */
+.gis-page{position:fixed;top:0;left:250px;right:0;bottom:0;z-index:30;display:flex;background:var(--bg)}
+.gis-map-wrap{flex:1;position:relative;overflow:hidden}
+#gisMap{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}
+.gis-panel{width:320px;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:14px;flex-shrink:0}
+.gis-panel h4{font-size:.82rem;font-weight:600;margin:14px 0 8px;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em}
+.gis-panel h4:first-child{margin-top:0}
+.gis-legend{position:absolute;bottom:16px;left:16px;z-index:1000;background:#fff;padding:10px 14px;border-radius:8px;font-size:12px;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.gis-legend b{display:block;margin-bottom:4px}
+.gis-legend .leg-row{display:flex;align-items:center;gap:6px;margin:2px 0}
+.gis-legend .leg-box{width:14px;height:14px;border-radius:2px;flex-shrink:0}
+#gisPriceBox{font-size:1.1rem;font-weight:700;color:var(--success)}
+
+.block-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;position:relative}
+.block-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);border-radius:3px 0 0 3px}
+.block-card.confirmed::before{background:var(--success)}
+.block-card.pending::before{background:var(--warn)}
+.conn-badge{position:fixed;bottom:12px;left:268px;z-index:50;padding:4px 10px;border-radius:6px;font-size:.68rem;font-weight:600;display:flex;align-items:center;gap:5px}
+.conn-ok{background:rgba(56,161,105,.15);color:#38A169;border:1px solid rgba(56,161,105,.3)}
+.conn-off{background:rgba(229,62,62,.15);color:#E53E3E;border:1px solid rgba(229,62,62,.3)}
+
+@media(max-width:900px){
+.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
+.main{margin-left:0;padding:16px}
+.gis-page{left:0}
+.gis-panel{width:100%;max-height:300px;border-left:none;border-top:1px solid var(--border)}
+.gis-page.mobile-col{flex-direction:column}
+.gis-map-wrap{height:50vh}
+.mob-toggle{display:flex!important}
+.form-grid{grid-template-columns:1fr}
+.conn-badge{left:12px;bottom:60px}
 }
-
-#map { height: 500px; }
-
-.controls {
-  padding: 10px;
-}
-
-input, button {
-  padding: 8px;
-  margin: 5px;
-}
-
-.land-card {
-  border: 1px solid #ccc;
-  margin: 10px;
-  padding: 10px;
-}
+.mob-toggle{display:none;position:fixed;top:12px;left:12px;z-index:50;width:38px;height:38px;border-radius:8px;background:var(--accent);color:#fff;align-items:center;justify-content:center;border:none;cursor:pointer;font-size:1rem}
 </style>
-
 </head>
-
 <body>
 
-<h1>LandChain Nexus</h1>
+<div class="toast-box" id="toastBox"></div>
 
-<div id="map"></div>
-
-<div class="controls">
-  <h3>🔍 Search Land</h3>
-  <input type="text" id="searchId" placeholder="Enter Land ID">
-  <button onclick="searchLand()">Search</button>
-
-  <h3>📏 Distance Between Lands</h3>
-  <input type="text" id="land1" placeholder="Land ID 1">
-  <input type="text" id="land2" placeholder="Land ID 2">
-  <button onclick="calculateDistance()">Calculate</button>
-  <p id="distanceResult"></p>
-
-  <h3>➕ Add New Land</h3>
-  <input id="newId" placeholder="Land ID">
-  <input id="newOwner" placeholder="Owner Name">
-  <input id="newLat" placeholder="Latitude">
-  <input id="newLng" placeholder="Longitude">
-  <button onclick="addLand()">Add Land</button>
+<!-- LOGIN -->
+<div id="loginWrap" class="login-wrap">
+<div class="login-box">
+<div style="text-align:center;margin-bottom:28px">
+<div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--gold));display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i class="fas fa-landmark" style="font-size:1.4rem;color:#fff"></i></div>
+<h1 style="font-size:1.3rem;font-weight:700">GIS Land Registry</h1>
+<p style="font-size:.8rem;color:var(--txt2);margin-top:4px">Government Land Record Management System</p>
+</div>
+<form id="loginForm">
+<div class="form-group" style="margin-bottom:12px"><label>Username</label><input class="inp" id="loginUser" placeholder="Enter username" required></div>
+<div class="form-group" style="margin-bottom:12px"><label>Password</label><input type="password" class="inp" id="loginPass" placeholder="Enter password" required></div>
+<div class="form-group" style="margin-bottom:16px"><label>Role</label><select class="inp" id="loginRole" required><option value="">Select Role</option><option value="admin">Admin</option><option value="registrar">Registrar</option><option value="landowner">Landowner</option><option value="verifier">Verifier</option><option value="bank">Bank and Lender</option></select></div>
+<div id="loginErr" style="display:none;margin-bottom:12px;padding:10px;border-radius:8px;font-size:.82rem;background:rgba(229,62,62,.1);color:var(--danger)"></div>
+<button type="submit" class="btn btn-p" style="width:100%;justify-content:center;padding:12px"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+</form>
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);text-align:center">
+<button type="button" class="btn btn-g btn-sm" id="quickLoginBtn"><i class="fas fa-bolt"></i> Quick Login as Admin</button>
+</div>
+</div>
 </div>
 
-<h3 style="padding:10px;">📷 Scan QR</h3>
-<div id="reader"></div>
+<!-- APP -->
+<div id="appWrap" style="display:none">
+<button type="button" class="mob-toggle" id="mobToggleBtn"><i class="fas fa-bars"></i></button>
+<aside class="sidebar" id="sideNav">
+<div class="sidebar-head">
+<div style="display:flex;align-items:center;gap:10px">
+<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--gold));display:flex;align-items:center;justify-content:center"><i class="fas fa-landmark" style="color:#fff;font-size:.85rem"></i></div>
+<div><div style="font-size:.82rem;font-weight:600">Land Registry</div><div style="font-size:.68rem;color:var(--txt2)" id="sideRole">Admin</div></div>
+</div>
+</div>
+<nav class="sidebar-nav" id="sideNavItems"></nav>
+<div style="padding:12px;border-top:1px solid var(--border)">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700" id="sideAvatar">A</div>
+<div><div style="font-size:.8rem;font-weight:500" id="sideUser">Admin</div><div style="font-size:.65rem;color:var(--txt2)" id="sideRole2">Administrator</div></div>
+</div>
+<button type="button" id="logoutBtn" class="nav-item" style="color:var(--danger);width:100%"><i class="fas fa-sign-out-alt"></i> Logout</button>
+</div>
+</aside>
+<main class="main" id="mainArea"></main>
+<!-- GIS page rendered here as fixed overlay -->
+<div id="gisPageWrap" style="display:none"></div>
+<div class="conn-badge" id="connBadge"></div>
+</div>
 
-<h3 style="padding:10px;">Land Records</h3>
-<div id="landList"></div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<script src="https://unpkg.com/html5-qrcode"></script>
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+<div class="modal" id="modalContent"></div>
+</div>
 
 <script>
-const map = L.map('map').setView([12.97, 77.59], 13);
+/* ============================================================
+   CONFIG — empty string = relative URLs = works on Render
+   ============================================================ */
+var BASE_URL = '';
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+/* ============================================================
+   DEMO DATA
+   ============================================================ */
+var DEMO_PROPS=[
+    {parcel_id:'L001',owner_id:'U001',survey_number:'S001',village:'Koramangala',district:'Bangalore Urban',land_type:'Residential',area_sqft:1200,tax_status:'Paid',mortgage_status:'None'},
+    {parcel_id:'L002',owner_id:'U002',survey_number:'S002',village:'Indiranagar',district:'Bangalore Urban',land_type:'Commercial',area_sqft:2000,tax_status:'Paid',mortgage_status:'None'},
+    {parcel_id:'L003',owner_id:'U003',survey_number:'S003',village:'Whitefield',district:'Bangalore Urban',land_type:'Agricultural',area_sqft:5000,tax_status:'Pending',mortgage_status:'Active'},
+    {parcel_id:'L004',owner_id:'U001',survey_number:'S004',village:'HSR Layout',district:'Bangalore Urban',land_type:'Residential',area_sqft:1800,tax_status:'Paid',mortgage_status:'None'},
+    {parcel_id:'L005',owner_id:'U004',survey_number:'S005',village:'Electronic City',district:'Bangalore Urban',land_type:'Commercial',area_sqft:3500,tax_status:'Pending',mortgage_status:'Active'}
+];
+var DEMO_LAND=[
+    {parcel_id:'L001',survey:'S001',owner:'Ravi Kumar',type:'Residential',area:1200,lat:12.9716,lon:77.5946,polygon:[[12.9721,77.5951],[12.9721,77.5941],[12.9711,77.5941],[12.9711,77.5951]],status:'registered'},
+    {parcel_id:'L002',survey:'S002',owner:'Sita Sharma',type:'Commercial',area:2000,lat:12.9780,lon:77.5950,polygon:[[12.9785,77.5955],[12.9785,77.5945],[12.9775,77.5945],[12.9775,77.5955]],status:'registered'},
+    {parcel_id:'L003',survey:'S003',owner:'Arjun Reddy',type:'Agricultural',area:5000,lat:12.9690,lon:77.5980,polygon:[[12.9700,77.5990],[12.9700,77.5970],[12.9680,77.5970],[12.9680,77.5990]],status:'registered'},
+    {parcel_id:'L004',survey:'S004',owner:'Ravi Kumar',type:'Residential',area:1800,lat:12.9735,lon:77.5920,polygon:[[12.9740,77.5925],[12.9740,77.5915],[12.9730,77.5915],[12.9730,77.5925]],status:'for sale'},
+    {parcel_id:'L005',survey:'S005',owner:'Meena Patel',type:'Commercial',area:3500,lat:12.9750,lon:77.6000,polygon:[[12.9755,77.6005],[12.9755,77.5995],[12.9745,77.5995],[12.9745,77.6005]],status:'disputed'}
+];
+var DEMO_BLOCKS=[
+    {block_id:'B001',block_number:1,gas_fee:0.005,confirmation_status:'Confirmed',timestamp:'2024-01-15 10:30:00',transaction_hash:'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',previous_hash:'0'},
+    {block_id:'B002',block_number:2,gas_fee:0.003,confirmation_status:'Confirmed',timestamp:'2024-02-20 14:15:00',transaction_hash:'f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1',previous_hash:'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2'},
+    {block_id:'B003',block_number:3,gas_fee:0.008,confirmation_status:'Pending',timestamp:'2024-03-05 09:00:00',transaction_hash:'11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff',previous_hash:'f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1'}
+];
 
-let markers = [];
-let landData = [];
+var MODULES=[
+    {id:'dashboard',icon:'fa-th-large',label:'Dashboard'},
+    {id:'records',icon:'fa-file-alt',label:'Land Records'},
+    {id:'transfer',icon:'fa-exchange-alt',label:'Ownership Transfer'},
+    {id:'history',icon:'fa-history',label:'Ownership History'},
+    {id:'documents',icon:'fa-folder-open',label:'Document Storage'},
+    {id:'tax',icon:'fa-receipt',label:'Revenue & Tax'},
+    {id:'mortgage',icon:'fa-university',label:'Mortgage & Loans'},
+    {id:'fraud',icon:'fa-shield-alt',label:'Fraud Detection'},
+    {id:'dispute',icon:'fa-gavel',label:'Dispute & Eligibility'},
+    {id:'gis',icon:'fa-map-marked-alt',label:'GIS & Geo Tagging'},
+    {id:'qr',icon:'fa-qrcode',label:'QR Verification'},
+    {id:'ml',icon:'fa-brain',label:'ML Prediction'},
+    {id:'logs',icon:'fa-clipboard-list',label:'Activity Logs'},
+    {id:'blockchain',icon:'fa-cubes',label:'Blockchain Explorer'}
+];
+var ROLE_ACCESS={admin:MODULES.map(function(m){return m.id}),registrar:['dashboard','records','transfer','history','documents','tax','qr','logs'],landowner:['dashboard','records','history','tax','qr','documents'],verifier:['dashboard','documents','fraud','dispute','logs'],bank:['dashboard','records','mortgage','qr','blockchain']};
+var ROLE_LABELS={admin:'Administrator',registrar:'Registrar',landowner:'Landowner',verifier:'Verifier',bank:'Bank & Lender'};
+var ST={user:null,role:null,page:'dashboard',map:null,mapReady:false,mapData:[],allPolygons:[],allMarkers:[],backendUp:false};
 
-// 📍 Load data
-fetch("http://127.0.0.1:5000/api/land")
-.then(res => res.json())
-.then(data => {
-  landData = data;
-  displayData(data);
+function $(id){return document.getElementById(id)}
+function qsa(sel){return document.querySelectorAll(sel)}
+
+function toast(msg,type){
+    type=type||'info';
+    var t=document.createElement('div');
+    t.className='toast t-'+type;
+    var ic=type==='ok'?'fa-check-circle':type==='err'?'fa-times-circle':'fa-info-circle';
+    t.innerHTML='<i class="fas '+ic+'"></i>'+msg;
+    $('toastBox').appendChild(t);
+    setTimeout(function(){t.style.opacity='0';t.style.transform='translateX(30px)';t.style.transition='all .3s';setTimeout(function(){t.remove()},300)},3500);
+}
+function openModal(title,html){
+    $('modalContent').innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><h3 style="font-size:1.05rem;font-weight:700">'+title+'</h3><button type="button" onclick="closeModal()" style="background:none;border:none;color:var(--txt2);cursor:pointer;font-size:1.1rem"><i class="fas fa-times"></i></button></div>'+html;
+    $('modalBg').classList.add('show');
+}
+function closeModal(){$('modalBg').classList.remove('show')}
+function updateConnBadge(){
+    var el=$('connBadge');if(!el)return;
+    if(ST.backendUp){el.className='conn-badge conn-ok';el.innerHTML='<i class="fas fa-circle" style="font-size:6px"></i> Backend Connected';}
+    else{el.className='conn-badge conn-off';el.innerHTML='<i class="fas fa-circle" style="font-size:6px"></i> Demo Mode';}
+}
+function api(url,opts){
+    opts=opts||{};
+    return fetch(BASE_URL+url,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}})
+    .then(function(res){ST.backendUp=true;updateConnBadge();if(!res.ok)throw new Error(res.status);var ct=res.headers.get('content-type');if(ct&&ct.indexOf('application/json')!==-1)return res.json();return res.text();})
+    .catch(function(e){ST.backendUp=false;updateConnBadge();return null;});
+}
+function apiForm(url,formData){
+    return fetch(BASE_URL+url,{method:'POST',body:formData})
+    .then(function(res){ST.backendUp=true;updateConnBadge();if(!res.ok)throw new Error(res.status);return res.json();})
+    .catch(function(e){ST.backendUp=false;updateConnBadge();return null;});
+}
+function logAct(a,d){api('/log_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',action_type:a,description:d,ip_address:'client'})});api('/login_activity',{method:'POST',body:JSON.stringify({user_id:ST.user||'anon',ip_address:'client'})});}
+
+/* ===== LOGIN ===== */
+function doLogin(e){
+    if(e)e.preventDefault();
+    var user=$('loginUser').value.trim(),pass=$('loginPass').value.trim(),role=$('loginRole').value,err=$('loginErr');
+    if(!user||!pass||!role){err.textContent='Please fill all fields';err.style.display='block';return false;}
+    err.style.display='none';
+    ST.user=user;ST.role=role;
+    $('loginWrap').style.display='none';
+    $('appWrap').style.display='block';
+    $('sideUser').textContent=user;
+    $('sideRole').textContent=ROLE_LABELS[role];
+    $('sideRole2').textContent=ROLE_LABELS[role];
+    $('sideAvatar').textContent=user.charAt(0).toUpperCase();
+    buildSidebar();go('dashboard');
+    toast('Welcome, '+user+'!','ok');
+    logAct('Login','Logged in as '+ROLE_LABELS[role]);
+    return false;
+}
+function doLogout(){
+    ST.user=null;ST.role=null;ST.page='dashboard';
+    destroyGISMap();
+    $('appWrap').style.display='none';
+    $('loginWrap').style.display='';
+    $('loginUser').value='';$('loginPass').value='';$('loginRole').value='';$('loginErr').style.display='none';
+}
+
+/* ===== SIDEBAR ===== */
+function buildSidebar(){
+    var allowed=ROLE_ACCESS[ST.role]||[],html='';
+    MODULES.forEach(function(m){if(allowed.indexOf(m.id)!==-1)html+='<div class="nav-item'+(m.id==='dashboard'?' active':'')+'" data-p="'+m.id+'"><i class="fas '+m.icon+'"></i><span>'+m.label+'</span></div>';});
+    $('sideNavItems').innerHTML=html;
+    $('sideNavItems').onclick=function(e){var it=e.target.closest('[data-p]');if(it)go(it.dataset.p);};
+}
+
+/* ===== NAV ===== */
+function go(page){
+    if(ST.page==='gis'&&page!=='gis')destroyGISMap();
+    ST.page=page;
+    qsa('.nav-item[data-p]').forEach(function(n){n.classList.toggle('active',n.dataset.p===page);});
+    $('sideNav').classList.remove('open');
+    var fn={dashboard:renderDashboard,records:renderRecords,transfer:renderTransfer,history:renderHistory,documents:renderDocuments,tax:renderTax,mortgage:renderMortgage,fraud:renderFraud,dispute:renderDispute,gis:renderGIS,qr:renderQR,ml:renderML,logs:renderLogs,blockchain:renderBlockchain};
+    if(fn[page])fn[page]();
+}
+
+/* ===== DASHBOARD ===== */
+function renderDashboard(){
+    var r=ST.role,stats='<div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Total Properties</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px" id="dsProps">—</div></div>',content='';
+    if(r==='admin'){stats+='<div class="stat-card"><div style="font-size:.75rem;color:var(--txt2)">Blockchain Txns</div><div style="font-size:1.5rem;font-weight:700;margin-top:4px;color:var(--gold)" id="dsBC">—</div></div>';var grid='';MODULES.forEach(function(m){if(m.id!=='dashboard')grid+='<div onclick="go(\''+m.id+'\')" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;font-size:.8rem" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"><i class="fas '+m.icon+'" style="color:var(--accent);margin-right:6px"></i>'+m.label+'</div>';});content='<div class="card" style="margin-top:16px"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:12px">System Overview</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">'+grid+'</div></div>';}else{content='<div class="card" style="margin-top:16px"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:12px">'+ROLE_LABELS[r]+' Panel</h3><p style="font-size:.82rem;color:var(--txt2)">Use sidebar to navigate.</p></div>';}
+    $('mainArea').className='main';$('gisPageWrap').style.display='none';
+    $('mainArea').innerHTML='<div class="section-head"><h2>Dashboard</h2><p>'+ROLE_LABELS[r]+'</p></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">'+stats+'</div>'+content;
+    api('/properties').then(function(d){var el=$('dsProps');if(el)el.textContent=(d&&d.properties&&Array.isArray(d.properties))?d.properties.length:DEMO_PROPS.length;});
+    api('/get_blockchain').then(function(b){var el=$('dsBC');if(el)el.textContent=(b&&Array.isArray(b))?b.length:DEMO_BLOCKS.length;});
+}
+
+/* ===== RECORDS ===== */
+function renderRecords(){
+    $('mainArea').className='main';$('gisPageWrap').style.display='none';
+    $('mainArea').innerHTML='<div class="section-head"><h2>Land Records</h2></div><div class="card" style="margin-bottom:14px"><div style="display:flex;gap:10px"><input class="inp" style="max-width:240px" placeholder="Search..." id="recSearch" oninput="filterRecords()"><button type="button" class="btn btn-p btn-sm" onclick="loadRecords()"><i class="fas fa-sync-alt"></i></button></div></div><div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>Parcel ID</th><th>Owner</th><th>Survey</th><th>Village</th><th>District</th><th>Type</th><th>Area</th><th>Tax</th><th>Mortgage</th></tr></thead><tbody id="recBody"><tr><td colspan="9" class="empty-state"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody></table></div>';
+    loadRecords();
+}
+function loadRecords(){
+    api('/properties').then(function(data){
+        if(data&&data.properties&&data.properties.length){window._rawRecords=data.properties;window._recFmt='obj';}
+        else{window._rawRecords=DEMO_PROPS;window._recFmt='obj';toast('Demo data','info');}
+        filterRecords();
+    });
+}
+function filterRecords(){
+    var q=($('recSearch')?$('recSearch').value:'').toLowerCase(),rows=window._rawRecords||[],html='';
+    rows.filter(function(r){return !q||(r.parcel_id+r.owner_id+r.village+r.district).toLowerCase().indexOf(q)!==-1;}).slice(0,50).forEach(function(r){
+        var tb=r.tax_status==='Paid'?'b-green':'b-red',mb=(!r.mortgage_status||r.mortgage_status==='None')?'b-green':'b-yellow';
+        html+='<tr><td style="font-family:monospace;color:var(--accent);font-weight:600">'+r.parcel_id+'</td><td>'+r.owner_id+'</td><td>'+r.survey_number+'</td><td>'+(r.village||'—')+'</td><td>'+(r.district||'—')+'</td><td>'+(r.land_type||'—')+'</td><td>'+(r.area_sqft||'—')+'</td><td><span class="badge '+tb+'">'+(r.tax_status||'—')+'</span></td><td><span class="badge '+mb+'">'+(r.mortgage_status||'—')+'</span></td></tr>';
+    });
+    $('recBody').innerHTML=html||'<tr><td colspan="9" class="empty-state"><i class="fas fa-inbox"></i><p>No records</p></td></tr>';
+}
+
+/* ===== TRANSFER ===== */
+function renderTransfer(){
+    $('mainArea').className='main';$('gisPageWrap').style.display='none';
+    $('mainArea').innerHTML='<div class="section-head"><h2>Ownership Transfer</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Initiate Transfer</h3><form id="transferForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="tfParcel" required></div><div class="form-group"><label>Seller ID</label><input class="inp" id="tfSeller" required></div><div class="form-group"><label>Buyer ID</label><input class="inp" id="tfBuyer" required></div><div class="form-group"><label>Amount</label><input type="number" class="inp" id="tfAmount" required></div><div class="form-group" style="grid-column:span 2"><label>Transaction Hash</label><input class="inp" id="tfHash" required></div></div><div style="margin-top:14px;display:flex;gap:8px"><button type="submit" class="btn btn-p"><i class="fas fa-paper-plane"></i> Submit</button><button type="button" class="btn btn-g" onclick="go(\'blockchain\')"><i class="fas fa-cubes"></i> Create Txn First</button></div></form><div id="tfResult" style="margin-top:12px"></div></div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Requirements</h3><div style="font-size:.82rem;color:var(--txt2);line-height:2"><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>No active disputes</p><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>No active mortgage</p><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Taxes paid</p><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Blockchain confirmed</p><p><i class="fas fa-check" style="color:var(--success);margin-right:6px"></i>Seller is owner</p></div></div></div>';
+    $('transferForm').onsubmit=doTransfer;
+}
+function doTransfer(e){e.preventDefault();api('/transfer_property',{method:'POST',body:JSON.stringify({parcel_id:$('tfParcel').value.trim(),seller_id:$('tfSeller').value.trim(),buyer_id:$('tfBuyer').value.trim(),sale_amount:parseFloat($('tfAmount').value),transaction_hash:$('tfHash').value.trim()})}).then(function(res){var box=$('tfResult');if(res&&res.message){if(res.error||res.message.indexOf('blocked')!==-1){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">'+(res.error||res.message)+'</div>';toast('Blocked','err');}else{box.innerHTML='<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Submitted!','ok');logAct('Transfer',$('tfParcel').value.trim());}}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Server unreachable</div>';toast('Failed','err');}return false;}
+
+/* ===== HISTORY ===== */
+function renderHistory(){
+    $('mainArea').className='main';$('gisPageWrap').style.display='none';
+    $('mainArea').innerHTML='<div class="section-head"><h2>Ownership History</h2></div><div class="card" style="margin-bottom:14px"><div style="display:flex;gap:10px"><input class="inp" style="max-width:240px" placeholder="Parcel ID" id="histParcel"><button type="button" class="btn btn-p btn-sm" onclick="loadHistory()"><i class="fas fa-search"></i></button></div></div><div class="card" id="histResult"><div class="empty-state"><i class="fas fa-history"></i><p>Enter Parcel ID</p></div></div>';
+}
+function loadHistory(){var pid=$('histParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('histResult');box.innerHTML='<div class="empty-state"><i class="fas fa-spinner fa-spin"></i></div>';api('/owner_history/'+pid).then(function(data){var rows=[];if(data&&Array.isArray(data))rows=data;if(!rows.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No records</p></div>';return;}box.innerHTML='<table><thead><tr><th>Txn</th><th>From</th><th>To</th><th>Amount</th><th>Date</th></tr></thead><tbody>'+rows.map(function(r){return'<tr><td style="font-family:monospace;color:var(--accent)">'+(r.transaction_id||'—')+'</td><td>'+(r.previous_owner||'—')+'</td><td>'+(r.new_owner||'—')+'</td><td>Rs '+(parseFloat(r.sale_amount)||0).toLocaleString()+'</td><td>'+(r.timestamp||'—')+'</td></tr>';}).join('')+'</tbody></table>';});}
+
+/* ===== DOCUMENTS ===== */
+function renderDocuments(){var isV=ST.role==='verifier';$('mainArea').className='main';$('gisPageWrap').style.display='none';var upH=isV?'<form id="verifyDocForm"><div class="form-group" style="margin-bottom:12px"><label>Document ID</label><input class="inp" id="vdDocId" required></div><div class="form-group" style="margin-bottom:12px"><label>Your User ID</label><input class="inp" id="vdUserId" required></div><button type="submit" class="btn btn-s"><i class="fas fa-check"></i> Verify</button></form><div id="vdResult" style="margin-top:12px"></div>':'<form id="uploadDocForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="udParcel" required></div><div class="form-group"><label>Type</label><select class="inp" id="udType"><option>Sale Deed</option><option>Tax Receipt</option><option>Transfer Deed</option></select></div><div class="form-group" style="grid-column:span 2"><label>File</label><input type="file" class="inp" id="udFile" accept=".pdf,.png,.jpg,.jpeg"></div></div><button type="submit" class="btn btn-p" style="margin-top:12px"><i class="fas fa-cloud-upload-alt"></i> Upload</button></form><div id="udResult" style="margin-top:12px"></div>';$('mainArea').innerHTML='<div class="section-head"><h2>Documents</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">'+(isV?'Verify':'Upload')+'</h3>'+upH+'</div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">View</h3><div style="display:flex;gap:8px;margin-bottom:12px"><input class="inp" placeholder="Parcel ID" id="vdSearch"><button type="button" class="btn btn-p btn-sm" onclick="loadDocs()"><i class="fas fa-search"></i></button></div><div id="docsList"><div class="empty-state"><i class="fas fa-file-alt"></i><p>Search to view</p></div></div></div></div>';if(isV)$('verifyDocForm').onsubmit=doVerifyDoc;else $('uploadDocForm').onsubmit=doUploadDoc;}
+function doUploadDoc(e){e.preventDefault();var fd=new FormData();fd.append('parcel_id',$('udParcel').value.trim());fd.append('document_type',$('udType').value);fd.append('uploaded_by',ST.user);fd.append('file',$('udFile').files[0]);apiForm('/upload_document',fd).then(function(res){if(res&&res.message){$('udResult').innerHTML='<div style="padding:10px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Uploaded','ok');}else{$('udResult').innerHTML='<div style="padding:10px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Failed</div>';}});return false;}
+function doVerifyDoc(e){e.preventDefault();api('/verify_document/'+$('vdDocId').value.trim(),{method:'PUT',body:JSON.stringify({user_id:$('vdUserId').value.trim()})}).then(function(res){if(res&&res.message){$('vdResult').innerHTML='<div style="padding:10px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Verified','ok');}else{$('vdResult').innerHTML='<div style="padding:10px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Failed</div>';}});return false;}
+function loadDocs(){var pid=$('vdSearch').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}api('/documents/'+pid).then(function(data){var box=$('docsList');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>None</p></div>';return;}box.innerHTML=data.map(function(d){return'<div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:.82rem"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:6px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
+
+/* ===== TAX ===== */
+function renderTax(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Revenue & Tax</h2></div><div class="tab-bar" id="taxTabs"><button type="button" class="tab-btn active" onclick="taxTab(\'gen\',this)">Generate</button><button type="button" class="tab-btn" onclick="taxTab(\'view\',this)">View</button><button type="button" class="tab-btn" onclick="taxTab(\'pay\',this)">Pay</button></div><div id="taxContent"></div>';taxTab('gen');}
+function taxTab(t,btn){if(btn){qsa('#taxTabs .tab-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');}var c=$('taxContent');if(t==='gen'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="taxGenParcel"></div><button type="button" class="btn btn-p" onclick="doGenTax()"><i class="fas fa-plus"></i> Generate</button></div><div id="taxGenResult"></div></div>';}else if(t==='view'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="taxViewParcel"></div><button type="button" class="btn btn-p" onclick="loadTaxView()"><i class="fas fa-search"></i></button></div><div id="taxViewResult"></div></div>';}else{c.innerHTML='<div class="card"><form id="payTaxForm"><div class="form-grid"><div class="form-group"><label>Tax ID</label><input class="inp" id="taxPayId" required></div><div class="form-group"><label>Amount</label><input type="number" class="inp" id="taxPayAmt" required></div></div><button type="submit" class="btn btn-s" style="margin-top:12px"><i class="fas fa-check"></i> Pay</button></form><div id="taxPayResult" style="margin-top:12px"></div></div>';$('payTaxForm').onsubmit=doPayTax;}}
+function doGenTax(){var pid=$('taxGenParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('taxGenResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/generate_tax/'+pid,{method:'POST'}).then(function(res){if(res&&res.tax_amount!==undefined){box.innerHTML='<div style="padding:14px;background:rgba(56,161,105,.1);border-radius:10px"><div style="color:var(--success);font-weight:600;margin-bottom:8px">'+(res.message||'Generated')+'</div><div style="font-size:.82rem">Parcel: '+res.parcel_id+' | Tax: <strong style="color:var(--gold)">Rs '+parseFloat(res.tax_amount).toLocaleString()+'</strong></div></div>';toast('Generated!','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">'+(res?res.message||res.error:'Unreachable')+'</div>';}});}
+function loadTaxView(){var pid=$('taxViewParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('taxViewResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/tax/'+pid).then(function(data){if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No records</p></div>';return;}box.innerHTML='<table><thead><tr><th>ID</th><th>Year</th><th>Amount</th><th>Paid</th><th>Status</th></tr></thead><tbody>'+data.map(function(t){return'<tr><td style="font-family:monospace;color:var(--accent)">'+t.tax_id+'</td><td>'+t.tax_year+'</td><td>Rs '+parseFloat(t.tax_amount).toLocaleString()+'</td><td>Rs '+parseFloat(t.tax_paid).toLocaleString()+'</td><td><span class="badge '+(t.payment_status==='Paid'?'b-green':'b-red')+'">'+t.payment_status+'</span></td></tr>';}).join('')+'</tbody></table>';});}
+function doPayTax(e){e.preventDefault();api('/pay_tax',{method:'POST',body:JSON.stringify({tax_id:$('taxPayId').value.trim(),tax_paid:parseFloat($('taxPayAmt').value)})}).then(function(res){var box=$('taxPayResult');if(res&&res.message){box.innerHTML='<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Paid!','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Failed</div>';}});return false;}
+
+/* ===== MORTGAGE ===== */
+function renderMortgage(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Mortgage & Loans</h2></div><div class="tab-bar" id="mortTabs"><button type="button" class="tab-btn active" onclick="mortTab(\'add\',this)">Add</button><button type="button" class="tab-btn" onclick="mortTab(\'view\',this)">View</button><button type="button" class="tab-btn" onclick="mortTab(\'close\',this)">Close</button></div><div id="mortContent"></div>';mortTab('add');}
+function mortTab(t,btn){if(btn){qsa('#mortTabs .tab-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');}var c=$('mortContent');if(t==='add'){c.innerHTML='<div class="card"><form id="addMortForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="mParcel" required></div><div class="form-group"><label>Owner ID</label><input class="inp" id="mOwner" required></div><div class="form-group"><label>Bank</label><input class="inp" id="mBank" required></div><div class="form-group"><label>Loan Amount</label><input type="number" class="inp" id="mAmount" required></div><div class="form-group"><label>Rate %</label><input type="number" step="0.1" class="inp" id="mRate" required></div><div class="form-group"><label>Start</label><input type="date" class="inp" id="mStart" required></div><div class="form-group"><label>End</label><input type="date" class="inp" id="mEnd" required></div></div><button type="submit" class="btn btn-p" style="margin-top:14px"><i class="fas fa-file-signature"></i> Register</button></form><div id="mAddResult" style="margin-top:12px"></div></div>';$('addMortForm').onsubmit=doAddMortgage;}else if(t==='view'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="mViewParcel"></div><button type="button" class="btn btn-p" onclick="loadMortgage()"><i class="fas fa-search"></i></button></div><div id="mViewResult"></div></div>';}else{c.innerHTML='<div class="card"><form id="closeMortForm"><div class="form-group" style="margin-bottom:14px;max-width:300px"><label>Mortgage ID</label><input class="inp" id="mCloseId" required></div><button type="submit" class="btn btn-s"><i class="fas fa-check"></i> Close</button></form><div id="mCloseResult" style="margin-top:12px"></div></div>';$('closeMortForm').onsubmit=doCloseMortgage;}}
+function doAddMortgage(e){e.preventDefault();api('/add_mortgage',{method:'POST',body:JSON.stringify({parcel_id:$('mParcel').value.trim(),owner_id:$('mOwner').value.trim(),bank_name:$('mBank').value.trim(),loan_amount:parseFloat($('mAmount').value),interest_rate:parseFloat($('mRate').value),start_date:$('mStart').value,end_date:$('mEnd').value})}).then(function(res){var box=$('mAddResult');if(res&&res.mortgage_id){box.innerHTML='<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+' — <strong>'+res.mortgage_id+'</strong></div>';toast('Registered!','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">'+(res?res.message:'Failed')+'</div>';}});return false;}
+function loadMortgage(){var pid=$('mViewParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('mViewResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/get_mortgage/'+pid).then(function(data){if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>None</p></div>';return;}box.innerHTML='<table><thead><tr><th>ID</th><th>Parcel</th><th>Bank</th><th>Loan</th><th>Rate</th><th>Status</th></tr></thead><tbody>'+data.map(function(m){return'<tr><td style="font-family:monospace;color:var(--purple)">'+m.mortgage_id+'</td><td>'+m.parcel_id+'</td><td>'+m.bank_name+'</td><td>Rs '+parseFloat(m.loan_amount).toLocaleString()+'</td><td>'+m.interest_rate+'%</td><td><span class="badge '+(m.mortgage_status==='Active'?'b-yellow':'b-green')+'">'+m.mortgage_status+'</span></td></tr>';}).join('')+'</tbody></table>';});}
+function doCloseMortgage(e){e.preventDefault();api('/close_mortgage',{method:'PUT',body:JSON.stringify({mortgage_id:$('mCloseId').value.trim()})}).then(function(res){var box=$('mCloseResult');if(res&&res.message){box.innerHTML='<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Closed','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Failed</div>';}});return false;}
+
+/* ===== FRAUD ===== */
+function renderFraud(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Fraud Detection</h2></div><div class="card" style="margin-bottom:14px"><div style="display:flex;gap:10px;align-items:end"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="fraudParcel"></div><button type="button" class="btn btn-p" onclick="doFraudCheck()"><i class="fas fa-search"></i> Check</button></div><div id="fraudResult" style="margin-top:14px"></div></div>';}
+function doFraudCheck(){var pid=$('fraudParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('fraudResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/fraud_check/'+pid).then(function(res){if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)">Unreachable</div>';return;}if(res.message){box.innerHTML='<div style="padding:12px;background:var(--bg);border-radius:8px;font-size:.82rem;color:var(--txt2)">'+res.message+'</div>';return;}var rc={Low:'var(--success)',Medium:'var(--warn)',High:'var(--danger)'};box.innerHTML='<div style="padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px"><div style="font-weight:600;margin-bottom:10px">Risk: <span style="color:'+(rc[res.risk_level]||'var(--txt2)')+';font-size:1.1rem">'+res.risk_level+'</span></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:.82rem"><div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Duplicate</div><div style="font-weight:700;color:'+(res.duplicate_survey?'var(--danger)':'var(--success)')+'">'+(res.duplicate_survey?'Flagged':'Clear')+'</div></div><div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Claims</div><div style="font-weight:700;color:'+(res.multiple_claim?'var(--danger)':'var(--success)')+'">'+(res.multiple_claim?'Flagged':'Clear')+'</div></div><div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Abnormal</div><div style="font-weight:700;color:'+(res.abnormal_transfer?'var(--danger)':'var(--success)')+'">'+(res.abnormal_transfer?'Flagged':'Clear')+'</div></div></div></div>';});}
+
+/* ===== DISPUTE ===== */
+function renderDispute(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Dispute & Eligibility</h2></div><div class="tab-bar" id="dispTabs"><button type="button" class="tab-btn active" onclick="dispTab(\'file\',this)">File</button><button type="button" class="tab-btn" onclick="dispTab(\'view\',this)">View</button><button type="button" class="tab-btn" onclick="dispTab(\'elig\',this)">Eligibility</button></div><div id="dispContent"></div>';dispTab('file');}
+function dispTab(t,btn){if(btn){qsa('#dispTabs .tab-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');}var c=$('dispContent');if(t==='file'){c.innerHTML='<div class="card"><form id="fileDispForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="dpParcel" required></div><div class="form-group"><label>Type</label><select class="inp" id="dpType"><option>Boundary</option><option>Ownership</option><option>Encroachment</option></select></div><div class="form-group"><label>Reported By</label><input class="inp" id="dpReporter" required></div><div class="form-group" style="grid-column:span 2"><label>Description</label><textarea class="inp" id="dpDesc" rows="3" style="resize:vertical"></textarea></div></div><button type="submit" class="btn btn-w" style="margin-top:12px"><i class="fas fa-gavel"></i> File</button></form><div id="dpFileResult" style="margin-top:12px"></div></div>';$('fileDispForm').onsubmit=doFileDispute;}else if(t==='view'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="dpViewParcel"></div><button type="button" class="btn btn-p" onclick="loadDisputes()"><i class="fas fa-search"></i></button></div><div id="dpViewResult"></div></div>';}else{c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="elParcel"></div><button type="button" class="btn btn-p" onclick="doEligibility()"><i class="fas fa-check"></i> Check</button></div><div id="elResult"></div></div>';}}
+function doFileDispute(e){e.preventDefault();api('/file_dispute',{method:'POST',body:JSON.stringify({parcel_id:$('dpParcel').value.trim(),dispute_type:$('dpType').value,reported_by:$('dpReporter').value.trim(),description:$('dpDesc').value.trim()})}).then(function(res){var box=$('dpFileResult');if(res&&res.dispute_id){box.innerHTML='<div style="padding:12px;background:rgba(214,158,46,.1);border-radius:8px;color:var(--warn)">'+res.message+' — <strong>'+res.dispute_id+'</strong></div>';toast('Filed','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)">Failed</div>';}});return false;}
+function loadDisputes(){var pid=$('dpViewParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('dpViewResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/get_disputes/'+pid).then(function(res){if(!res||!res.disputes||!res.disputes.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>None</p></div>';return;}box.innerHTML='<table><thead><tr><th>ID</th><th>Type</th><th>By</th><th>Status</th><th>Action</th></tr></thead><tbody>'+res.disputes.map(function(d){return'<tr><td style="font-family:monospace;color:var(--warn)">'+d.dispute_id+'</td><td>'+d.dispute_type+'</td><td>'+d.reported_by+'</td><td><span class="badge '+(d.status==='Resolved'?'b-green':'b-red')+'">'+d.status+'</span></td><td>'+(d.status!=='Resolved'?'<button type="button" class="btn btn-s btn-sm" onclick="resolveDispute(\''+d.dispute_id+'\')">Resolve</button>':'—')+'</td></tr>';}).join('')+'</tbody></table>';});}
+function resolveDispute(did){api('/resolve_dispute/'+did,{method:'POST'}).then(function(res){if(res&&res.message){toast(res.message,'ok');loadDisputes();}else toast('Failed','err');});}
+function doEligibility(){var pid=$('elParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('elResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/verify_property/'+pid).then(function(res){if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)">Unreachable</div>';return;}if(res.status==='approved'){box.innerHTML='<div style="padding:16px;background:rgba(56,161,105,.1);border:1px solid rgba(56,161,105,.3);border-radius:10px"><div style="font-size:1rem;font-weight:700;color:var(--success);margin-bottom:8px"><i class="fas fa-check-circle" style="margin-right:6px"></i>Eligible</div><p style="font-size:.82rem;color:var(--txt2)">'+(res.message||'All checks passed.')+'</p></div>';}else{box.innerHTML='<div style="padding:16px;background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.3);border-radius:10px"><div style="font-size:1rem;font-weight:700;color:var(--danger);margin-bottom:8px"><i class="fas fa-times-circle" style="margin-right:6px"></i>Blocked</div><p style="font-size:.82rem;color:var(--txt2)">Reason: '+(res.reason||'Unknown')+'</p></div>';}});}
+
+/* ===== QR ===== */
+function renderQR(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>QR Verification</h2></div><div class="card" style="max-width:500px"><div style="text-align:center;margin-bottom:20px"><div style="width:80px;height:80px;border-radius:16px;background:var(--accentGlow);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto"><i class="fas fa-qrcode" style="font-size:2rem;color:var(--accent)"></i></div></div><div class="form-group" style="margin-bottom:14px"><label>Parcel ID</label><input class="inp" id="qrParcel"></div><button type="button" class="btn btn-p" style="width:100%;justify-content:center" onclick="doQRVerify()"><i class="fas fa-check"></i> Verify</button><div id="qrResult" style="margin-top:14px"></div></div>';}
+function doQRVerify(){var pid=$('qrParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('qrResult');box.innerHTML='<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i></div>';api('/verify_property/'+pid).then(function(res){if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger);text-align:center">Unreachable</div>';return;}if(res.status==='approved'){box.innerHTML='<div style="padding:16px;background:rgba(56,161,105,.1);border:1px solid rgba(56,161,105,.3);border-radius:10px;text-align:center"><div style="font-size:1.5rem;color:var(--success);margin-bottom:8px"><i class="fas fa-check-circle"></i></div><div style="font-weight:700;color:var(--success)">Verified</div></div>';}else{box.innerHTML='<div style="padding:16px;background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.3);border-radius:10px;text-align:center"><div style="font-size:1.5rem;color:var(--danger);margin-bottom:8px"><i class="fas fa-times-circle"></i></div><div style="font-weight:700;color:var(--danger)">Failed</div><p style="font-size:.82rem;color:var(--txt2);margin-top:4px">'+(res.reason||'Unknown')+'</p></div>';}});}
+
+/* ===== ML ===== */
+function renderML(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>ML Prediction</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><form id="mlForm"><div class="form-grid"><div class="form-group"><label>Area (sqft)</label><input type="number" class="inp" id="mlArea" required></div><div class="form-group"><label>Road (km)</label><input type="number" step="0.1" class="inp" id="mlRoad" required></div><div class="form-group"><label>City (km)</label><input type="number" step="0.1" class="inp" id="mlCity" required></div><div class="form-group"><label>Year</label><input type="number" class="inp" id="mlYear" value="2024" required></div><div class="form-group"><label>School</label><select class="inp" id="mlSchool"><option value="Yes">Yes</option><option value="No">No</option></select></div><div class="form-group"><label>Hospital</label><select class="inp" id="mlHosp"><option value="Yes">Yes</option><option value="No">No</option></select></div></div><button type="submit" class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px"><i class="fas fa-magic"></i> Predict</button></form><div id="mlResult" style="margin-top:14px"></div></div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Model Info</h3><div style="font-size:.82rem;color:var(--txt2);line-height:1.8"><p><i class="fas fa-chart-line" style="color:var(--purple);margin-right:6px"></i>Scikit-learn Regressor</p><p><i class="fas fa-database" style="color:var(--accent);margin-right:6px"></i>Area, distances, amenities</p></div></div></div>';$('mlForm').onsubmit=doMLPredict;}
+function doMLPredict(e){e.preventDefault();var box=$('mlResult');box.innerHTML='<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i></div>';api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:parseFloat($('mlArea').value),road_distance_km:parseFloat($('mlRoad').value),city_distance_km:parseFloat($('mlCity').value),nearby_school:$('mlSchool').value,nearby_hospital:$('mlHosp').value,year:parseInt($('mlYear').value)})}).then(function(res){if(res&&res.predicted_price!==undefined){box.innerHTML='<div style="padding:20px;background:var(--bg);border:1px solid var(--accent);border-radius:12px;text-align:center"><div style="font-size:.78rem;color:var(--txt2)">Predicted Value</div><div style="font-size:1.8rem;font-weight:700;color:var(--success)">Rs '+parseFloat(res.predicted_price).toLocaleString()+'</div></div>';toast('Done','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>'+(res?res.error:'Unreachable')+'</div>';}});return false;}
+
+/* ===== LOGS ===== */
+function renderLogs(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Activity Logs</h2></div><div class="card" style="margin-bottom:14px"><button type="button" class="btn btn-p btn-sm" onclick="loadLogs()"><i class="fas fa-sync-alt"></i> Refresh</button></div><div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>User</th><th>Action</th><th>Description</th><th>Timestamp</th></tr></thead><tbody id="logsBody"><tr><td colspan="4" class="empty-state"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody></table></div>';loadLogs();}
+function loadLogs(){api('/get_login_activity').then(function(data){var body=$('logsBody');if(!data||!Array.isArray(data)||!data.length){body.innerHTML='<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i><p>No logs</p></td></tr>';return;}body.innerHTML=data.slice(0,50).map(function(l){return'<tr><td>'+l.user_id+'</td><td><span class="badge b-blue">'+l.action_type+'</span></td><td>'+(l.description||'—')+'</td><td style="font-size:.75rem;color:var(--txt2)">'+(l.timestamp||'—')+'</td></tr>';}).join('');});}
+
+/* ===== BLOCKCHAIN ===== */
+function renderBlockchain(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Blockchain Explorer</h2></div><div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap"><button type="button" class="btn btn-p" onclick="loadBlockchain()"><i class="fas fa-sync-alt"></i> Refresh</button><button type="button" class="btn btn-w" onclick="showNewBlockModal()"><i class="fas fa-plus"></i> Create Block</button><button type="button" class="btn btn-s" onclick="verifyChain()"><i class="fas fa-check-double"></i> Verify</button></div><div id="bcChain"></div>';loadBlockchain();}
+function loadBlockchain(){var box=$('bcChain');box.innerHTML='<div class="empty-state"><i class="fas fa-spinner fa-spin"></i></div>';api('/get_blockchain').then(function(data){var blocks=(data&&Array.isArray(data))?data:DEMO_BLOCKS;box.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'+blocks.slice().reverse().map(function(b){return'<div class="block-card '+(b.confirmation_status==='Confirmed'?'confirmed':'pending')+'"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px"><div><span style="font-family:monospace;font-weight:700;color:var(--accent)">'+b.block_id+'</span> <span style="font-size:.72rem;color:var(--txt2)">#'+b.block_number+'</span></div><span class="badge '+(b.confirmation_status==='Confirmed'?'b-green':'b-yellow')+'">'+b.confirmation_status+'</span></div><div style="font-size:.78rem;color:var(--txt2);line-height:1.7"><div>Hash: <span style="font-family:monospace;font-size:.7rem;word-break:break-all">'+(b.transaction_hash||'—')+'</span></div><div>Prev: <span style="font-family:monospace;font-size:.7rem;word-break:break-all">'+(b.previous_hash||'—')+'</span></div><div>Gas: '+(b.gas_fee||'—')+' | '+(b.timestamp||'—')+'</div></div>'+(b.confirmation_status!=='Confirmed'?'<button type="button" class="btn btn-s btn-sm" style="margin-top:8px" onclick="confirmBlock(\''+b.transaction_hash+'\')"><i class="fas fa-check"></i> Confirm</button>':'')+'</div>';}).join('')+'</div>';});}
+function showNewBlockModal(){openModal('Create Block','<form id="createBlockForm"><div class="form-group" style="margin-bottom:12px"><label>Gas Fee</label><input type="number" class="inp" id="bcGas" step="0.001" required></div><button type="submit" class="btn btn-p" style="width:100%;justify-content:center"><i class="fas fa-cubes"></i> Create</button></form><div id="bcCreateResult" style="margin-top:12px"></div>');$('createBlockForm').onsubmit=doCreateBlock;}
+function doCreateBlock(e){e.preventDefault();api('/add_blockchain_transaction',{method:'POST',body:JSON.stringify({gas_fee:parseFloat($('bcGas').value)})}).then(function(res){var box=$('bcCreateResult');if(res&&res.block_id){box.innerHTML='<div style="padding:10px;background:rgba(56,161,105,.1);border-radius:8px;color:var(--success)">'+res.block_id+'</div>';toast('Created','ok');setTimeout(function(){closeModal();loadBlockchain();},1500);}else{box.innerHTML='<div style="padding:10px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)">Failed</div>';}});return false;}
+function confirmBlock(hash){api('/confirm_blockchain',{method:'PUT',body:JSON.stringify({transaction_hash:hash})}).then(function(res){if(res&&res.message){toast('Confirmed','ok');loadBlockchain();}else toast('Failed','err');});}
+function verifyChain(){api('/verify_blockchain').then(function(res){if(res&&res.blockchain_valid!==undefined){toast(res.blockchain_valid?'Chain verified':'Tampering at #'+res.block_number,res.blockchain_valid?'ok':'err');}else toast('Could not verify','err');});}
+
+/* ============================================================
+   GIS — FIXED: fixed overlay, no broken onerror handlers
+   ============================================================ */
+function destroyGISMap(){
+    if(ST.map){ST.map.remove();ST.map=null;}
+    ST.mapReady=false;ST.allPolygons=[];ST.allMarkers=[];
+    $('gisPageWrap').style.display='none';
+}
+
+function renderGIS(){
+    $('mainArea').className='main';$('mainArea').innerHTML='<div class="section-head"><h2>GIS & Geo Tagging</h2><p>Loading map...</p></div>';
+    $('gisPageWrap').style.display='block';
+    $('gisPageWrap').innerHTML='<div class="gis-page" id="gisPageInner"><div class="gis-map-wrap"><div id="gisMap"></div><div class="gis-legend"><b>Land Type</b><div class="leg-row"><div class="leg-box" style="background:green"></div> Residential</div><div class="leg-row"><div class="leg-box" style="background:red"></div> Commercial</div><div class="leg-row"><div class="leg-box" style="background:orange"></div> Agricultural</div><hr style="margin:6px 0;border-color:#ddd"><b>Status</b><div class="leg-row"><div class="leg-box" style="background:yellow;border:1px solid #999"></div> For Sale</div><div class="leg-row"><div class="leg-box" style="background:#333"></div> Disputed</div></div></div><div class="gis-panel"><h4>Search Parcel</h4><div style="display:flex;gap:6px;margin-bottom:6px"><input class="inp" id="gisSearch" placeholder="Parcel ID" style="font-size:.8rem;padding:7px 10px"><button type="button" class="btn btn-p btn-sm" onclick="gisSearchLand()">Search</button></div><h4>Land Details</h4><div id="gisDetails" style="font-size:.8rem;color:var(--txt2);padding:8px;background:var(--bg);border-radius:6px;min-height:60px">Click a parcel</div><h4>Predicted Price</h4><div id="gisPriceBox" style="padding:8px;background:var(--bg);border-radius:6px;min-height:30px;color:var(--txt2);font-size:.82rem">Click a parcel</div><h4>QR Code</h4><div id="gisQR" style="text-align:center;padding:8px;min-height:40px">—</div><h4>Nearby Lands</h4><div id="gisNearby" style="font-size:.8rem;color:var(--txt2);padding:8px;background:var(--bg);border-radius:6px;min-height:40px">—</div><h4>Documents</h4><div id="gisDocs" style="font-size:.8rem;color:var(--txt2);padding:8px;background:var(--bg);border-radius:6px;min-height:40px">Click a parcel</div></div></div>';
+    setTimeout(initGISMap,150);
+}
+
+function initGISMap(){
+    if(ST.map){ST.map.remove();ST.map=null;}
+    ST.allPolygons=[];ST.allMarkers=[];
+    var el=document.getElementById('gisMap');
+    if(!el)return;
+    ST.map=L.map('gisMap',{zoomControl:true}).setView([12.9716,77.5946],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OpenStreetMap',maxZoom:18}).addTo(ST.map);
+    setTimeout(function(){if(ST.map)ST.map.invalidateSize();},400);
+    ST.mapReady=true;
+    loadGISData();
+}
+
+function getLandColor(t){t=(t||'').toLowerCase();if(t==='residential')return'green';if(t==='commercial')return'red';if(t==='agricultural'||t==='agriculture')return'orange';return'blue';}
+function getDistance(a,b,c,d){var R=6371,e=(c-a)*Math.PI/180,f=(d-b)*Math.PI/180,g=Math.sin(e/2)*Math.sin(e/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(f/2)*Math.sin(f/2);return R*2*Math.atan2(Math.sqrt(g),Math.sqrt(1-g));}
+
+function loadGISData(){
+    api('/api/land').then(function(data){
+        var landData=null;
+        if(data&&Array.isArray(data)&&data.length){landData=data;toast('Backend data loaded','ok');}
+        else{landData=DEMO_LAND;toast('Demo land data','info');}
+        ST.mapData=landData;
+        var bounds=[];
+        landData.forEach(function(land){
+            var baseColor=getLandColor(land.type);
+            var style={color:baseColor,fillColor:baseColor,fillOpacity:.4,weight:2};
+            if(land.status==='for sale'){style.color='yellow';style.dashArray='5,5';style.fillColor='yellow';style.fillOpacity=.2;}
+            if(land.status==='disputed'){style.color='#333';style.fillColor='#333';style.fillOpacity=.3;}
+            var poly=L.polygon(land.polygon||[],style).addTo(ST.map);
+            if(land.status==='disputed'){var pel=poly.getElement();if(pel)pel.classList.add('blink');}
+            ST.allPolygons.push(poly);
+            var marker=L.marker([land.lat,land.lon]).addTo(ST.map);
+            (function(ld,mk){mk.on('click',function(){handleGISClick(ld,mk);});})(land,marker);
+            (function(ld,pl){pl.on('click',function(){handleGISClick(ld,marker);});})(land,poly);
+            ST.allMarkers.push({marker:marker,land:land});
+            bounds.push([land.lat,land.lon]);
+        });
+        if(bounds.length)ST.map.fitBounds(bounds,{padding:[30,30]});
+        setTimeout(function(){if(ST.map)ST.map.invalidateSize();},600);
+    });
+}
+
+function handleGISClick(land,marker){
+    if(!ST.map)return;
+    ST.map.flyTo([land.lat,land.lon],17,{duration:0.8});
+    $('gisDetails').innerHTML='<div style="line-height:1.8"><strong style="color:var(--accent)">'+land.parcel_id+'</strong><br>Owner: '+land.owner+'<br>Type: '+land.type+'<br>Status: '+land.status+'<br>Area: '+land.area+' sqft</div>';
+
+    /* FIXED: no onerror with complex HTML — use separate img element approach */
+    var qrDiv = document.getElementById('gisQR');
+    qrDiv.innerHTML = '';
+    var qrImg = document.createElement('img');
+    qrImg.src = BASE_URL + '/qr/' + land.parcel_id;
+    qrImg.width = 120;
+    qrImg.style.borderRadius = '8px';
+    qrImg.onerror = function() {
+        qrDiv.innerHTML = '<span style="color:var(--txt3);font-size:.78rem">QR unavailable</span>';
+    };
+    qrDiv.appendChild(qrImg);
+
+    var nearbyHtml='',found=false;
+    ST.mapData.forEach(function(o){if(o.parcel_id!==land.parcel_id){var d=getDistance(land.lat,land.lon,o.lat,o.lon);if(d<1){found=true;nearbyHtml+='<div>'+o.parcel_id+' ('+d.toFixed(2)+' km)</div>';}}});
+    $('gisNearby').innerHTML=found?nearbyHtml:'No nearby lands';
+
+    loadGISDocs(land.parcel_id);
+    $('gisPriceBox').innerHTML='<i class="fas fa-spinner fa-spin"></i> Predicting...';
+    api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:land.area,road_distance_km:2,city_distance_km:5,nearby_school:'Yes',nearby_hospital:'No',year:2024})}).then(function(res){
+        if(res&&res.predicted_price!==undefined){
+            $('gisPriceBox').innerHTML='<span style="color:var(--success)">Rs '+parseFloat(res.predicted_price).toLocaleString()+'</span>';
+            marker.bindPopup('<b>'+land.parcel_id+'</b><br>Rs '+parseFloat(res.predicted_price).toLocaleString()).openPopup();
+        }else{
+            var dp=Math.round(land.area*3500+Math.random()*500000);
+            $('gisPriceBox').innerHTML='<span style="color:var(--warn)">Rs '+dp.toLocaleString()+' (demo)</span>';
+        }
+    });
+}
+
+function loadGISDocs(pid){api('/documents/'+pid).then(function(data){var box=$('gisDocs');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='No documents';return;}box.innerHTML=data.map(function(d){return'<div style="margin-bottom:4px"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:4px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
+function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMarkers.find(function(m){return m.land.parcel_id===id;});if(found)handleGISClick(found.land,found.marker);else toast('Not found','err');}
+
+/* ============================================================
+   INIT — event listeners
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', function() {
+    $('loginForm').addEventListener('submit', doLogin);
+    $('quickLoginBtn').addEventListener('click', function(){
+        $('loginUser').value = 'admin';
+        $('loginPass').value = 'admin123';
+        $('loginRole').value = 'admin';
+        doLogin();
+    });
+    $('logoutBtn').addEventListener('click', doLogout);
+    $('mobToggleBtn').addEventListener('click', function(){
+        $('sideNav').classList.toggle('open');
+    });
+    $('modalBg').addEventListener('click', function(e){
+        if (e.target === $('modalBg')) closeModal();
+    });
+    updateConnBadge();
+    fetch(BASE_URL + '/properties', {method: 'GET'}).then(function(r) {
+        return r.json();
+    }).then(function() {
+        ST.backendUp = true;
+        updateConnBadge();
+    }).catch(function() {
+        ST.backendUp = false;
+        updateConnBadge();
+    });
 });
-
-function displayData(data) {
-  const list = document.getElementById("landList");
-
-  data.forEach(land => {
-
-    let color = "blue";
-    if (land.status === "dispute") color = "red";
-    if (land.status === "sale") color = "green";
-
-    const marker = L.circleMarker([land.latitude, land.longitude], { color }).addTo(map);
-
-    marker.land_id = land.land_id;
-    markers.push(marker);
-
-    marker.bindPopup(`<b>${land.land_id}</b><br>${land.owner_name}`);
-
-    // polygon
-    if (land.boundary_polygon) {
-      try {
-        const coords = JSON.parse(land.boundary_polygon);
-        L.polygon(coords, { color }).addTo(map);
-      } catch {}
-    }
-
-    const div = document.createElement("div");
-    div.className = "land-card";
-    div.innerHTML = `<b>${land.land_id}</b> - ${land.owner_name}`;
-    list.appendChild(div);
-  });
-}
-
-// 🔍 Search
-function searchLand() {
-  const id = document.getElementById("searchId").value;
-
-  markers.forEach(m => {
-    if (m.land_id === id) {
-      map.setView(m.getLatLng(), 18);
-      m.openPopup();
-    }
-  });
-}
-
-// 📏 Distance
-function calculateDistance() {
-  const id1 = document.getElementById("land1").value;
-  const id2 = document.getElementById("land2").value;
-
-  const l1 = landData.find(l => l.land_id === id1);
-  const l2 = landData.find(l => l.land_id === id2);
-
-  if (!l1 || !l2) {
-    alert("Invalid Land IDs");
-    return;
-  }
-
-  const R = 6371;
-  const dLat = (l2.latitude - l1.latitude) * Math.PI/180;
-  const dLon = (l2.longitude - l1.longitude) * Math.PI/180;
-
-  const a = Math.sin(dLat/2)**2 +
-            Math.cos(l1.latitude*Math.PI/180) *
-            Math.cos(l2.latitude*Math.PI/180) *
-            Math.sin(dLon/2)**2;
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const distance = R * c;
-
-  document.getElementById("distanceResult").innerText =
-    "Distance: " + distance.toFixed(2) + " km";
-}
-
-// ➕ Add Land
-function addLand() {
-  const data = {
-    land_id: document.getElementById("newId").value,
-    owner_name: document.getElementById("newOwner").value,
-    latitude: parseFloat(document.getElementById("newLat").value),
-    longitude: parseFloat(document.getElementById("newLng").value)
-  };
-
-  fetch("http://127.0.0.1:5000/add_land", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  })
-  .then(res => res.json())
-  .then(msg => {
-    alert("Land Added!");
-    location.reload();
-  });
-}
-
-// 📷 QR
-function onScanSuccess(text) {
-  alert("Scanned: " + text);
-  document.getElementById("searchId").value = text;
-  searchLand();
-}
-
-new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 })
-  .render(onScanSuccess);
-
 </script>
-
 </body>
 </html>
