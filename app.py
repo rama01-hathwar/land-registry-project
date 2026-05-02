@@ -1077,6 +1077,79 @@ def generate_data():
     conn.close()
     return "✅ 100 records generated in SQLite!"
 
+@app.route('/generate-full-data')
+def generate_full_data():
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # Clear all related tables (for fresh demo)
+    c.execute("DELETE FROM property")
+    c.execute("DELETE FROM gis_land_data")
+
+    first_names = ["Ravi","Sita","Arjun","Meena","Kiran","Anita"]
+    last_names = ["Kumar","Sharma","Reddy","Patel"]
+    land_types = ["Residential","Commercial","Agricultural"]
+
+    base_lat, base_lon = 12.9716, 77.5946
+
+    for i in range(1, 101):
+
+        parcel_id = f"L{i:03}"   # ✅ SAME ID everywhere
+
+        owner_name = random.choice(first_names) + " " + random.choice(last_names)
+        owner_id = f"U{i:03}"
+
+        lat = base_lat + random.uniform(-0.02, 0.02)
+        lon = base_lon + random.uniform(-0.02, 0.02)
+
+        area = random.randint(800, 5000)
+        value = random.randint(1000000, 10000000)
+
+        # ✅ PROPERTY TABLE
+        c.execute("""
+        INSERT INTO property
+        (parcel_id, owner_id, survey_number, village, taluk, district, state,
+         land_type, area_sqft, registration_date, current_market_value,
+         geo_latitude, geo_longitude)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            parcel_id,
+            owner_id,
+            f"S{i:03}",
+            "Village",
+            "Taluk",
+            "District",
+            "State",
+            random.choice(land_types),
+            area,
+            str(datetime.now()),
+            value,
+            lat,
+            lon
+        ))
+
+        # ✅ GIS TABLE (same ID)
+        c.execute("""
+        INSERT INTO gis_land_data
+        (land_id, survey_number, owner_name, land_use_type,
+         area_sq_ft, latitude, longitude)
+        VALUES (?,?,?,?,?,?,?)
+        """, (
+            parcel_id,
+            f"S{i:03}",
+            owner_name,
+            random.choice(land_types),
+            area,
+            lat,
+            lon
+        ))
+
+    conn.commit()
+    conn.close()
+
+    return "✅ FULL DATA GENERATED (GIS + PROPERTY)"
+
 @app.route('/generate-qr')
 def generate_qr_codes():
     try:
