@@ -526,26 +526,80 @@ function loadGISData(){
     });
 }
 
-function handleGISClick(land,marker){
-    if(!ST.map)return;
-    ST.map.flyTo([land.lat,land.lon],17,{duration:0.8});
-    $('gisDetails').innerHTML='<div style="line-height:1.8"><strong style="color:var(--accent)">'+land.parcel_id+'</strong><br>Owner: '+land.owner+'<br>Type: '+land.type+'<br>Status: '+land.status+'<br>Area: '+land.area+' sqft</div>';
+function handleGISClick(land, marker){
 
-    /* FIXED: no onerror with complex HTML — use separate img element approach */
+    if(!ST.map) return;
+
+    // 🔥 FIX PARCEL ID FORMAT HERE
+    let rawId = land.parcel_id || land.land_id || "L0";
+    let num = rawId.replace("L", "");
+    let parcelId = "L" + String(parseInt(num)).padStart(3, '0');
+
+    console.log("Fixed Parcel ID:", parcelId);
+
+    ST.map.flyTo([land.lat, land.lon], 17, {duration:0.8});
+
+    $('gisDetails').innerHTML =
+        '<div style="line-height:1.8">' +
+        '<strong style="color:var(--accent)">' + parcelId + '</strong><br>' +
+        'Owner: ' + land.owner + '<br>' +
+        'Type: ' + land.type + '<br>' +
+        'Status: ' + land.status + '<br>' +
+        'Area: ' + land.area + ' sqft</div>';
+
+    // 🔥 UPDATE PARCEL ID BACK INTO LAND OBJECT
+    land.parcel_id = parcelId;
+
+    /* QR FIX */
     var qrDiv = document.getElementById('gisQR');
     qrDiv.innerHTML = '';
+
     var qrImg = document.createElement('img');
-    qrImg.src = BASE_URL + '/qr/' + land.parcel_id;
+    qrImg.src = BASE_URL + '/qr/' + parcelId;   // ✅ FIXED HERE
     qrImg.width = 120;
     qrImg.style.borderRadius = '8px';
+
     qrImg.onerror = function() {
         qrDiv.innerHTML = '<span style="color:var(--txt3);font-size:.78rem">QR unavailable</span>';
     };
+
     qrDiv.appendChild(qrImg);
 
-    var nearbyHtml='',found=false;
-    ST.mapData.forEach(function(o){if(o.parcel_id!==land.parcel_id){var d=getDistance(land.lat,land.lon,o.lat,o.lon);if(d<1){found=true;nearbyHtml+='<div>'+o.parcel_id+' ('+d.toFixed(2)+' km)</div>';}}});
-    $('gisNearby').innerHTML=found?nearbyHtml:'No nearby lands';
+    // 🔥 AUTO FILL SYSTEM (VERY IMPORTANT)
+    if(document.getElementById('tfParcel')){
+        document.getElementById('tfParcel').value = parcelId;
+    }
+
+    if(document.getElementById('searchParcel')){
+        document.getElementById('searchParcel').value = parcelId;
+    }
+
+    // 🔥 LOAD ALL MODULE DATA
+    if(typeof loadFullParcelData === "function"){
+        loadFullParcelData(parcelId);
+    }
+
+    // Nearby lands
+    var nearbyHtml = '', found = false;
+
+    ST.mapData.forEach(function(o){
+
+        let oId = o.parcel_id || o.land_id;
+
+        let num2 = oId.replace("L","");
+        oId = "L" + String(parseInt(num2)).padStart(3,'0');
+
+        if(oId !== parcelId){
+            var d = getDistance(land.lat, land.lon, o.lat, o.lon);
+            if(d < 1){
+                found = true;
+                nearbyHtml += '<div>' + oId + ' (' + d.toFixed(2) + ' km)</div>';
+            }
+        }
+    });
+
+    $('gisNearby').innerHTML = found ? nearbyHtml : 'No nearby lands';
+}
 
     loadGISDocs(land.parcel_id);
     $('gisPriceBox').innerHTML='<i class="fas fa-spinner fa-spin"></i> Predicting...';
