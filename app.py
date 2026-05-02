@@ -378,24 +378,28 @@ VALUES (?,?,?,?,?)
 # ============================================================
 # OWNER HISTORY — FIXED: actually returns data
 # ============================================================
-@app.route('/owner_history/<parcel_id>', methods=['GET'])
-def owner_history(parcel_id):
+@app.route('/ownership_history/<parcel_id>')
+def get_history(parcel_id):
+
     conn = get_db()
-    rows = conn.execute("""
-        SELECT transaction_id, parcel_id, from_owner, to_owner,
-               transaction_type, sale_amount, timestamp
-        FROM transfer WHERE parcel_id=? ORDER BY timestamp ASC
+    c = conn.cursor()
+
+    rows = c.execute("""
+        SELECT seller_id, buyer_id, transfer_date
+        FROM ownership_history
+        WHERE parcel_id=?
+        ORDER BY transfer_date ASC
     """, (parcel_id,)).fetchall()
+
     conn.close()
-    history = []
-    for r in rows:
-        history.append({
-            "transaction_id": r[0], "parcel_id": r[1],
-            "previous_owner": r[2], "new_owner": r[3],
-            "transaction_type": r[4], "sale_amount": r[5],
-            "timestamp": str(r[6])
-        })
-    return jsonify(history)
+
+    return jsonify([
+        {
+            "seller_id": r[0],
+            "buyer_id": r[1],
+            "date": r[2]
+        } for r in rows
+    ])
 
 # ============================================================
 # FRAUD DETECTION
@@ -1110,11 +1114,13 @@ def generate_full_data():
     c.execute("DELETE FROM property")
     c.execute("DELETE FROM gis_land_data")
     c.execute("DELETE FROM tax")
+    c.execute("DELETE FROM property_tax")
     c.execute("DELETE FROM mortgage")
     c.execute("DELETE FROM dispute")
-    c.execute("DELETE FROM ")
+    c.execute("DELETE FROM ownership_history")
 
     first_names = ["Ravi","Sita","Arjun","Meena","Kiran"]
+    last_names = ["Kumar","Reddy","Sharma","Patel"]
     land_types = ["Residential","Commercial","Agricultural"]
 
     base_lat, base_lon = 12.9716, 77.5946
@@ -1123,6 +1129,7 @@ def generate_full_data():
 
         parcel_id = f"L{i:03}"
         owner_id = f"U{i:03}"
+        owner_name = random.choice(first_names) + " " + random.choice(last_names)
 
         lat = base_lat + random.uniform(-0.02, 0.02)
         lon = base_lon + random.uniform(-0.02, 0.02)
@@ -1132,60 +1139,103 @@ def generate_full_data():
 
         # ================= PROPERTY =================
         c.execute("""
-        INSERT INTO property VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO property
+        (parcel_id, owner_id, survey_number, khata_number,
+         village, taluk, district, state,
+         land_type, area_sqft, registration_date,
+         current_market_value, geo_latitude, geo_longitude,
+         tax_status, mortgage_status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
-            parcel_id, owner_id, f"S{i:03}",
+            parcel_id, owner_id, f"S{i:03}", f"K{i:03}",
             "Village","Taluk","District","State",
             random.choice(land_types),
-            area, str(datetime.now()), value,
-            lat, lon
+            area, str(datetime.now()),
+            value, lat, lon,
+            random.choice(["Paid","Pending"]),
+            random.choice(["None","Active"])
         ))
 
         # ================= GIS =================
         c.execute("""
-        INSERT INTO gis_land_data VALUES (?,?,?,?,?,?,?,?)
+        INSERT INTO gis_land_data
+        (land_id, survey_number, owner_name, land_use_type,
+         area_sq_ft, latitude, longitude, boundary_polygon, status)
+        VALUES (?,?,?,?,?,?,?,?,?)
         """, (
-            parcel_id, f"S{i:03}", random.choice(first_names),
-            random.choice(land_types), area, lat, lon, '[]'
+            parcel_id, f"S{i:03}", owner_name,
+            random.choice(land_types),
+            area, lat, lon, '[]', 'registered'
         ))
 
         # ================= TAX =================
         c.execute("""
-        INSERT INTO tax VALUES (?,?,?,?)
+        INSERT INTO tax
+        (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
+        VALUES (?,?,?,?,?,?,?)
         """, (
-            f"TAX{i:03}",
-            parcel_id,
+            f"TAX{i:03}", parcel_id,
+            2024,
             random.randint(1000,5000),
+            random.randint(500,3000),
+            str(datetime.now()),
+            random.choice(["Paid","Pending"])
+        ))
+
+        # ================= PROPERTY TAX =================
+        c.execute("""
+        INSERT INTO property_tax
+        (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
+        VALUES (?,?,?,?,?,?,?)
+        """, (
+            f"PTAX{i:03}", parcel_id,
+            2024,
+            random.randint(2000,8000),
+            random.randint(1000,5000),
+            str(datetime.now()),
             random.choice(["Paid","Pending"])
         ))
 
         # ================= MORTGAGE =================
         c.execute("""
-        INSERT INTO mortgage VALUES (?,?,?)
+        INSERT INTO mortgage
+        (mortgage_id, parcel_id, owner_id, bank_name,
+         loan_amount, interest_rate, start_date, end_date, mortgage_status)
+        VALUES (?,?,?,?,?,?,?,?,?)
         """, (
-            f"M{i:03}",
-            parcel_id,
+            f"M{i:03}", parcel_id, owner_id,
+            "ICICI Bank",
+            random.randint(50000,500000),
+            random.uniform(7.5,10.5),
+            str(datetime.now()),
+            str(datetime.now()),
             random.choice(["Active","Closed"])
         ))
 
         # ================= DISPUTE =================
         if random.random() < 0.2:
             c.execute("""
-            INSERT INTO dispute VALUES (?,?,?)
+            INSERT INTO dispute
+            (dispute_id, parcel_id, dispute_type, reported_by,
+             description, status, created_date, resolved_date)
+            VALUES (?,?,?,?,?,?,?,?)
             """, (
-                f"D{i:03}",
-                parcel_id,
-                "Open"
+                f"D{i:03}", parcel_id,
+                "Ownership", owner_id,
+                "Test dispute",
+                "Open",
+                str(datetime.now()),
+                ""
             ))
 
-        # ================= OWNERSHIP HISTORY (IMPORTANT) =================
+        # ================= OWNERSHIP HISTORY =================
         c.execute("""
         INSERT INTO ownership_history
         (parcel_id, seller_id, buyer_id, transfer_date, transaction_hash)
         VALUES (?,?,?,?,?)
         """, (
             parcel_id,
-            "GENESIS",       # initial owner
+            "GENESIS",
             owner_id,
             str(datetime.now()),
             "INIT_HASH"
@@ -1194,8 +1244,8 @@ def generate_full_data():
     conn.commit()
     conn.close()
 
-    return "✅ FULL SYSTEM DATA GENERATED WITH HISTORY"
-
+    return "✅ FULL DATA GENERATED SUCCESSFULLY"
+    
 @app.route('/generate-qr')
 def generate_qr_codes():
     try:
