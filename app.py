@@ -1230,6 +1230,7 @@ def generate_data():
 @app.route('/generate-full-data')
 def generate_full_data():
     try:
+        init_db()
         conn = get_db()
         c = conn.cursor()
 
