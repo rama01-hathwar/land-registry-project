@@ -1286,24 +1286,23 @@ def generate_full_data():
             ))
 
             # ================= GIS =================
-            c.execute("""
-            INSERT INTO gis_land_data (
-                land_id, survey_number, owner_name, land_use_type,
-                area_sq_ft, latitude, longitude, boundary_polygon, status
-            )
-            VALUES (?,?,?,?,?,?,?,?,?)
-            """, (
-                parcel_id,
-                f"S{i:03}",
-                "Owner " + str(i),
-                random.choice(land_types),
-                area,
-                lat,
-                lon,
-                '[]',
-                random.choice(statuses)   # 🔥 RANDOM STATUS
-            ))
-
+           c.execute("""
+           INSERT INTO gis_land_data (
+              land_id, survey_number, owner_name, land_use_type,
+              area_sq_ft, latitude, longitude, boundary_polygon, status
+           )
+           VALUES (?,?,?,?,?,?,?,?,?)
+           """, (
+              f"L{i:03}",   # 🔥 FIX HERE
+              f"S{i:03}",
+              "Owner " + str(i),
+              random.choice(["Residential","Commercial","Agricultural"]),
+              area,
+              lat,
+              lon,
+              '[]',
+              random.choice(["registered","pending","disputed","verified"])
+           ))
             # ================= TAX =================
             c.execute("""
             INSERT INTO tax (
@@ -1500,24 +1499,12 @@ def create_document_table():
     init_document_table()
     return "Table created in SQLite"
 
-@app.route("/check_lands")
+@app.route('/check_lands')
 def check_lands():
-    if HAS_POSTGRES:
-        try:
-            pg = get_postgres()
-            if pg:
-                cur = pg.cursor()
-                cur.execute("SELECT land_id FROM gis_land_data LIMIT 10")
-                rows = cur.fetchall()
-                cur.close()
-                pg.close()
-                return str(rows)
-        except:
-            pass
     conn = get_db()
     rows = conn.execute("SELECT land_id FROM gis_land_data LIMIT 10").fetchall()
     conn.close()
-    return str([r[0] for r in rows])
+    return str(rows)
 
 @app.route('/check_documents')
 def check_documents():
