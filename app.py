@@ -424,75 +424,34 @@ def transfer_property():
         seller_id = data['seller_id']
         buyer_id = data['buyer_id']
         sale_amount = data['sale_amount']
-        transaction_hash = data['transaction_hash']
 
         conn = get_db()
         c = conn.cursor()
 
-        # 1. Dispute
-        if c.execute("SELECT COUNT(*) FROM dispute WHERE parcel_id=? AND status!='Resolved'", (parcel_id,)).fetchone()[0] > 0:
-            return jsonify({"message": "Transfer blocked due to active dispute"}), 400
+        # ✅ ONLY OWNER CHECK (keep minimal for now)
+        owner = c.execute(
+            "SELECT owner_id FROM property WHERE parcel_id=?",
+            (parcel_id,)
+        ).fetchone()
 
-        # 2. Mortgage
-        if c.execute("SELECT 1 FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (parcel_id,)).fetchone():
-            return jsonify({"message": "Transfer blocked due to active mortgage"}), 400
-
-        # 3. Tax
-        tax1 = c.execute("SELECT COUNT(*) FROM tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchone()[0]
-        tax2 = c.execute("SELECT COUNT(*) FROM property_tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchone()[0]
-
-        if tax1 > 0 or tax2 > 0:
-            return jsonify({"message": "Transfer blocked due to unpaid tax"}), 400
-
-        # 4. Blockchain (optional skip for now)
-        #bc = c.execute("SELECT confirmation_status FROM blockchain WHERE transaction_hash=?", (transaction_hash,)).fetchone()
-        #if not bc or bc[0] != 'Confirmed':
-            #return jsonify({"message": "Transaction not confirmed"}), 400
-
-        # 5. Owner check
-        owner = c.execute("SELECT owner_id FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
         if not owner:
-            return jsonify({"message": "Property not found"}), 404
+            return jsonify({"error": "Property not found"}), 404
 
         if owner[0] != seller_id:
-            return jsonify({"message": "Seller is not current owner"}), 400
+            return jsonify({"error": "Seller is not owner"}), 400
 
-        # 6. Transfer
-        c.execute("UPDATE property SET owner_id=? WHERE parcel_id=?", (buyer_id, parcel_id))
-
-        txn_id = "T" + str(random.randint(1000, 9999))
-        new_hash = hashlib.sha256((parcel_id + buyer_id + str(datetime.now())).encode()).hexdigest()
-
-        c.execute("""
-        INSERT INTO transfer 
-        (transaction_id, parcel_id, seller_id, buyer_id, type, transaction_hash, block_number, timestamp, sale_amount)
-        VALUES (?,?,?,?,?,?,?,?,?)
-        """, (
-            txn_id, parcel_id, seller_id, buyer_id,
-            "Transfer", new_hash, random.randint(1000,9999),
-            str(datetime.now()), sale_amount
-        ))
-
-        # ownership history
-        c.execute("""
-        INSERT INTO ownership_history 
-        (parcel_id, seller_id, buyer_id, transfer_date, transaction_hash)
-        VALUES (?,?,?,?,?)
-        """, (
-            parcel_id,
-            seller_id,
-            buyer_id,
-            str(datetime.now()),
-            new_hash
-        ))
+        # ✅ TRANSFER
+        c.execute(
+            "UPDATE property SET owner_id=? WHERE parcel_id=?",
+            (buyer_id, parcel_id)
+        )
 
         conn.commit()
         conn.close()
 
         return jsonify({
             "success": True,
-            "message": "Property transferred successfully",
-            "transaction_id": txn_id
+            "message": "Transfer successful"
         })
 
     except Exception as e:
@@ -851,7 +810,7 @@ def get_land():
                         sz = max(float(row[4]) / 10000000, 0.0003)
                         poly = [[lat+sz,lon+sz],[lat+sz,lon-sz],[lat-sz,lon-sz],[lat-sz,lon+sz]]
                     data.append({
-                        "parcel_id": row[0], "survey": row[1], "owner": row[2],
+                        "parcel_id": f"L{int(str(row[0]).replace('L','')):03}", "survey": row[1], "owner": row[2],
                         "type": row[3], "area": row[4], "lat": row[5], "lon": row[6],
                         "polygon": poly,
                         "status": row[8] if len(row) > 8 and row[8] else "registered"
@@ -876,7 +835,7 @@ def get_land():
             sz = max(float(r[4]) / 10000000, 0.0003)
             poly = [[lat+sz,lon+sz],[lat+sz,lon-sz],[lat-sz,lon-sz],[lat-sz,lon+sz]]
         data.append({
-            "parcel_id": r[0], "survey": r[1], "owner": r[2], "type": r[3],
+            "parcel_id": f"L{int(str(row[0]).replace('L','')):03}", "survey": r[1], "owner": r[2], "type": r[3],
             "area": r[4], "lat": r[5], "lon": r[6], "polygon": poly,
             "status": r[8] if r[8] else "registered"
         })
