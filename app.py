@@ -952,7 +952,7 @@ def get_land():
             "lat": r[5],
             "lon": r[6],
             "polygon": poly,
-            "status": r[8] if r[8] else "registered"
+            "status": r[8] if r[8] else "registered",
             "predicted_price": (r[4] * 500)
         })
 
