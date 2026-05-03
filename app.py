@@ -787,60 +787,48 @@ def verify_blockchain():
 # ============================================================
 @app.route('/api/land')
 def get_land():
-    # Try PostgreSQL first
-    if FALSE and  HAS_POSTGRES:
-        try:
-            pg = get_postgres()
-            if pg:
-                cur = pg.cursor()
-                cur.execute("SELECT * FROM gis_land_data")
-                rows = cur.fetchall()
-                cur.close()
-                pg.close()
-                data = []
-                for row in rows:
-                    poly = []
-                    if len(row) > 7 and row[7]:
-                        try:
-                            poly = json.loads(row[7])
-                        except:
-                            poly = []
-                    if not poly:
-                        lat, lon = row[5], row[6]
-                        sz = max(float(row[4]) / 10000000, 0.0003)
-                        poly = [[lat+sz,lon+sz],[lat+sz,lon-sz],[lat-sz,lon-sz],[lat-sz,lon+sz]]
-                    data.append({
-                        "parcel_id": f"L{int(str(row[0]).replace('L','')):03}", "survey": row[1], "owner": row[2],
-                        "type": row[3], "area": row[4], "lat": row[5], "lon": row[6],
-                        "polygon": poly,
-                        "status": row[8] if len(row) > 8 and row[8] else "registered"
-                    })
-                return jsonify(data)
-        except:
-            pass
 
-    # Fallback to SQLite
+    # 🚫 Disable PostgreSQL safely
+    if False and HAS_POSTGRES:
+        pass
+
+    # ✅ SQLite only
     conn = get_db()
     rows = conn.execute("SELECT * FROM gis_land_data").fetchall()
     conn.close()
+
     data = []
+
     for r in rows:
         poly = []
         try:
             poly = json.loads(r[7])
         except:
             poly = []
+
         if not poly:
             lat, lon = r[5], r[6]
             sz = max(float(r[4]) / 10000000, 0.0003)
-            poly = [[lat+sz,lon+sz],[lat+sz,lon-sz],[lat-sz,lon-sz],[lat-sz,lon+sz]]
+            poly = [
+                [lat+sz, lon+sz],
+                [lat+sz, lon-sz],
+                [lat-sz, lon-sz],
+                [lat-sz, lon+sz]
+            ]
+
         data.append({
-            "parcel_id": f"L{int(str(row[0]).replace('L','')):03}", "survey": r[1], "owner": r[2], "type": r[3],
-            "area": r[4], "lat": r[5], "lon": r[6], "polygon": poly,
+            "parcel_id": f"L{int(str(r[0]).replace('L','')):03}",
+            "survey": r[1],
+            "owner": r[2],
+            "type": r[3],
+            "area": r[4],
+            "lat": r[5],
+            "lon": r[6],
+            "polygon": poly,
             "status": r[8] if r[8] else "registered"
         })
-    return jsonify(data)
 
+    return jsonify(data)
 @app.route("/api/nearby_land")
 def nearby_land():
     lat = float(request.args.get("lat"))
