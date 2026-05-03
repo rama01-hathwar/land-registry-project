@@ -788,7 +788,7 @@ def verify_blockchain():
 @app.route('/api/land')
 def get_land():
     # Try PostgreSQL first
-    if HAS_POSTGRES:
+    if FALSE and  HAS_POSTGRES:
         try:
             pg = get_postgres()
             if pg:
