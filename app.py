@@ -691,25 +691,21 @@ def get_unpaid_tax(parcel_id):
 
 @app.route('/pay_tax/<parcel_id>', methods=['POST'])
 def pay_tax(parcel_id):
-    try:
-        conn = get_db()
-        c = conn.cursor()
+    conn = get_db()
+    c = conn.cursor()
 
-        c.execute("""
-            UPDATE tax
-            SET payment_status='Paid',
-                tax_paid=tax_amount,
-                payment_date=DATE('now')
-            WHERE parcel_id=?
-        """, (parcel_id,))
+    c.execute("""
+        UPDATE tax
+        SET payment_status='Paid',
+            tax_paid=tax_amount,
+            payment_date=DATE('now')
+        WHERE parcel_id=?
+    """, (parcel_id,))
 
-        conn.commit()
-        conn.close()
+    conn.commit()
+    conn.close()
 
-        return jsonify({"message": "Tax paid successfully"})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"message": "Tax paid successfully"})
 
 @app.route('/view_tax/<parcel_id>')
 def view_tax(parcel_id):
@@ -957,6 +953,7 @@ def get_land():
             "lon": r[6],
             "polygon": poly,
             "status": r[8] if r[8] else "registered"
+            "predicted_price": (r[4] * 500)
         })
 
     return jsonify(data)
@@ -1192,26 +1189,24 @@ def validate_document(document_id):
 def predict_price():
     try:
         data = request.json
-        if not HAS_MODEL:
-            area = data.get('area_sqft', 1000)
-            price = area * 3500 + random.randint(100000, 500000)
-            return jsonify({"predicted_price": float(price)})
-        input_data = {
-            'area_sqft': data['area_sqft'],
-            'road_distance_km': data['road_distance_km'],
-            'city_distance_km': data['city_distance_km'],
-            'nearby_school': 1 if data['nearby_school'] == 'Yes' else 0,
-            'nearby_hospital': 1 if data['nearby_hospital'] == 'Yes' else 0,
-            'year': data['year']
-        }
-        df = pd.DataFrame([input_data])
-        df = pd.get_dummies(df)
-        for col in model_columns:
-            if col not in df:
-                df[col] = 0
-        df = df[model_columns]
-        prediction = model.predict(df)
-        return jsonify({"predicted_price": float(prediction[0])})
+
+        area = float(data.get('area', 1000))
+        land_type = data.get('type', 'Residential')
+
+        # Convert type → number
+        t = 0 if land_type == "Residential" else 1 if land_type == "Commercial" else 2
+
+        # If model exists
+        if HAS_MODEL:
+            prediction = model.predict([[area, t]])[0]
+        else:
+            # fallback logic
+            prediction = area * 3000 + random.randint(50000, 200000)
+
+        return jsonify({
+            "price": round(float(prediction), 2)
+        })
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
