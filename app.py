@@ -1507,7 +1507,10 @@ def generate_full_data_internal():
         for i in range(1, 201):
             parcel_id = f"L{i:03}"
             owner_id = f"U{i:03}"
-            land_type=random.chices("Residential","Commercial","Agricultural"],weights=[60,25,15])[0]
+            random.choices(
+                ["Residential", "Commercial", "Agricultural"],
+                weights=[60, 25, 15]
+             )[0]
 
             lat = 12.97 + (i * 0.0005)
             lon = 77.59 + (i * 0.0005)
