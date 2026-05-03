@@ -1522,6 +1522,25 @@ def force_generate():
     generate_full_data_internal()
     return "Generated"
 
+@app.before_first_request
+def initialize_data():
+    try:
+        conn = get_db()
+        c = conn.cursor()
+
+        count = c.execute("SELECT COUNT(*) FROM property").fetchone()[0]
+
+        if count == 0:
+            print("🔥 Auto generating data...")
+            generate_full_data_internal()
+        else:
+            print("✅ Data already exists")
+
+        conn.close()
+
+    except Exception as e:
+        print("❌ Init error:", e)
+
 
 
 
