@@ -1415,69 +1415,29 @@ def force_generate():
 init_document_table()
 init_db()
 def generate_full_data_internal():
+    print("🔥 STARTING DATA GENERATION")
+
     conn = get_db()
     c = conn.cursor()
 
-    # CLEAN TABLES
     c.execute("DELETE FROM gis_land_data")
     c.execute("DELETE FROM property")
 
     for i in range(1, 201):
+        print("Inserting:", i)   # 👈 ADD THIS
+
         parcel_id = f"L{i:03}"
         owner_id = f"U{i:03}"
 
         lat = 12.97 + (i * 0.0005)
         lon = 77.59 + (i * 0.0005)
 
-        # ✅ GIS TABLE
-        c.execute("""
-        INSERT INTO gis_land_data (
-            land_id, survey_number, owner_name,
-            land_use_type, area_sq_ft,
-            latitude, longitude, boundary_polygon, status
-        ) VALUES (?,?,?,?,?,?,?,?,?)
-        """, (
-            parcel_id,
-            f"S{i:03}",
-            f"Owner {i}",
-            "Residential",
-            1000 + i,
-            lat,
-            lon,
-            '[]',
-            "registered"
-        ))
+        c.execute(""" INSERT INTO gis_land_data (...) VALUES (...) """, (...))
 
-        # ✅ PROPERTY TABLE (THIS WAS MISSING)
-        c.execute("""
-        INSERT INTO property (
-            parcel_id, owner_id, survey_number,
-            village, taluk, district, state,
-            land_type, area_sqft, registration_date,
-            current_market_value,
-            geo_latitude, geo_longitude,
-            tax_status, mortgage_status
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        """, (
-            parcel_id,
-            owner_id,
-            f"S{i:03}",
-            "Village X",
-            "Taluk X",
-            "District X",
-            "State X",
-            "Residential",
-            1000 + i,
-            "2024-01-01",
-            500000 + i * 1000,
-            lat,
-            lon,
-            "Paid",
-            "None"
-        ))
+        c.execute(""" INSERT INTO property (...) VALUES (...) """, (...))
 
     conn.commit()
-    conn.close()
+    print("✅ DATA INSERTED")
 
 @app.route('/generate-full-data')
 def generate_full_data():
