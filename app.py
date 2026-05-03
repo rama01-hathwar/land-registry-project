@@ -420,15 +420,17 @@ def transfer_property():
     try:
         data = request.get_json(force=True)
 
-        parcel_id = data['parcel_id']
-        seller_id = data['seller_id']
-        buyer_id = data['buyer_id']
-        sale_amount = data['sale_amount']
+        parcel_id = data.get('parcel_id')
+        seller_id = data.get('seller_id')
+        buyer_id = data.get('buyer_id')
 
         conn = get_db()
         c = conn.cursor()
 
-        # ✅ ONLY OWNER CHECK (keep minimal for now)
+        # DEBUG PRINT
+        print("DATA RECEIVED:", data)
+
+        # Check property
         owner = c.execute(
             "SELECT owner_id FROM property WHERE parcel_id=?",
             (parcel_id,)
@@ -438,9 +440,9 @@ def transfer_property():
             return jsonify({"error": "Property not found"}), 404
 
         if owner[0] != seller_id:
-            return jsonify({"error": "Seller is not owner"}), 400
+            return jsonify({"error": "Seller not owner"}), 400
 
-        # ✅ TRANSFER
+        # UPDATE OWNER
         c.execute(
             "UPDATE property SET owner_id=? WHERE parcel_id=?",
             (buyer_id, parcel_id)
@@ -449,12 +451,10 @@ def transfer_property():
         conn.commit()
         conn.close()
 
-        return jsonify({
-            "success": True,
-            "message": "Transfer successful"
-        })
+        return jsonify({"success": True, "message": "Transfer success"})
 
     except Exception as e:
+        print("ERROR:", str(e))   # 🔥 IMPORTANT
         return jsonify({"error": str(e)}), 500
 # ============================================================
 # OWNER HISTORY — FIXED: actually returns data
