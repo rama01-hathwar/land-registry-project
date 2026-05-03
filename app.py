@@ -1496,26 +1496,29 @@ def generate_full_data_internal():
         conn = get_db()
         c = conn.cursor()
 
-        # SAFE DELETE
+        # CLEAN TABLES
         c.execute("DELETE FROM gis_land_data")
         
         try:
             c.execute("DELETE FROM property")
         except:
-            print("⚠ property table not found")
+            print("WARNING: property table not found")
 
         for i in range(1, 201):
             parcel_id = f"L{i:03}"
             owner_id = f"U{i:03}"
-            random.choices(
-                ["Residential", "Commercial", "Agricultural"],
-                weights=[60, 25, 15]
-             )[0]
 
+            # ✅ FIX 1: Define lat/lon
             lat = 12.97 + (i * 0.0005)
             lon = 77.59 + (i * 0.0005)
 
-            # GIS INSERT
+            # ✅ FIX 2: Proper land type assignment
+            land_type = random.choices(
+                ["Residential", "Commercial", "Agricultural"],
+                weights=[60, 25, 15]
+            )[0]
+
+            # ✅ GIS INSERT (for map)
             c.execute("""
             INSERT INTO gis_land_data (
                 land_id, survey_number, owner_name,
@@ -1526,7 +1529,7 @@ def generate_full_data_internal():
                 parcel_id,
                 f"S{i:03}",
                 f"Owner {i}",
-                random.choice(["Residential","Commercial","Agricultural"])
+                land_type,
                 1000 + i,
                 lat,
                 lon,
@@ -1534,7 +1537,7 @@ def generate_full_data_internal():
                 "registered"
             ))
 
-            # PROPERTY INSERT (SAFE)
+            # ✅ PROPERTY INSERT
             try:
                 c.execute("""
                 INSERT INTO property (
@@ -1553,7 +1556,7 @@ def generate_full_data_internal():
                     "Taluk X",
                     "District X",
                     "State X",
-                    "Residential",
+                    land_type,   # ✅ FIXED (was hardcoded)
                     1000 + i,
                     "2024-01-01",
                     500000 + i * 1000,
@@ -1563,15 +1566,15 @@ def generate_full_data_internal():
                     "None"
                 ))
             except Exception as e:
-                print("❌ Property insert failed:", e)
+                print("Property insert failed:", e)
 
         conn.commit()
         conn.close()
 
-        return "✅ Data inserted"
+        return "Data inserted successfully"
 
     except Exception as e:
-        return f"❌ ERROR: {str(e)}"
+        return f"ERROR: {str(e)}"
 
 @app.route('/generate-full-data')
 def generate_full_data():
