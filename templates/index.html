@@ -116,7 +116,21 @@ tr:hover td{background:rgba(14,165,160,.03)}
 <body>
 
 <div class="toast-box" id="toastBox"></div>
+<div class="tax-box">
 
+  <h2>Revenue & Tax</h2>
+
+  <input id="parcelId" placeholder="Enter Parcel ID (L001)" />
+
+  <div class="btn-group">
+    <button onclick="generateTax()">Generate</button>
+    <button onclick="viewTax()">View</button>
+    <button onclick="payTax()">Pay</button>
+  </div>
+
+  <div id="taxResult"></div>
+
+</div>
 
 <!-- LOGIN -->
 <div id="loginWrap" class="login-wrap">
@@ -456,12 +470,69 @@ function doVerifyDoc(e){e.preventDefault();api('/verify_document/'+$('vdDocId').
 function loadDocs(){var pid=$('vdSearch').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}api('/documents/'+pid).then(function(data){var box=$('docsList');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>None</p></div>';return;}box.innerHTML=data.map(function(d){return'<div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:.82rem"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:6px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
 
 /* ===== TAX ===== */
-function renderTax(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Revenue & Tax</h2></div><div class="tab-bar" id="taxTabs"><button type="button" class="tab-btn active" onclick="taxTab(\'gen\',this)">Generate</button><button type="button" class="tab-btn" onclick="taxTab(\'view\',this)">View</button><button type="button" class="tab-btn" onclick="taxTab(\'pay\',this)">Pay</button></div><div id="taxContent"></div>';taxTab('gen');}
-function taxTab(t,btn){if(btn){qsa('#taxTabs .tab-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');}var c=$('taxContent');if(t==='gen'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="taxGenParcel"></div><button type="button" class="btn btn-p" onclick="doGenTax()"><i class="fas fa-plus"></i> Generate</button></div><div id="taxGenResult"></div></div>';}else if(t==='view'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="taxViewParcel"></div><button type="button" class="btn btn-p" onclick="loadTaxView()"><i class="fas fa-search"></i></button></div><div id="taxViewResult"></div></div>';}else{c.innerHTML='<div class="card"><form id="payTaxForm"><div class="form-grid"><div class="form-group"><label>Tax ID</label><input class="inp" id="taxPayId" required></div><div class="form-group"><label>Amount</label><input type="number" class="inp" id="taxPayAmt" required></div></div><button type="submit" class="btn btn-s" style="margin-top:12px"><i class="fas fa-check"></i> Pay</button></form><div id="taxPayResult" style="margin-top:12px"></div></div>';$('payTaxForm').onsubmit=doPayTax;}}
-function doGenTax(){var pid=$('taxGenParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('taxGenResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/generate_tax/'+pid,{method:'POST'}).then(function(res){if(res&&res.tax_amount!==undefined){box.innerHTML='<div style="padding:14px;background:rgba(56,161,105,.1);border-radius:10px"><div style="color:var(--success);font-weight:600;margin-bottom:8px">'+(res.message||'Generated')+'</div><div style="font-size:.82rem">Parcel: '+res.parcel_id+' | Tax: <strong style="color:var(--gold)">Rs '+parseFloat(res.tax_amount).toLocaleString()+'</strong></div></div>';toast('Generated!','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">'+(res?res.message||res.error:'Unreachable')+'</div>';}});}
-function loadTaxView(){var pid=$('taxViewParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('taxViewResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/tax/'+pid).then(function(data){if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No records</p></div>';return;}box.innerHTML='<table><thead><tr><th>ID</th><th>Year</th><th>Amount</th><th>Paid</th><th>Status</th></tr></thead><tbody>'+data.map(function(t){return'<tr><td style="font-family:monospace;color:var(--accent)">'+t.tax_id+'</td><td>'+t.tax_year+'</td><td>Rs '+parseFloat(t.tax_amount).toLocaleString()+'</td><td>Rs '+parseFloat(t.tax_paid).toLocaleString()+'</td><td><span class="badge '+(t.payment_status==='Paid'?'b-green':'b-red')+'">'+t.payment_status+'</span></td></tr>';}).join('')+'</tbody></table>';});}
-function doPayTax(e){e.preventDefault();api('/pay_tax',{method:'POST',body:JSON.stringify({tax_id:$('taxPayId').value.trim(),tax_paid:parseFloat($('taxPayAmt').value)})}).then(function(res){var box=$('taxPayResult');if(res&&res.message){box.innerHTML='<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Paid!','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Failed</div>';}});return false;}
+async function generateTax() {
+    const id = document.getElementById("parcelId").value;
 
+    if (!id) {
+        alert("Enter Parcel ID");
+        return;
+    }
+
+    const res = await fetch(`/generate_tax/${id}`, {
+        method: "POST"
+    });
+
+    const data = await res.json();
+    alert(data.message);
+
+    viewTax();
+}
+
+async function viewTax() {
+    const id = document.getElementById("parcelId").value;
+
+    const res = await fetch(`/tax/${id}`);
+    const data = await res.json();
+
+    let html = "";
+
+    if (!data.length) {
+        html = "No tax records";
+    } else {
+        data.forEach(t => {
+            html += `
+                <div>
+                    Year: ${t.tax_year} |
+                    Amount: ₹${t.tax_amount} |
+                    Status: 
+                    <b style="color:${t.payment_status === 'Paid' ? 'lime' : 'red'}">
+                        ${t.payment_status}
+                    </b>
+                </div>
+            `;
+        });
+    }
+
+    document.getElementById("taxResult").innerHTML = html;
+}
+
+async function payTax() {
+    const id = document.getElementById("parcelId").value;
+
+    if (!id) {
+        alert("Enter Parcel ID");
+        return;
+    }
+
+    const res = await fetch(`/pay_tax/${id}`, {
+        method: "POST"
+    });
+
+    const data = await res.json();
+    alert(data.message);
+
+    viewTax();  // refresh
+}
 /* ===== MORTGAGE ===== */
 function renderMortgage(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Mortgage & Loans</h2></div><div class="tab-bar" id="mortTabs"><button type="button" class="tab-btn active" onclick="mortTab(\'add\',this)">Add</button><button type="button" class="tab-btn" onclick="mortTab(\'view\',this)">View</button><button type="button" class="tab-btn" onclick="mortTab(\'close\',this)">Close</button></div><div id="mortContent"></div>';mortTab('add');}
 function mortTab(t,btn){if(btn){qsa('#mortTabs .tab-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');}var c=$('mortContent');if(t==='add'){c.innerHTML='<div class="card"><form id="addMortForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="mParcel" required></div><div class="form-group"><label>Owner ID</label><input class="inp" id="mOwner" required></div><div class="form-group"><label>Bank</label><input class="inp" id="mBank" required></div><div class="form-group"><label>Loan Amount</label><input type="number" class="inp" id="mAmount" required></div><div class="form-group"><label>Rate %</label><input type="number" step="0.1" class="inp" id="mRate" required></div><div class="form-group"><label>Start</label><input type="date" class="inp" id="mStart" required></div><div class="form-group"><label>End</label><input type="date" class="inp" id="mEnd" required></div></div><button type="submit" class="btn btn-p" style="margin-top:14px"><i class="fas fa-file-signature"></i> Register</button></form><div id="mAddResult" style="margin-top:12px"></div></div>';$('addMortForm').onsubmit=doAddMortgage;}else if(t==='view'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="mViewParcel"></div><button type="button" class="btn btn-p" onclick="loadMortgage()"><i class="fas fa-search"></i></button></div><div id="mViewResult"></div></div>';}else{c.innerHTML='<div class="card"><form id="closeMortForm"><div class="form-group" style="margin-bottom:14px;max-width:300px"><label>Mortgage ID</label><input class="inp" id="mCloseId" required></div><button type="submit" class="btn btn-s"><i class="fas fa-check"></i> Close</button></form><div id="mCloseResult" style="margin-top:12px"></div></div>';$('closeMortForm').onsubmit=doCloseMortgage;}}
