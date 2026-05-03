@@ -1318,10 +1318,14 @@ def create_document_table():
 @app.route('/check_lands')
 def check_lands():
     conn = get_db()
-    rows = conn.execute("SELECT land_id FROM gis_land_data LIMIT 10").fetchall()
+    c = conn.cursor()
+
+    c.execute("SELECT land_id FROM gis_land_data ORDER BY land_id")
+    rows = c.fetchall()
+
     conn.close()
 
-    return jsonify([r[0] for r in rows if r[0] is not None])
+    return str([r[0] for r in rows])
 
 @app.route('/check_documents')
 def check_documents():
