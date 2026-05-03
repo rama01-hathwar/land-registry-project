@@ -417,87 +417,86 @@ def verify_property_qr(parcel_id, hash_value):
 # ============================================================
 @app.route('/transfer_property', methods=['POST'])
 def transfer_property():
+    try:
+        data = request.get_json(force=True)
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"message": "Invalid request"}), 400
+        parcel_id = data['parcel_id']
+        seller_id = data['seller_id']
+        buyer_id = data['buyer_id']
+        sale_amount = data['sale_amount']
+        transaction_hash = data['transaction_hash']
 
-    parcel_id = data['parcel_id']
-    seller_id = data['seller_id']
-    buyer_id = data['buyer_id']
-    sale_amount = data['sale_amount']
-    transaction_hash = data['transaction_hash']
+        conn = get_db()
+        c = conn.cursor()
 
-    conn = get_db()
-    c = conn.cursor()
+        # 1. Dispute
+        if c.execute("SELECT COUNT(*) FROM dispute WHERE parcel_id=? AND status!='Resolved'", (parcel_id,)).fetchone()[0] > 0:
+            return jsonify({"message": "Transfer blocked due to active dispute"}), 400
 
-    # 1. Dispute
-    if c.execute("SELECT COUNT(*) FROM dispute WHERE parcel_id=? AND status!='Resolved'", (parcel_id,)).fetchone()[0] > 0:
-        return jsonify({"message": "Transfer blocked due to active dispute"}), 400
+        # 2. Mortgage
+        if c.execute("SELECT 1 FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (parcel_id,)).fetchone():
+            return jsonify({"message": "Transfer blocked due to active mortgage"}), 400
 
-    # 2. Mortgage
-    if c.execute("SELECT 1 FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (parcel_id,)).fetchone():
-        return jsonify({"message": "Transfer blocked due to active mortgage"}), 400
+        # 3. Tax
+        tax1 = c.execute("SELECT COUNT(*) FROM tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchone()[0]
+        tax2 = c.execute("SELECT COUNT(*) FROM property_tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchone()[0]
 
-    # 3. Tax
-    tax1 = c.execute("SELECT COUNT(*) FROM tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchone()[0]
-    tax2 = c.execute("SELECT COUNT(*) FROM property_tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchone()[0]
+        if tax1 > 0 or tax2 > 0:
+            return jsonify({"message": "Transfer blocked due to unpaid tax"}), 400
 
-    if tax1 > 0 or tax2 > 0:
-        return jsonify({"message": "Transfer blocked due to unpaid tax"}), 400
+        # 4. Blockchain (optional skip for now)
+        bc = c.execute("SELECT confirmation_status FROM blockchain WHERE transaction_hash=?", (transaction_hash,)).fetchone()
+        if not bc or bc[0] != 'Confirmed':
+            return jsonify({"message": "Transaction not confirmed"}), 400
 
-    # 4. Blockchain
-    bc = c.execute("SELECT confirmation_status FROM blockchain WHERE transaction_hash=?", (transaction_hash,)).fetchone()
-    if not bc:
-        return jsonify({"message": "Blockchain transaction not found"}), 400
+        # 5. Owner check
+        owner = c.execute("SELECT owner_id FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
+        if not owner:
+            return jsonify({"message": "Property not found"}), 404
 
-    if bc[0] != 'Confirmed':
-        return jsonify({"message": "Transaction not confirmed"}), 400
+        if owner[0] != seller_id:
+            return jsonify({"message": "Seller is not current owner"}), 400
 
-    # 5. Owner check
-    owner = c.execute("SELECT owner_id FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
-    if not owner:
-        return jsonify({"message": "Property not found"}), 404
+        # 6. Transfer
+        c.execute("UPDATE property SET owner_id=? WHERE parcel_id=?", (buyer_id, parcel_id))
 
-    if owner[0] != seller_id:
-        return jsonify({"message": "Seller is not current owner"}), 400
+        txn_id = "T" + str(random.randint(1000, 9999))
+        new_hash = hashlib.sha256((parcel_id + buyer_id + str(datetime.now())).encode()).hexdigest()
 
-    # 6. Transfer
-    c.execute("UPDATE property SET owner_id=? WHERE parcel_id=?", (buyer_id, parcel_id))
+        c.execute("""
+        INSERT INTO transfer 
+        (transaction_id, parcel_id, seller_id, buyer_id, type, transaction_hash, block_number, timestamp, sale_amount)
+        VALUES (?,?,?,?,?,?,?,?,?)
+        """, (
+            txn_id, parcel_id, seller_id, buyer_id,
+            "Transfer", new_hash, random.randint(1000,9999),
+            str(datetime.now()), sale_amount
+        ))
 
-    txn_id = "T" + str(random.randint(1000, 9999))
-    new_hash = hashlib.sha256((parcel_id + buyer_id + str(datetime.now())).encode()).hexdigest()
+        # ownership history
+        c.execute("""
+        INSERT INTO ownership_history 
+        (parcel_id, seller_id, buyer_id, transfer_date, transaction_hash)
+        VALUES (?,?,?,?,?)
+        """, (
+            parcel_id,
+            seller_id,
+            buyer_id,
+            str(datetime.now()),
+            new_hash
+        ))
 
-    c.execute("""
-    INSERT INTO transfer 
-    (transaction_id, parcel_id, seller_id, buyer_id, type, transaction_hash, block_number, timestamp, sale_amount)
-    VALUES (?,?,?,?,?,?,?,?,?)
-    """, (
-        txn_id, parcel_id, seller_id, buyer_id,
-        "Transfer", new_hash, random.randint(1000,9999),
-        str(datetime.now()), sale_amount
-    ))
-    #---insert into owner history---#
-    init_hash = hashlib.sha256((parcel_id + owner_id).encode()).hexdigest()
-    c.execute("""
-INSERT INTO ownership_history 
-(parcel_id, seller_id, buyer_id, transfer_date, transaction_hash)
-VALUES (?,?,?,?,?)
-""", (
-    parcel_id,
-    seller_id,
-    buyer_id,
-    str(datetime.now()),
-    new_hash
-))
-    
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
-    return jsonify({
-        "message": "Property transferred successfully",
-        "transaction_id": txn_id
-    })
+        return jsonify({
+            "success": True,
+            "message": "Property transferred successfully",
+            "transaction_id": txn_id
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 # ============================================================
 # OWNER HISTORY — FIXED: actually returns data
 # ============================================================
