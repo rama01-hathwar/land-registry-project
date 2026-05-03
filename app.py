@@ -423,14 +423,15 @@ def transfer_property():
         parcel_id = data.get('parcel_id')
         seller_id = data.get('seller_id')
         buyer_id = data.get('buyer_id')
+        sale_amount = data.get('sale_amount', 0)
+        transaction_hash = data.get('transaction_hash', 'demo')
 
         conn = get_db()
         c = conn.cursor()
 
-        # DEBUG PRINT
         print("DATA RECEIVED:", data)
 
-        # Check property
+        # 1. Property exists
         owner = c.execute(
             "SELECT owner_id FROM property WHERE parcel_id=?",
             (parcel_id,)
@@ -440,21 +441,115 @@ def transfer_property():
             return jsonify({"error": "Property not found"}), 404
 
         if owner[0] != seller_id:
-            return jsonify({"error": "Seller not owner"}), 400
+            return jsonify({"error": "Seller is not current owner"}), 400
 
-        # UPDATE OWNER
+        # 2. Dispute check
+        dispute_count = c.execute(
+            "SELECT COUNT(*) FROM dispute WHERE parcel_id=? AND status!='Resolved'",
+            (parcel_id,)
+        ).fetchone()[0]
+
+        if dispute_count > 0:
+            return jsonify({"error": "Transfer blocked: active dispute"}), 400
+
+        # 3. Mortgage check
+        mortgage = c.execute(
+            "SELECT 1 FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'",
+            (parcel_id,)
+        ).fetchone()
+
+        if mortgage:
+            return jsonify({"error": "Transfer blocked: active mortgage"}), 400
+
+        # 4. Tax check (SAFE even if table empty)
+        tax1 = c.execute(
+            "SELECT COUNT(*) FROM tax WHERE parcel_id=? AND payment_status!='Paid'",
+            (parcel_id,)
+        ).fetchone()[0]
+
+        tax2 = c.execute(
+            "SELECT COUNT(*) FROM property_tax WHERE parcel_id=? AND payment_status!='Paid'",
+            (parcel_id,)
+        ).fetchone()[0]
+
+        if (tax1 or 0) > 0 or (tax2 or 0) > 0:
+            return jsonify({"error": "Transfer blocked: unpaid tax"}), 400
+
+        # 5. Blockchain (optional — won't block demo)
+        if transaction_hash != "demo":
+            bc = c.execute(
+                "SELECT confirmation_status FROM blockchain WHERE transaction_hash=?",
+                (transaction_hash,)
+            ).fetchone()
+
+            if not bc or bc[0] != 'Confirmed':
+                return jsonify({"error": "Transaction not confirmed"}), 400
+
+        # 6. UPDATE OWNER
         c.execute(
             "UPDATE property SET owner_id=? WHERE parcel_id=?",
             (buyer_id, parcel_id)
         )
 
+        # 7. Generate safe hash
+        import hashlib
+        from datetime import datetime
+        import random
+
+        new_hash = hashlib.sha256(
+            (parcel_id + seller_id + buyer_id + str(datetime.now())).encode()
+        ).hexdigest()
+
+        txn_id = "T" + str(random.randint(1000, 9999))
+
+        # 8. Insert transfer record (safe)
+        try:
+            c.execute("""
+                INSERT INTO transfer
+                (transaction_id, parcel_id, seller_id, buyer_id, transaction_type,
+                 transaction_hash, block_number, timestamp, sale_amount)
+                VALUES (?,?,?,?,?,?,?,?,?)
+            """, (
+                txn_id,
+                parcel_id,
+                seller_id,
+                buyer_id,
+                "Transfer",
+                new_hash,
+                random.randint(1000, 9999),
+                str(datetime.now()),
+                sale_amount
+            ))
+        except Exception as e:
+            print("Transfer table skipped:", e)
+
+        # 9. Insert ownership history (IMPORTANT)
+        try:
+            c.execute("""
+                INSERT INTO ownership_history
+                (parcel_id, seller_id, buyer_id, transfer_date, transaction_hash)
+                VALUES (?,?,?,?,?)
+            """, (
+                parcel_id,
+                seller_id,
+                buyer_id,
+                str(datetime.now()),
+                new_hash
+            ))
+        except Exception as e:
+            print("History insert skipped:", e)
+
         conn.commit()
         conn.close()
 
-        return jsonify({"success": True, "message": "Transfer success"})
+        return jsonify({
+            "success": True,
+            "message": "Property transferred successfully",
+            "transaction_id": txn_id
+        })
 
     except Exception as e:
-        print("ERROR:", str(e))   # 🔥 IMPORTANT
+        print("ERROR:", str(e))
         return jsonify({"error": str(e)}), 500
 # ============================================================
 # OWNER HISTORY — FIXED: actually returns data
@@ -594,16 +689,52 @@ def get_unpaid_tax(parcel_id):
     conn.close()
     return jsonify([{"tax_id": r[0], "tax_year": r[1], "tax_amount": r[2], "tax_paid": r[3], "payment_status": r[4]} for r in rows])
 
-@app.route('/pay_tax', methods=['POST'])
-def pay_tax():
-    data = request.json
-    conn = get_db()
-    conn.execute("UPDATE tax SET tax_paid=?, payment_date=?, payment_status='Paid' WHERE tax_id=?",
-        (data['tax_paid'], str(datetime.now()), data['tax_id']))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Tax payment successful"})
+@app.route('/pay_tax/<parcel_id>', methods=['POST'])
+def pay_tax(parcel_id):
+    try:
+        conn = get_db()
+        c = conn.cursor()
 
+        c.execute("""
+            UPDATE tax
+            SET payment_status='Paid',
+                tax_paid=tax_amount,
+                payment_date=DATE('now')
+            WHERE parcel_id=?
+        """, (parcel_id,))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": "Tax paid successfully"})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/view_tax/<parcel_id>')
+def view_tax(parcel_id):
+    conn = get_db()
+    c = conn.cursor()
+
+    row = c.execute("""
+        SELECT parcel_id, tax_amount, payment_status, payment_date
+        FROM tax
+        WHERE parcel_id=?
+        ORDER BY tax_year DESC
+        LIMIT 1
+    """, (parcel_id,)).fetchone()
+
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "No tax found"}), 404
+
+    return jsonify({
+        "parcel_id": row[0],
+        "tax_amount": row[1],
+        "status": row[2],
+        "date": row[3]
+    })
 # ============================================================
 # MORTGAGE — all variants
 # ============================================================
@@ -1376,6 +1507,7 @@ def generate_full_data_internal():
         for i in range(1, 201):
             parcel_id = f"L{i:03}"
             owner_id = f"U{i:03}"
+            land_type=random.chices("Residential","Commercial","Agricultural"],weights=[60,25,15])[0]
 
             lat = 12.97 + (i * 0.0005)
             lon = 77.59 + (i * 0.0005)
@@ -1391,7 +1523,7 @@ def generate_full_data_internal():
                 parcel_id,
                 f"S{i:03}",
                 f"Owner {i}",
-                "Residential",
+                random.choice(["Residential","Commercial","Agricultural"])
                 1000 + i,
                 lat,
                 lon,
