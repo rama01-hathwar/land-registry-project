@@ -648,31 +648,72 @@ def resolve_dispute(dispute_id):
 @app.route('/generate_tax/<parcel_id>', methods=['POST'])
 def generate_tax(parcel_id):
     conn = get_db()
-    prop = conn.execute("SELECT current_market_value FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
+    c = conn.cursor()
+
+    prop = c.execute(
+        "SELECT current_market_value FROM property WHERE parcel_id=?",
+        (parcel_id,)
+    ).fetchone()
+
     if not prop:
         conn.close()
         return jsonify({"error": "Property not found"})
+
     market_value = float(prop[0])
     tax_amount = market_value * 0.01
     year = datetime.now().year
-    existing = conn.execute("SELECT tax_id FROM tax WHERE parcel_id=? AND tax_year=?", (parcel_id, year)).fetchone()
+
+    existing = c.execute(
+        "SELECT tax_id FROM tax WHERE parcel_id=? AND tax_year=?",
+        (parcel_id, year)
+    ).fetchone()
+
     if existing:
         conn.close()
-        return jsonify({"message": "Tax already generated for this property for this year"})
+        return jsonify({"message": "Tax already generated"})
+
     tax_id = "TX" + str(random.randint(1000, 9999))
-    conn.execute("INSERT INTO tax VALUES (?,?,?,?,?,?,?)",
-        (tax_id, parcel_id, year, tax_amount, 0, None, 'Pending'))
+
+    c.execute("""
+        INSERT INTO tax (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
+        VALUES (?,?,?,?,?,?,?)
+    """, (
+        tax_id,
+        parcel_id,
+        year,
+        tax_amount,
+        0,
+        None,
+        "Pending"
+    ))
+
     conn.commit()
     conn.close()
-    return jsonify({"message": "Tax generated successfully", "parcel_id": parcel_id, "tax_amount": tax_amount})
 
-@app.route('/tax/<parcel_id>', methods=['GET'])
+    return jsonify({"message": "Tax generated", "tax_amount": tax_amount})
+
+@app.route('/tax/<parcel_id>')
 def get_tax(parcel_id):
     conn = get_db()
-    rows = conn.execute("SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status FROM tax WHERE parcel_id=?", (parcel_id,)).fetchall()
+    c = conn.cursor()
+
+    rows = c.execute("""
+        SELECT tax_id, tax_year, tax_amount, tax_paid, payment_status
+        FROM tax WHERE parcel_id=?
+    """, (parcel_id,)).fetchall()
+
     conn.close()
-    return jsonify([{"tax_id": r[0], "tax_year": r[1], "tax_amount": r[2], "tax_paid": r[3],
-        "payment_date": str(r[4]) if r[4] else None, "payment_status": r[5]} for r in rows])
+
+    return jsonify([
+        {
+            "tax_id": r[0],
+            "tax_year": r[1],
+            "tax_amount": r[2],
+            "tax_paid": r[3],
+            "payment_status": r[4]
+        }
+        for r in rows
+    ])
 
 @app.route('/pending_tax/<parcel_id>', methods=['GET'])
 def get_pending_tax(parcel_id):
@@ -691,22 +732,25 @@ def get_unpaid_tax(parcel_id):
 
 @app.route('/pay_tax/<parcel_id>', methods=['POST'])
 def pay_tax(parcel_id):
-    conn = get_db()
-    c = conn.cursor()
+    try:
+        conn = get_db()
+        c = conn.cursor()
 
-    c.execute("""
-        UPDATE tax
-        SET payment_status='Paid',
-            tax_paid=tax_amount,
-            payment_date=DATE('now')
-        WHERE parcel_id=?
-    """, (parcel_id,))
+        c.execute("""
+            UPDATE tax
+            SET payment_status='Paid',
+                tax_paid=tax_amount,
+                payment_date=DATE('now')
+            WHERE parcel_id=? AND payment_status!='Paid'
+        """, (parcel_id,))
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
-    return jsonify({"message": "Tax paid successfully"})
+        return jsonify({"message": "Tax paid successfully"})
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 @app.route('/view_tax/<parcel_id>')
 def view_tax(parcel_id):
     conn = get_db()
