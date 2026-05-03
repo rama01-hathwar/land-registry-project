@@ -445,9 +445,9 @@ def transfer_property():
             return jsonify({"message": "Transfer blocked due to unpaid tax"}), 400
 
         # 4. Blockchain (optional skip for now)
-        bc = c.execute("SELECT confirmation_status FROM blockchain WHERE transaction_hash=?", (transaction_hash,)).fetchone()
-        if not bc or bc[0] != 'Confirmed':
-            return jsonify({"message": "Transaction not confirmed"}), 400
+        #bc = c.execute("SELECT confirmation_status FROM blockchain WHERE transaction_hash=?", (transaction_hash,)).fetchone()
+        #if not bc or bc[0] != 'Confirmed':
+            #return jsonify({"message": "Transaction not confirmed"}), 400
 
         # 5. Owner check
         owner = c.execute("SELECT owner_id FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
