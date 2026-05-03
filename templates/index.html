@@ -416,6 +416,32 @@ function doTransfer(e){
     });
 }
 
+function initiateTransfer() {
+  const data = {
+    parcel_id: document.getElementById('trParcelId').value,
+    seller_id: document.getElementById('trSellerId').value,
+    buyer_id: document.getElementById('trBuyerId').value,
+    sale_amount: parseFloat(document.getElementById('trAmount').value),
+    transaction_hash: document.getElementById('trHash').value
+  };
+
+  fetch('/transfer_property', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(res => {
+    alert(res.message || res.error);
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Transfer failed");
+  });
+}
+
 /* ===== HISTORY ===== */
 function renderHistory(){
     $('mainArea').className='main';$('gisPageWrap').style.display='none';
