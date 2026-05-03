@@ -115,22 +115,6 @@ tr:hover td{background:rgba(14,165,160,.03)}
 </head>
 <body>
 
-<div class="toast-box" id="toastBox"></div>
-<div class="tax-box">
-
-  <h2>Revenue & Tax</h2>
-
-  <input id="parcelId" placeholder="Enter Parcel ID (L001)" />
-
-  <div class="btn-group">
-    <button onclick="generateTax()">Generate</button>
-    <button onclick="viewTax()">View</button>
-    <button onclick="payTax()">Pay</button>
-  </div>
-
-  <div id="taxResult"></div>
-
-</div>
 
 <!-- LOGIN -->
 <div id="loginWrap" class="login-wrap">
@@ -180,6 +164,9 @@ tr:hover td{background:rgba(14,165,160,.03)}
 <div class="modal-bg" id="modalBg">
 <div class="modal" id="modalContent"></div>
 </div>
+
+<div class="toast-box" id="toastBox"></div>
+<div class="tax-box">
 
 <script>
 /* ============================================================
@@ -430,15 +417,6 @@ function doTransfer(e){
     });
 }
 
-function initiateTransfer() {
-  const data = {
-    parcel_id: document.getElementById('trParcelId').value,
-    seller_id: document.getElementById('trSellerId').value,
-    buyer_id: document.getElementById('trBuyerId').value,
-    sale_amount: parseFloat(document.getElementById('trAmount').value),
-    transaction_hash: document.getElementById('trHash').value
-  };
-
   fetch('/transfer_property', {
     method: 'POST',
     headers: {
@@ -533,6 +511,31 @@ async function payTax() {
 
     viewTax();  // refresh
 }
+
+function renderTax(){
+
+    $('mainArea').className = 'main';
+    $('gisPageWrap').style.display = 'none';
+
+    $('mainArea').innerHTML = `
+    <div class="section-head">
+        <h2>Revenue & Tax</h2>
+    </div>
+
+    <div class="card">
+        <input class="inp" id="parcelId" placeholder="Enter Parcel ID (L001)" />
+
+        <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn btn-p" onclick="generateTax()">Generate</button>
+            <button class="btn btn-g" onclick="viewTax()">View</button>
+            <button class="btn btn-s" onclick="payTax()">Pay</button>
+        </div>
+
+        <div id="taxResult" style="margin-top:12px"></div>
+    </div>
+    `;
+}
+  
 /* ===== MORTGAGE ===== */
 function renderMortgage(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Mortgage & Loans</h2></div><div class="tab-bar" id="mortTabs"><button type="button" class="tab-btn active" onclick="mortTab(\'add\',this)">Add</button><button type="button" class="tab-btn" onclick="mortTab(\'view\',this)">View</button><button type="button" class="tab-btn" onclick="mortTab(\'close\',this)">Close</button></div><div id="mortContent"></div>';mortTab('add');}
 function mortTab(t,btn){if(btn){qsa('#mortTabs .tab-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');}var c=$('mortContent');if(t==='add'){c.innerHTML='<div class="card"><form id="addMortForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="mParcel" required></div><div class="form-group"><label>Owner ID</label><input class="inp" id="mOwner" required></div><div class="form-group"><label>Bank</label><input class="inp" id="mBank" required></div><div class="form-group"><label>Loan Amount</label><input type="number" class="inp" id="mAmount" required></div><div class="form-group"><label>Rate %</label><input type="number" step="0.1" class="inp" id="mRate" required></div><div class="form-group"><label>Start</label><input type="date" class="inp" id="mStart" required></div><div class="form-group"><label>End</label><input type="date" class="inp" id="mEnd" required></div></div><button type="submit" class="btn btn-p" style="margin-top:14px"><i class="fas fa-file-signature"></i> Register</button></form><div id="mAddResult" style="margin-top:12px"></div></div>';$('addMortForm').onsubmit=doAddMortgage;}else if(t==='view'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="mViewParcel"></div><button type="button" class="btn btn-p" onclick="loadMortgage()"><i class="fas fa-search"></i></button></div><div id="mViewResult"></div></div>';}else{c.innerHTML='<div class="card"><form id="closeMortForm"><div class="form-group" style="margin-bottom:14px;max-width:300px"><label>Mortgage ID</label><input class="inp" id="mCloseId" required></div><button type="submit" class="btn btn-s"><i class="fas fa-check"></i> Close</button></form><div id="mCloseResult" style="margin-top:12px"></div></div>';$('closeMortForm').onsubmit=doCloseMortgage;}}
