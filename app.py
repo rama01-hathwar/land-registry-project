@@ -1522,21 +1522,32 @@ def force_generate():
     generate_full_data_internal()
     return "Generated"
 
-@app.before_first_request
-def initialize_data():
+initialized = False
+
+@app.before_request
+def setup():
+    global initialized
+
+    if initialized:
+        return
+
     try:
-        conn = get_db()
+        init_postgres()
+
+        conn = get_postgres()
         c = conn.cursor()
 
         count = c.execute("SELECT COUNT(*) FROM property").fetchone()[0]
 
         if count == 0:
-            print("🔥 Auto generating data...")
+            print("🔥 Generating data...")
             generate_full_data_internal()
         else:
             print("✅ Data already exists")
 
         conn.close()
+
+        initialized = True   # ✅ RUN ONLY ONCE
 
     except Exception as e:
         print("❌ Init error:", e)
