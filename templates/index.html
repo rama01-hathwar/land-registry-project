@@ -164,14 +164,10 @@ tr:hover td{background:rgba(14,165,160,.03)}
 <div class="modal-bg" id="modalBg">
 <div class="modal" id="modalContent"></div>
 </div>
-
-<!-- ✅ ADD QR IMAGE HERE -->
-<div style="position:fixed; right:20px; bottom:20px; z-index:999;">
-    <img id="qrImage" style="width:120px; height:120px; border-radius:10px; background:#fff; padding:5px;" />
-</div>
-
 <div class="toast-box" id="toastBox"></div>
 <div class="tax-box">
+
+<div id="qrContainer" style="position:fixed; right:20px; bottom:20px; display:none;"></div>
 
 <script>
 /* ============================================================
@@ -855,8 +851,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 function loadQR(parcelId){
-    document.getElementById('qrImage').src = `/qr/${parcelId}`;
 
+    const container = document.getElementById('qrContainer');
+
+    container.innerHTML = `
+        <img src="/qr/${parcelId}" 
+             style="width:120px;height:120px;border-radius:10px;">
+    `;
+
+    container.style.display = "block";
+}
 function doEligibility(){
 
     const parcelId = $('elParcel').value.trim();
