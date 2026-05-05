@@ -1077,7 +1077,7 @@ def add_land():
 # ============================================================
 @app.route('/qr/<parcel_id>')
 def generate_qr(parcel_id):
-    img = (qrcode.make(f"Parcel ID: {parcel_id}")
+    img = (qrcode.make(f"Parcel ID: {parcel_id}"))
 
     img = qrcode.make(data)
 
