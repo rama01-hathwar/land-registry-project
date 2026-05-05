@@ -1262,15 +1262,12 @@ def predict_price():
         area = float(data.get('area', 1000))
         land_type = data.get('type', 'Residential')
 
-        # Convert type → numeric
         t = 0 if land_type == "Residential" else 1 if land_type == "Commercial" else 2
 
         if HAS_MODEL:
             try:
-                # If model expects ONLY 2 features
                 prediction = model.predict([[area, t]])[0]
             except:
-                # fallback if model is complex
                 prediction = area * 3500 + random.randint(100000, 300000)
         else:
             prediction = area * 3000 + random.randint(50000, 200000)
@@ -1280,9 +1277,8 @@ def predict_price():
         })
 
     except Exception as e:
-        print("Prediction ERROR:", str(e))   # debug
+        print("Prediction ERROR:", str(e))
         return jsonify({"error": str(e)})
-
 # ============================================================
 # DATA MANAGEMENT ROUTES (your original utility routes)
 # ============================================================
@@ -1589,12 +1585,13 @@ def setup():
 # ============================================================
 init_document_table()
 init_db()
+
 def generate_full_data_internal():
     try:
         conn = get_db()
         c = conn.cursor()
 
-        # CLEAN TABLES
+        # 🔥 CLEAN TABLES
         c.execute("DELETE FROM gis_land_data")
         
         try:
@@ -1602,22 +1599,46 @@ def generate_full_data_internal():
         except:
             print("WARNING: property table not found")
 
+        try:
+            c.execute("DELETE FROM dispute")
+        except:
+            pass
+
+        # ✅ REAL NAME LIST
+        first_names = ["Ravi","Sita","Arjun","Meena","Kiran","Anita","Rahul","Priya","Vikram","Neha"]
+        last_names = ["Kumar","Sharma","Reddy","Patel","Singh","Nair","Iyer","Gupta"]
+
         for i in range(1, 201):
+
             parcel_id = f"L{i:03}"
             owner_id = f"U{i:03}"
 
-            # ✅ FIX 1: Define lat/lon
+            # 📍 RANDOM LOCATION (NOT LINE)
             lat = 12.90 + random.uniform(0.01, 0.08)
             lon = 77.50 + random.uniform(0.01, 0.08)
-            
 
-            # ✅ FIX 2: Proper land type assignment
+            # 🏷 LAND TYPE
             land_type = random.choices(
                 ["Residential", "Commercial", "Agricultural"],
                 weights=[60, 25, 15]
             )[0]
 
-            # ✅ GIS INSERT (for map)
+            # 👤 REAL OWNER NAME
+            owner_name = random.choice(first_names) + " " + random.choice(last_names)
+
+            # 💰 MIXED TAX + MORTGAGE
+            tax_status = random.choice(["Paid", "Pending"])
+            mortgage_status = random.choice(["None", "Active"])
+
+            # 🧱 RANDOM POLYGON
+            poly = json.dumps([
+                [lat+0.001, lon+0.001],
+                [lat+0.001, lon-0.001],
+                [lat-0.001, lon-0.001],
+                [lat-0.001, lon+0.001]
+            ])
+
+            # 🗺 GIS TABLE (MAP)
             c.execute("""
             INSERT INTO gis_land_data (
                 land_id, survey_number, owner_name,
@@ -1627,16 +1648,16 @@ def generate_full_data_internal():
             """, (
                 parcel_id,
                 f"S{i:03}",
-                f"Owner {i}",
+                owner_name,
                 land_type,
                 1000 + i,
                 lat,
                 lon,
-                '[]',
+                poly,
                 "registered"
             ))
 
-            # ✅ PROPERTY INSERT
+            # 🏠 PROPERTY TABLE
             try:
                 c.execute("""
                 INSERT INTO property (
@@ -1655,25 +1676,45 @@ def generate_full_data_internal():
                     "Taluk X",
                     "District X",
                     "State X",
-                    land_type,   # ✅ FIXED (was hardcoded)
+                    land_type,
                     1000 + i,
                     "2024-01-01",
                     500000 + i * 1000,
                     lat,
                     lon,
-                    "Paid",
-                    "None"
+                    tax_status,
+                    mortgage_status
                 ))
             except Exception as e:
                 print("Property insert failed:", e)
 
+            # ⚖ ADD DISPUTE (20% RANDOM)
+            if random.random() < 0.2:
+                try:
+                    c.execute("""
+                    INSERT INTO dispute 
+                    (dispute_id, parcel_id, dispute_type, reported_by, description, status, created_date)
+                    VALUES (?,?,?,?,?,?,?)
+                    """, (
+                        "D" + str(random.randint(1000,9999)),
+                        parcel_id,
+                        "Ownership",
+                        owner_id,
+                        "Auto-generated dispute",
+                        "Open",
+                        str(datetime.now())
+                    ))
+                except:
+                    pass
+
         conn.commit()
         conn.close()
 
-        return "Data inserted successfully"
+        return "✅ Data inserted successfully"
 
     except Exception as e:
-        return f"ERROR: {str(e)}"
+        return f"❌ ERROR: {str(e)}"
+
 
 @app.route('/generate-full-data')
 def generate_full_data():
