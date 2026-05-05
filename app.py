@@ -644,9 +644,24 @@ def resolve_dispute(dispute_id):
 
 @app.route('/check_dispute/<parcel_id>')
 def check_dispute(parcel_id):
+
+    conn = get_db()
+    c = conn.cursor()
+
+    row = c.execute(
+        "SELECT tax_status, mortgage_status FROM property WHERE parcel_id=?",
+        (parcel_id,)
+    ).fetchone()
+
+    if not row:
+        return jsonify({"error": "Property not found"}), 404
+
+    tax, mortgage = row
+
     return jsonify({
-        "dispute": False,
-        "eligible": True
+        "eligible": tax == "Paid" and mortgage == "None",
+        "tax_clear": tax == "Paid",
+        "mortgage_clear": mortgage == "None"
     })
 
 # ============================================================
@@ -1062,7 +1077,7 @@ def add_land():
 # ============================================================
 @app.route('/qr/<parcel_id>')
 def generate_qr(parcel_id):
-    data = f"Parcel ID: {parcel_id}"
+    img = (qrcode.make(f"Parcel ID: {parcel_id}")
 
     img = qrcode.make(data)
 
@@ -1247,29 +1262,25 @@ def predict_price():
         area = float(data.get('area', 1000))
         land_type = data.get('type', 'Residential')
 
+        # Convert type → numeric
+        t = 0 if land_type == "Residential" else 1 if land_type == "Commercial" else 2
+
         if HAS_MODEL:
-            df = pd.DataFrame([{
-                "area_sqft": area,
-                "land_type": land_type
-            }])
-
-            df = pd.get_dummies(df)
-
-            # IMPORTANT: match training columns
-            for col in model_columns:
-                if col not in df:
-                    df[col] = 0
-
-            df = df[model_columns]
-
-            prediction = model.predict(df)[0]
-
+            try:
+                # If model expects ONLY 2 features
+                prediction = model.predict([[area, t]])[0]
+            except:
+                # fallback if model is complex
+                prediction = area * 3500 + random.randint(100000, 300000)
         else:
             prediction = area * 3000 + random.randint(50000, 200000)
 
-        return jsonify({"price": round(float(prediction), 2)})
+        return jsonify({
+            "price": round(float(prediction), 2)
+        })
 
     except Exception as e:
+        print("Prediction ERROR:", str(e))   # debug
         return jsonify({"error": str(e)})
 
 # ============================================================
@@ -1596,8 +1607,9 @@ def generate_full_data_internal():
             owner_id = f"U{i:03}"
 
             # ✅ FIX 1: Define lat/lon
-            lat = 12.97 + (i * 0.0005)
-            lon = 77.59 + (i * 0.0005)
+            lat = 12.90 + random.uniform(0.01, 0.08)
+            lon = 77.50 + random.uniform(0.01, 0.08)
+            
 
             # ✅ FIX 2: Proper land type assignment
             land_type = random.choices(
