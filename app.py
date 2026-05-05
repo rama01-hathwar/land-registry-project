@@ -642,6 +642,13 @@ def resolve_dispute(dispute_id):
     conn.close()
     return {"message": "Dispute resolved successfully"}
 
+@app.route('/check_dispute/<parcel_id>')
+def check_dispute(parcel_id):
+    return jsonify({
+        "dispute": False,
+        "eligible": True
+    })
+
 # ============================================================
 # TAX — all variants
 # ============================================================
@@ -1054,13 +1061,16 @@ def add_land():
 # QR CODE
 # ============================================================
 @app.route('/qr/<parcel_id>')
-def generate_qr_dynamically(parcel_id):
-    url = request.url_root + "verify/" + parcel_id
-    img = qrcode.make(url)
-    buffer = BytesIO()
-    img.save(buffer)
-    buffer.seek(0)
-    return send_file(buffer, mimetype='image/png')
+def generate_qr(parcel_id):
+    data = f"Parcel ID: {parcel_id}"
+
+    img = qrcode.make(data)
+
+    buf = io.BytesIO()
+    img.save(buf)
+    buf.seek(0)
+
+    return send_file(buf, mimetype='image/png')
 
 @app.route('/verify/<parcel_id>')
 def verify(parcel_id):
@@ -1237,19 +1247,27 @@ def predict_price():
         area = float(data.get('area', 1000))
         land_type = data.get('type', 'Residential')
 
-        # Convert type → number
-        t = 0 if land_type == "Residential" else 1 if land_type == "Commercial" else 2
-
-        # If model exists
         if HAS_MODEL:
-            prediction = model.predict([[area, t]])[0]
+            df = pd.DataFrame([{
+                "area_sqft": area,
+                "land_type": land_type
+            }])
+
+            df = pd.get_dummies(df)
+
+            # IMPORTANT: match training columns
+            for col in model_columns:
+                if col not in df:
+                    df[col] = 0
+
+            df = df[model_columns]
+
+            prediction = model.predict(df)[0]
+
         else:
-            # fallback logic
             prediction = area * 3000 + random.randint(50000, 200000)
 
-        return jsonify({
-            "price": round(float(prediction), 2)
-        })
+        return jsonify({"price": round(float(prediction), 2)})
 
     except Exception as e:
         return jsonify({"error": str(e)})
