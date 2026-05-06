@@ -1471,25 +1471,6 @@ def verify_property(parcel_id):
     return {"status": "approved", "message": "Property eligible for transfer"}
 
 # ============================================================
-# VERIFY PROPERTY WITH HASH (QR scan)
-# ============================================================
-@app.route('/verify_property/<parcel_id>/<hash_value>')
-def verify_property_qr(parcel_id, hash_value):
-    expected_hash = generate_secure_hash(parcel_id)
-    if hash_value != expected_hash:
-        return render_template("property_dashboard.html", error="Invalid QR Code", property=None, documents=[])
-    conn = get_db()
-    row = conn.execute("SELECT * FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
-    if not row:
-        conn.close()
-        return render_template("property_dashboard.html", error="Property not found", property=None, documents=[])
-    property_data = dict(row)
-    docs = conn.execute("SELECT document_id, document_type, verification_status FROM document WHERE parcel_id=?", (parcel_id,)).fetchall()
-    doc_list = [{"document_id": d[0], "document_type": d[1], "status": d[2], "url": "/view_document/" + d[0]} for d in docs]
-    conn.close()
-    return render_template("property_dashboard.html", property=property_data, documents=doc_list, error=None)
-
-# ============================================================
 # TRANSFER PROPERTY — FIXED: actually performs transfer
 # ============================================================
 @app.route('/transfer_property', methods=['POST'])
@@ -2791,34 +2772,6 @@ def generate_full_data_internal():
     except Exception as e:
         return f"❌ ERROR: {str(e)}"
 
-# ============================================================
-# ML PREDICTION — graceful fallback if no model file
-# ============================================================
-@app.route('/predict_price', methods=['POST'])
-def predict_price():
-    try:
-        data = request.json
-
-        area = float(data.get('area', 1000))
-        land_type = data.get('type', 'Residential')
-
-        t = 0 if land_type == "Residential" else 1 if land_type == "Commercial" else 2
-
-        if HAS_MODEL:
-            try:
-                prediction = model.predict([[area, t]])[0]
-            except:
-                prediction = area * 3500 + random.randint(100000, 300000)
-        else:
-            prediction = area * 3000 + random.randint(50000, 200000)
-
-        return jsonify({
-            "price": round(float(prediction), 2)
-        })
-
-    except Exception as e:
-        print("Prediction ERROR:", str(e))
-        return jsonify({"error": str(e)})
 # ============================================================
 # DATA MANAGEMENT ROUTES (your original utility routes)
 # ============================================================
