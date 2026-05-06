@@ -799,7 +799,122 @@ function doQRVerify(){
 }
 /* ===== ML ===== */
 function renderML(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>ML Prediction</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><form id="mlForm"><div class="form-grid"><div class="form-group"><label>Area (sqft)</label><input type="number" class="inp" id="mlArea" required></div><div class="form-group"><label>Road (km)</label><input type="number" step="0.1" class="inp" id="mlRoad" required></div><div class="form-group"><label>City (km)</label><input type="number" step="0.1" class="inp" id="mlCity" required></div><div class="form-group"><label>Year</label><input type="number" class="inp" id="mlYear" value="2024" required></div><div class="form-group"><label>School</label><select class="inp" id="mlSchool"><option value="Yes">Yes</option><option value="No">No</option></select></div><div class="form-group"><label>Hospital</label><select class="inp" id="mlHosp"><option value="Yes">Yes</option><option value="No">No</option></select></div></div><button type="submit" class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px"><i class="fas fa-magic"></i> Predict</button></form><div id="mlResult" style="margin-top:14px"></div></div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Model Info</h3><div style="font-size:.82rem;color:var(--txt2);line-height:1.8"><p><i class="fas fa-chart-line" style="color:var(--purple);margin-right:6px"></i>Scikit-learn Regressor</p><p><i class="fas fa-database" style="color:var(--accent);margin-right:6px"></i>Area, distances, amenities</p></div></div></div>';$('mlForm').onsubmit=doMLPredict;}
-function doMLPredict(e){e.preventDefault();var box=$('mlResult');box.innerHTML='<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i></div>';api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:parseFloat($('mlArea').value),road_distance_km:parseFloat($('mlRoad').value),city_distance_km:parseFloat($('mlCity').value),nearby_school:$('mlSchool').value,nearby_hospital:$('mlHosp').value,year:parseInt($('mlYear').value)})}).then(function(res){if(res&&(res.predicted_price||res.price)){box.innerHTML='<div style="padding:20px;background:var(--bg);border:1px solid var(--accent);border-radius:12px;text-align:center"><div style="font-size:.78rem;color:var(--txt2)">Predicted Value</div><div style="font-size:1.8rem;font-weight:700;color:var(--success)">Rs '+parseFloat(res.predicted_price).toLocaleString()+'</div></div>';toast('Done','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>'+(res?res.error:'Unreachable')+'</div>';}});return false;}
+function doMLPredict(e){
+
+    e.preventDefault();
+
+    var box = $('mlResult');
+
+    box.innerHTML = '
+        <div style="text-align:center">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>';
+
+    api('/predict_price',{
+
+        method:'POST',
+
+        body:JSON.stringify({
+
+            area_sqft: parseFloat($('mlArea').value),
+
+            road_distance_km: parseFloat($('mlRoad').value),
+
+            city_distance_km: parseFloat($('mlCity').value),
+
+            nearby_school: $('mlSchool').value,
+
+            nearby_hospital: $('mlHosp').value,
+
+            year: parseInt($('mlYear').value)
+
+        })
+
+    })
+
+    .then(function(res){
+
+        // =========================
+        // SAFE PRICE EXTRACTION
+        // =========================
+        let price = null;
+
+        if(res.price !== undefined){
+
+            price = res.price;
+        }
+        else if(res.predicted_price !== undefined){
+
+            price = res.predicted_price;
+        }
+
+        price = Number(price);
+
+        // =========================
+        // INVALID
+        // =========================
+        if(isNaN(price)){
+
+            throw new Error("Prediction failed");
+        }
+
+        // =========================
+        // SUCCESS
+        // =========================
+        box.innerHTML = '
+
+            <div style="
+                padding:20px;
+                background:var(--bg);
+                border:1px solid var(--accent);
+                border-radius:12px;
+                text-align:center
+            ">
+
+                <div style="
+                    font-size:.78rem;
+                    color:var(--txt2)
+                ">
+                    Predicted Value
+                </div>
+
+                <div style="
+                    font-size:1.8rem;
+                    font-weight:700;
+                    color:var(--success)
+                ">
+                    Rs ' + price.toLocaleString() + '
+                </div>
+
+            </div>';
+
+        toast('Prediction complete','ok');
+
+    })
+
+    .catch(function(err){
+
+        console.error(err);
+
+        box.innerHTML = '
+
+            <div style="
+                padding:12px;
+                background:rgba(229,62,62,.1);
+                border-radius:8px;
+                color:var(--danger)
+            ">
+
+                <i class="fas fa-times-circle"
+                   style="margin-right:6px"></i>
+
+                Prediction failed
+
+            </div>';
+    });
+
+    return false;
+}
 
 /* ===== LOGS ===== */
 function renderLogs(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Activity Logs</h2></div><div class="card" style="margin-bottom:14px"><button type="button" class="btn btn-p btn-sm" onclick="loadLogs()"><i class="fas fa-sync-alt"></i> Refresh</button></div><div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>User</th><th>Action</th><th>Description</th><th>Timestamp</th></tr></thead><tbody id="logsBody"><tr><td colspan="4" class="empty-state"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody></table></div>';loadLogs();}
@@ -970,7 +1085,12 @@ function handleGISClick(land, marker){
             throw new Error("Prediction failed");
         }
 
-        price = parseFloat(price);
+        price = Number(price);
+
+        if(isNaN(price)){
+
+           throw new Error("Invalid prediction");
+        }
 
         // =========================
         // SIDE PRICE
