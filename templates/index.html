@@ -699,10 +699,10 @@ function doQRVerify(){
     // =========================
     var box = $('qrResult');
 
-    box.innerHTML='
+    box.innerHTML=`
         <div style="text-align:center">
             <i class="fas fa-spinner fa-spin"></i>
-        </div>';
+        </div>`;
 
     api('/verify_property/'+pid)
 
