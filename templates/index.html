@@ -697,7 +697,7 @@ function handleGISClick(land, marker){
     }
 
     if(document.getElementById('searchParcel')){
-        document.getElementById('searchParcel').value = data.parcelId;
+        document.getElementById('searchParcel').value = parcelId;
     }
 
     // 🔥 LOAD ALL MODULE DATA
@@ -737,31 +737,36 @@ $('gisPriceBox').innerHTML =
 // 🔥 CALL ML API
 api('/predict_price',{
     method:'POST',
-    headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
-        area_sqft: land.area || 1000,
-        road_distance_km: 2,
-        city_distance_km: 5,
-        nearby_school: 'Yes',
-        nearby_hospital: 'No',
-        year: 2024
+        area: land.area || 1000,
+        type: land.type || "Residential"
     })
 })
 .then(function(res){
 
-    if(res && res.predicted_price !== undefined){
+    let price = res.price || res.predicted_price;
 
-        let price = parseFloat(res.predicted_price) || 0;
+    if(price){
 
+        price = parseFloat(price);
+
+        // ✅ SIDE PANEL
         $('gisPriceBox').innerHTML =
         '<span style="color:var(--success)">₹ ' +
         price.toLocaleString() + '</span>';
 
+        // ✅ MAP POPUP (MAIN FIX)
         if(marker){
-            marker.bindPopup(
-                '<b>' + land.parcel_id + '</b><br>₹ ' +
-                price.toLocaleString()
-            ).openPopup();
+            marker.bindPopup(`
+                <div style="text-align:center">
+                    <b>${land.parcel_id}</b><br>
+                    ${land.owner}<br>
+                    ₹ ${price.toLocaleString()}<br><br>
+
+                    <img src="/qr/${land.parcel_id}" 
+                         style="width:90px;height:90px">
+                </div>
+            `).openPopup();
         }
 
     } else {
@@ -780,63 +785,16 @@ api('/predict_price',{
     '<span style="color:var(--warn)">₹ ' +
     demoPrice.toLocaleString() +
     ' (demo)</span>';
-});
 
-function onEachLand(feature, layer) {
-
-    const data = feature.properties;
-
-    layer.bindPopup(`<b>${data.parcel_id}</b><br>Loading price...`);
-
-    layer.on('click', async function () {
-
-        // ✅ ADD THIS LINE
-        loadQR(data.parcel_id);
-        try {
-    const res = await fetch('/predict_price', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            area: data.area || data.area_sq_ft || 1000,
-            type: data.type || data.land_use_type || "Residential"
-        })
-    });
-
-    const result = await res.json();
-
-    console.log("Prediction response:", result); // 🔥 DEBUG
-
-    // ✅ HANDLE ERROR
-    if(result.error){
-        layer.setPopupContent(`
-            <b>${data.parcel_id}</b><br>
-            Prediction error
-        `);
-        return;
+    if(marker){
+        marker.bindPopup(`
+            <div style="text-align:center">
+                <b>${land.parcel_id}</b><br>
+                ₹ ${demoPrice.toLocaleString()} (demo)
+            </div>
+        `).openPopup();
     }
-
-    // ✅ SAFE VALUE
-    const price = result.price || "N/A";
-
-    layer.setPopupContent(`
-        <div style="text-align:center">
-            <b>${data.parcel_id}</b><br>
-            Owner: ${data.owner || "Unknown"}<br>
-            ₹ ${price}<br><br>
-
-            <img src="/qr/${data.parcel_id}" 
-                 style="width:90px;height:90px">
-        </div>
-    `);
-
-} catch (err) {
-    console.error("Fetch error:", err);
-
-    layer.setPopupContent(`
-        <b>${data.parcel_id}</b><br>
-        Server error
-    `);
-}
+});
 function loadGISDocs(pid){api('/documents/'+pid).then(function(data){var box=$('gisDocs');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='No documents';return;}box.innerHTML=data.map(function(d){return'<div style="margin-bottom:4px"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:4px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
 function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMarkers.find(function(m){return m.land.parcel_id===id;});if(found)handleGISClick(found.land,found.marker);else toast('Not found','err');}
 
