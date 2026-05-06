@@ -506,7 +506,7 @@ def transfer_property():
         try:
             c.execute("""
                 INSERT INTO transfer
-                (transaction_id, parcel_id, seller_id, buyer_id, transaction_type,
+                (transaction_id, parcel_id, from_owner, to_owner, transaction_type,
                  transaction_hash, block_number, timestamp, sale_amount)
                 VALUES (?,?,?,?,?,?,?,?,?)
             """, (
@@ -2154,16 +2154,16 @@ def add_land():
 # ============================================================
 @app.route('/qr/<parcel_id>')
 def generate_qr(parcel_id):
-    img = (qrcode.make(f"Parcel ID: {parcel_id}"))
 
-    img = qrcode.make(data)
+    qr_data = request.url_root + "verify/" + parcel_id
 
-    buf = io.BytesIO()
+    img = qrcode.make(qr_data)
+
+    buf = BytesIO()
     img.save(buf)
     buf.seek(0)
 
     return send_file(buf, mimetype='image/png')
-
 @app.route('/verify/<parcel_id>')
 def verify(parcel_id):
     # Try PostgreSQL first
@@ -2634,8 +2634,7 @@ def setup():
         return
 
     try:
-        init_postgres()
-
+        
         conn = get_postgres()
         c = conn.cursor()
 
@@ -2792,14 +2791,6 @@ def generate_full_data_internal():
     except Exception as e:
         return f"❌ ERROR: {str(e)}"
 
-
-@app.route('/generate-full-data')
-def generate_full_data():
-    return generate_full_data_internal()
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
 @app.route('/verify/<parcel_id>')
 def verify(parcel_id):
     # Try PostgreSQL first
@@ -3321,7 +3312,7 @@ def generate_full_data_internal():
         first_names = ["Ravi","Sita","Arjun","Meena","Kiran","Anita","Rahul","Priya","Vikram","Neha"]
         last_names = ["Kumar","Sharma","Reddy","Patel","Singh","Nair","Iyer","Gupta"]
 
-        for i in range(1, 201):
+        for i in range(1, 1001):
 
             parcel_id = f"L{i:03}"
             owner_id = f"U{i:03}"
