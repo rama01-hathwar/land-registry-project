@@ -581,7 +581,7 @@ function doQRVerify(){var pid=$('qrParcel').value.trim();if(!pid){toast('Enter P
 
 /* ===== ML ===== */
 function renderML(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>ML Prediction</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><form id="mlForm"><div class="form-grid"><div class="form-group"><label>Area (sqft)</label><input type="number" class="inp" id="mlArea" required></div><div class="form-group"><label>Road (km)</label><input type="number" step="0.1" class="inp" id="mlRoad" required></div><div class="form-group"><label>City (km)</label><input type="number" step="0.1" class="inp" id="mlCity" required></div><div class="form-group"><label>Year</label><input type="number" class="inp" id="mlYear" value="2024" required></div><div class="form-group"><label>School</label><select class="inp" id="mlSchool"><option value="Yes">Yes</option><option value="No">No</option></select></div><div class="form-group"><label>Hospital</label><select class="inp" id="mlHosp"><option value="Yes">Yes</option><option value="No">No</option></select></div></div><button type="submit" class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px"><i class="fas fa-magic"></i> Predict</button></form><div id="mlResult" style="margin-top:14px"></div></div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Model Info</h3><div style="font-size:.82rem;color:var(--txt2);line-height:1.8"><p><i class="fas fa-chart-line" style="color:var(--purple);margin-right:6px"></i>Scikit-learn Regressor</p><p><i class="fas fa-database" style="color:var(--accent);margin-right:6px"></i>Area, distances, amenities</p></div></div></div>';$('mlForm').onsubmit=doMLPredict;}
-function doMLPredict(e){e.preventDefault();var box=$('mlResult');box.innerHTML='<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i></div>';api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:parseFloat($('mlArea').value),road_distance_km:parseFloat($('mlRoad').value),city_distance_km:parseFloat($('mlCity').value),nearby_school:$('mlSchool').value,nearby_hospital:$('mlHosp').value,year:parseInt($('mlYear').value)})}).then(function(res){if(res&&res.predicted_price!==undefined){box.innerHTML='<div style="padding:20px;background:var(--bg);border:1px solid var(--accent);border-radius:12px;text-align:center"><div style="font-size:.78rem;color:var(--txt2)">Predicted Value</div><div style="font-size:1.8rem;font-weight:700;color:var(--success)">Rs '+parseFloat(res.predicted_price).toLocaleString()+'</div></div>';toast('Done','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>'+(res?res.error:'Unreachable')+'</div>';}});return false;}
+function doMLPredict(e){e.preventDefault();var box=$('mlResult');box.innerHTML='<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i></div>';api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:parseFloat($('mlArea').value),road_distance_km:parseFloat($('mlRoad').value),city_distance_km:parseFloat($('mlCity').value),nearby_school:$('mlSchool').value,nearby_hospital:$('mlHosp').value,year:parseInt($('mlYear').value)})}).then(function(res){if(res&&(res.predicted_price||res.price)){box.innerHTML='<div style="padding:20px;background:var(--bg);border:1px solid var(--accent);border-radius:12px;text-align:center"><div style="font-size:.78rem;color:var(--txt2)">Predicted Value</div><div style="font-size:1.8rem;font-weight:700;color:var(--success)">Rs '+parseFloat(res.predicted_price).toLocaleString()+'</div></div>';toast('Done','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>'+(res?res.error:'Unreachable')+'</div>';}});return false;}
 
 /* ===== LOGS ===== */
 function renderLogs(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Activity Logs</h2></div><div class="card" style="margin-bottom:14px"><button type="button" class="btn btn-p btn-sm" onclick="loadLogs()"><i class="fas fa-sync-alt"></i> Refresh</button></div><div class="card" style="padding:0;overflow-x:auto"><table><thead><tr><th>User</th><th>Action</th><th>Description</th><th>Timestamp</th></tr></thead><tbody id="logsBody"><tr><td colspan="4" class="empty-state"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody></table></div>';loadLogs();}
@@ -653,148 +653,81 @@ function loadGISData(){
 }
 
 function handleGISClick(land, marker){
+                    ${land.owner}<br>
+                    ${land.type}<br><br>
 
-    if(!ST.map) return;
+                    <span style="color:green;font-weight:bold">
+                        ₹ ${price.toLocaleString()}
+                    </span>
+                    <br><br>
 
-    // 🔥 FIX PARCEL ID FORMAT HERE
-    let rawId = land.parcel_id || land.land_id || "L0";
-    let num = rawId.replace("L", "");
-    let parcelId = "L" + String(parseInt(num)).padStart(3, '0');
+                    <img src="/qr/${parcelId}"
+                         style="width:90px;height:90px;border-radius:8px">
+                </div>
+            `).openPopup();
+        }
 
-    console.log("Fixed Parcel ID:", parcelId);
+    })
+    .catch(function(err){
 
-    ST.map.flyTo([land.lat, land.lon], 17, {duration:0.8});
+        console.error("ML Error:", err);
 
-    $('gisDetails').innerHTML =
-        '<div style="line-height:1.8">' +
-        '<strong style="color:var(--accent)">' + parcelId + '</strong><br>' +
-        'Owner: ' + land.owner + '<br>' +
-        'Type: ' + land.type + '<br>' +
-        'Status: ' + land.status + '<br>' +
-        'Area: ' + land.area + ' sqft</div>';
+        let demoPrice = Math.round(
+            (land.area || 1000) * 3500 + Math.random()*500000
+        );
 
-    // 🔥 UPDATE PARCEL ID BACK INTO LAND OBJECT
-    land.parcel_id = parcelId;
+        $('gisPriceBox').innerHTML =
+        '<span style="color:var(--warn)">₹ ' +
+        demoPrice.toLocaleString() +
+        ' (demo)</span>';
 
-    /* QR FIX */
-    var qrDiv = document.getElementById('gisQR');
-    qrDiv.innerHTML = '';
+        if(marker){
+            marker.bindPopup(`
+                <div style="text-align:center">
+                    <b>${parcelId}</b><br>
+                    ₹ ${demoPrice.toLocaleString()} (demo)
+                </div>
+            `).openPopup();
+        }
+    });
 
-    var qrImg = document.createElement('img');
-    qrImg.src = BASE_URL + '/qr/' + parcelId;   // ✅ FIXED HERE
-    qrImg.width = 120;
-    qrImg.style.borderRadius = '8px';
+    // =========================
+    // NEARBY LANDS
+    // =========================
 
-    qrImg.onerror = function() {
-        qrDiv.innerHTML = '<span style="color:var(--txt3);font-size:.78rem">QR unavailable</span>';
-    };
-
-    qrDiv.appendChild(qrImg);
-
-    // 🔥 AUTO FILL SYSTEM (VERY IMPORTANT)
-    if(document.getElementById('tfParcel')){
-        document.getElementById('tfParcel').value = parcelId;
-    }
-
-    if(document.getElementById('searchParcel')){
-        document.getElementById('searchParcel').value = parcelId;
-    }
-
-    // 🔥 LOAD ALL MODULE DATA
-    if(typeof loadFullParcelData === "function"){
-        loadFullParcelData(parcelId);
-    }
-
-    // Nearby lands
-    var nearbyHtml = '', found = false;
+    var nearbyHtml = '';
+    var found = false;
 
     ST.mapData.forEach(function(o){
 
         let oId = o.parcel_id || o.land_id;
 
         let num2 = oId.replace("L","");
+
         oId = "L" + String(parseInt(num2)).padStart(3,'0');
 
         if(oId !== parcelId){
-            var d = getDistance(land.lat, land.lon, o.lat, o.lon);
+
+            var d = getDistance(
+                land.lat,
+                land.lon,
+                o.lat,
+                o.lon
+            );
+
             if(d < 1){
                 found = true;
-                nearbyHtml += '<div>' + oId + ' (' + d.toFixed(2) + ' km)</div>';
+
+                nearbyHtml +=
+                '<div>' + oId +
+                ' (' + d.toFixed(2) + ' km)</div>';
             }
         }
     });
 
-    $('gisNearby').innerHTML = found ? nearbyHtml : 'No nearby lands';
+    $('gisNearby').innerHTML =
+        found ? nearbyHtml : 'No nearby lands';
 }
-
-   // 🔥 LOAD DOCUMENTS SAFELY
-loadGISDocs(land.parcel_id);
-
-// 🔥 SHOW LOADING
-$('gisPriceBox').innerHTML =
-'<i class="fas fa-spinner fa-spin"></i> Predicting...';
-
-// 🔥 CALL ML API
-api('/predict_price',{
-    method:'POST',
-    body: JSON.stringify({
-        area: land.area || 1000,
-        type: land.type || "Residential"
-    })
-})
-.then(function(res){
-
-    let price = res.price || res.predicted_price;
-
-    if(price){
-
-        price = parseFloat(price);
-
-        // ✅ SIDE PANEL
-        $('gisPriceBox').innerHTML =
-        '<span style="color:var(--success)">₹ ' +
-        price.toLocaleString() + '</span>';
-
-        // ✅ MAP POPUP (MAIN FIX)
-        if(marker){
-            marker.bindPopup(`
-                <div style="text-align:center">
-                    <b>${land.parcel_id}</b><br>
-                    ${land.owner}<br>
-                    ₹ ${price.toLocaleString()}<br><br>
-
-                    <img src="/qr/${land.parcel_id}" 
-                         style="width:90px;height:90px">
-                </div>
-            `).openPopup();
-        }
-
-    } else {
-        throw new Error("Invalid ML response");
-    }
-
-})
-.catch(function(err){
-
-    console.error("ML Error:", err);
-
-    // 🔥 DEMO FALLBACK
-    let demoPrice = Math.round((land.area || 1000) * 3500 + Math.random()*500000);
-
-    $('gisPriceBox').innerHTML =
-    '<span style="color:var(--warn)">₹ ' +
-    demoPrice.toLocaleString() +
-    ' (demo)</span>';
-
-    if(marker){
-        marker.bindPopup(`
-            <div style="text-align:center">
-                <b>${land.parcel_id}</b><br>
-                ₹ ${demoPrice.toLocaleString()} (demo)
-            </div>
-        `).openPopup();
-    }
-});
 function loadGISDocs(pid){api('/documents/'+pid).then(function(data){var box=$('gisDocs');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='No documents';return;}box.innerHTML=data.map(function(d){return'<div style="margin-bottom:4px"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:4px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
 function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMarkers.find(function(m){return m.land.parcel_id===id;});if(found)handleGISClick(found.land,found.marker);else toast('Not found','err');}
 
