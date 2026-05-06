@@ -576,9 +576,227 @@ function checkDispute() {
 }
 
 /* ===== QR ===== */
-function renderQR(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>QR Verification</h2></div><div class="card" style="max-width:500px"><div style="text-align:center;margin-bottom:20px"><div style="width:80px;height:80px;border-radius:16px;background:var(--accentGlow);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto"><i class="fas fa-qrcode" style="font-size:2rem;color:var(--accent)"></i></div></div><div class="form-group" style="margin-bottom:14px"><label>Parcel ID</label><input class="inp" id="qrParcel"></div><button type="button" class="btn btn-p" style="width:100%;justify-content:center" onclick="doQRVerify()"><i class="fas fa-check"></i> Verify</button><div id="qrResult" style="margin-top:14px"></div></div>';}
-function doQRVerify(){var pid=$('qrParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('qrResult');box.innerHTML='<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i></div>';api('/verify_property/'+pid).then(function(res){if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger);text-align:center">Unreachable</div>';return;}if(res.status==='approved'){box.innerHTML='<div style="padding:16px;background:rgba(56,161,105,.1);border:1px solid rgba(56,161,105,.3);border-radius:10px;text-align:center"><div style="font-size:1.5rem;color:var(--success);margin-bottom:8px"><i class="fas fa-check-circle"></i></div><div style="font-weight:700;color:var(--success)">Verified</div></div>';}else{box.innerHTML='<div style="padding:16px;background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.3);border-radius:10px;text-align:center"><div style="font-size:1.5rem;color:var(--danger);margin-bottom:8px"><i class="fas fa-times-circle"></i></div><div style="font-weight:700;color:var(--danger)">Failed</div><p style="font-size:.82rem;color:var(--txt2);margin-top:4px">'+(res.reason||'Unknown')+'</p></div>';}});}
+function renderQR(){
 
+    $('mainArea').className='main';
+
+    $('gisPageWrap').style.display='none';
+
+    $('mainArea').innerHTML='
+
+    <div class="section-head">
+        <h2>QR Verification</h2>
+    </div>
+
+    <div class="card" style="max-width:500px">
+
+        <div style="
+            text-align:center;
+            margin-bottom:20px
+        ">
+            <div style="
+                width:80px;
+                height:80px;
+                border-radius:16px;
+                background:var(--accentGlow);
+                border:1px solid var(--accent);
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                margin:0 auto
+            ">
+                <i class="fas fa-qrcode"
+                   style="
+                        font-size:2rem;
+                        color:var(--accent)
+                   ">
+                </i>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px">
+
+            <label>Parcel ID</label>
+
+            <input
+                class="inp"
+                id="qrParcel"
+                placeholder="Enter Parcel ID (L001)"
+            >
+
+        </div>
+
+        <button
+            type="button"
+            class="btn btn-p"
+            style="
+                width:100%;
+                justify-content:center
+            "
+            onclick="doQRVerify()"
+        >
+
+            <i class="fas fa-check"></i>
+
+            Verify & Generate QR
+
+        </button>
+
+        <!-- QR IMAGE -->
+        <div
+            id="qrImageBox"
+            style="
+                margin-top:20px;
+                text-align:center
+            "
+        ></div>
+
+        <!-- VERIFY RESULT -->
+        <div
+            id="qrResult"
+            style="margin-top:14px"
+        ></div>
+
+    </div>';
+}
+
+
+
+function doQRVerify(){
+
+    var pid = $('qrParcel').value.trim();
+
+    if(!pid){
+
+        toast('Enter Parcel ID','err');
+
+        return;
+    }
+
+    // =========================
+    // SHOW QR IMAGE
+    // =========================
+    $('qrImageBox').innerHTML = `
+
+        <img
+            src="/qr/${pid}?t=${Date.now()}"
+            style="
+                width:180px;
+                height:180px;
+                background:white;
+                padding:10px;
+                border-radius:12px;
+            "
+        >
+
+        <br><br>
+
+        <b>${pid}</b>
+    `;
+
+    // =========================
+    // VERIFY PROPERTY
+    // =========================
+    var box = $('qrResult');
+
+    box.innerHTML='
+        <div style="text-align:center">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>';
+
+    api('/verify_property/'+pid)
+
+    .then(function(res){
+
+        if(!res){
+
+            box.innerHTML='
+            <div style="
+                padding:12px;
+                background:rgba(229,62,62,.1);
+                border-radius:8px;
+                color:var(--danger);
+                text-align:center
+            ">
+                Unreachable
+            </div>';
+
+            return;
+        }
+
+        // =========================
+        // VERIFIED
+        // =========================
+        if(res.status==='approved'){
+
+            box.innerHTML='
+            <div style="
+                padding:16px;
+                background:rgba(56,161,105,.1);
+                border:1px solid rgba(56,161,105,.3);
+                border-radius:10px;
+                text-align:center
+            ">
+
+                <div style="
+                    font-size:1.5rem;
+                    color:var(--success);
+                    margin-bottom:8px
+                ">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+
+                <div style="
+                    font-weight:700;
+                    color:var(--success)
+                ">
+                    Verified
+                </div>
+
+            </div>';
+        }
+
+        // =========================
+        // FAILED
+        // =========================
+        else{
+
+            box.innerHTML='
+            <div style="
+                padding:16px;
+                background:rgba(229,62,62,.1);
+                border:1px solid rgba(229,62,62,.3);
+                border-radius:10px;
+                text-align:center
+            ">
+
+                <div style="
+                    font-size:1.5rem;
+                    color:var(--danger);
+                    margin-bottom:8px
+                ">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+
+                <div style="
+                    font-weight:700;
+                    color:var(--danger)
+                ">
+                    Failed
+                </div>
+
+                <p style="
+                    font-size:.82rem;
+                    color:var(--txt2);
+                    margin-top:4px
+                ">
+                    '+(res.reason||'Unknown')+'
+                </p>
+
+            </div>';
+        }
+    });
+}
 /* ===== ML ===== */
 function renderML(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>ML Prediction</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><form id="mlForm"><div class="form-grid"><div class="form-group"><label>Area (sqft)</label><input type="number" class="inp" id="mlArea" required></div><div class="form-group"><label>Road (km)</label><input type="number" step="0.1" class="inp" id="mlRoad" required></div><div class="form-group"><label>City (km)</label><input type="number" step="0.1" class="inp" id="mlCity" required></div><div class="form-group"><label>Year</label><input type="number" class="inp" id="mlYear" value="2024" required></div><div class="form-group"><label>School</label><select class="inp" id="mlSchool"><option value="Yes">Yes</option><option value="No">No</option></select></div><div class="form-group"><label>Hospital</label><select class="inp" id="mlHosp"><option value="Yes">Yes</option><option value="No">No</option></select></div></div><button type="submit" class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px"><i class="fas fa-magic"></i> Predict</button></form><div id="mlResult" style="margin-top:14px"></div></div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Model Info</h3><div style="font-size:.82rem;color:var(--txt2);line-height:1.8"><p><i class="fas fa-chart-line" style="color:var(--purple);margin-right:6px"></i>Scikit-learn Regressor</p><p><i class="fas fa-database" style="color:var(--accent);margin-right:6px"></i>Area, distances, amenities</p></div></div></div>';$('mlForm').onsubmit=doMLPredict;}
 function doMLPredict(e){e.preventDefault();var box=$('mlResult');box.innerHTML='<div style="text-align:center"><i class="fas fa-spinner fa-spin"></i></div>';api('/predict_price',{method:'POST',body:JSON.stringify({area_sqft:parseFloat($('mlArea').value),road_distance_km:parseFloat($('mlRoad').value),city_distance_km:parseFloat($('mlCity').value),nearby_school:$('mlSchool').value,nearby_hospital:$('mlHosp').value,year:parseInt($('mlYear').value)})}).then(function(res){if(res&&(res.predicted_price||res.price)){box.innerHTML='<div style="padding:20px;background:var(--bg);border:1px solid var(--accent);border-radius:12px;text-align:center"><div style="font-size:.78rem;color:var(--txt2)">Predicted Value</div><div style="font-size:1.8rem;font-weight:700;color:var(--success)">Rs '+parseFloat(res.predicted_price).toLocaleString()+'</div></div>';toast('Done','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)"><i class="fas fa-times-circle" style="margin-right:6px"></i>'+(res?res.error:'Unreachable')+'</div>';}});return false;}
