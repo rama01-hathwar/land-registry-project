@@ -3125,7 +3125,7 @@ def generate_full_data_internal():
             # 💰 MIXED TAX + MORTGAGE
             tax_status = random.choice(["Paid", "Pending"])
             mortgage_status = random.choice(["None", "Active"])
-           if mortgage_status=="Active":
+            if mortgage_status=="Active":
                try:
                    c.execute("""
                        INSERT INTO mortgage(
