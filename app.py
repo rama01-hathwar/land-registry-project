@@ -398,20 +398,119 @@ def verify_property(parcel_id):
 # ============================================================
 @app.route('/verify_property/<parcel_id>/<hash_value>')
 def verify_property_qr(parcel_id, hash_value):
-    expected_hash = generate_secure_hash(parcel_id)
-    if hash_value != expected_hash:
-        return render_template("property_dashboard.html", error="Invalid QR Code", property=None, documents=[])
-    conn = get_db()
-    row = conn.execute("SELECT * FROM property WHERE parcel_id=?", (parcel_id,)).fetchone()
-    if not row:
-        conn.close()
-        return render_template("property_dashboard.html", error="Property not found", property=None, documents=[])
-    property_data = dict(row)
-    docs = conn.execute("SELECT document_id, document_type, verification_status FROM document WHERE parcel_id=?", (parcel_id,)).fetchall()
-    doc_list = [{"document_id": d[0], "document_type": d[1], "status": d[2], "url": "/view_document/" + d[0]} for d in docs]
-    conn.close()
-    return render_template("property_dashboard.html", property=property_data, documents=doc_list, error=None)
 
+    expected_hash = generate_secure_hash(parcel_id)
+
+    # =========================
+    # INVALID QR
+    # =========================
+    if hash_value != expected_hash:
+
+        return render_template(
+            "property_dashboard.html",
+            error="Invalid QR Code",
+            property=None,
+            documents=[]
+        )
+
+    conn = get_db()
+
+    # =========================
+    # FETCH FROM GIS TABLE
+    # =========================
+    row = conn.execute("""
+
+        SELECT
+            land_id,
+            owner_name,
+            land_use_type,
+            area_sq_ft,
+            latitude,
+            longitude,
+            status
+
+        FROM gis_land_data
+
+        WHERE land_id=?
+
+    """, (parcel_id,)).fetchone()
+
+    # =========================
+    # PROPERTY NOT FOUND
+    # =========================
+    if not row:
+
+        conn.close()
+
+        return render_template(
+            "property_dashboard.html",
+            error="Property not found",
+            property=None,
+            documents=[]
+        )
+
+    # =========================
+    # PROPERTY DATA
+    # =========================
+    property_data = {
+
+        "parcel_id": row[0],
+
+        "owner_name": row[1],
+
+        "land_type": row[2],
+
+        "area_sqft": row[3],
+
+        "latitude": row[4],
+
+        "longitude": row[5],
+
+        "status": row[6]
+    }
+
+    # =========================
+    # DOCUMENTS
+    # =========================
+    docs = conn.execute("""
+
+        SELECT
+            document_id,
+            document_type,
+            verification_status
+
+        FROM document
+
+        WHERE parcel_id=?
+
+    """, (parcel_id,)).fetchall()
+
+    doc_list = [
+
+        {
+            "document_id": d[0],
+
+            "document_type": d[1],
+
+            "status": d[2],
+
+            "url": "/view_document/" + d[0]
+        }
+
+        for d in docs
+    ]
+
+    conn.close()
+
+    # =========================
+    # RENDER PAGE
+    # =========================
+    return render_template(
+        "property_dashboard.html",
+        property=property_data,
+        documents=doc_list,
+        error=None
+    )
 # ============================================================
 # TRANSFER PROPERTY — FIXED: actually performs transfer
 # ============================================================
@@ -2324,7 +2423,7 @@ def predict_price():
 
         if HAS_MODEL:
             try:
-                prediction = model.predict([[area, t]])[0]
+                prediction = float(model.predict([[area, t]])[0])
             except:
                 prediction = area * 3500 + random.randint(100000, 300000)
         else:
@@ -2801,7 +2900,7 @@ def generate_full_data_internal():
         first_names = ["Ravi","Sita","Arjun","Meena","Kiran","Anita","Rahul","Priya","Vikram","Neha"]
         last_names = ["Kumar","Sharma","Reddy","Patel","Singh","Nair","Iyer","Gupta"]
 
-        for i in range(1, 1001):
+        for i in range(1, 501):
 
             parcel_id = f"L{i:03}"
             owner_id = f"U{i:03}"
