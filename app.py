@@ -853,25 +853,58 @@ def get_unpaid_tax(parcel_id):
 
 @app.route('/pay_tax/<parcel_id>', methods=['POST'])
 def pay_tax(parcel_id):
+
     try:
+
         conn = get_db()
+
         c = conn.cursor()
 
+        # =========================
+        # UPDATE TAX TABLE
+        # =========================
         c.execute("""
+
             UPDATE tax
-            SET payment_status='Paid',
+
+            SET
+                payment_status='Paid',
                 tax_paid=tax_amount,
                 payment_date=DATE('now')
-            WHERE parcel_id=? AND payment_status!='Paid'
+
+            WHERE parcel_id=?
+
+        """, (parcel_id,))
+
+        # =========================
+        # UPDATE PROPERTY TABLE
+        # =========================
+        c.execute("""
+
+            UPDATE property
+
+            SET tax_status='Paid'
+
+            WHERE parcel_id=?
+
         """, (parcel_id,))
 
         conn.commit()
+
         conn.close()
 
-        return jsonify({"message": "Tax paid successfully"})
+        return jsonify({
+            "success": True,
+            "message": "Tax paid successfully"
+        })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+        
 @app.route('/view_tax/<parcel_id>')
 def view_tax(parcel_id):
     conn = get_db()
@@ -2431,6 +2464,7 @@ def predict_price():
 
         return jsonify({
             "price": round(float(prediction), 2)
+            "predicted_price": round(float(prediction), 2)
         })
 
     except Exception as e:
@@ -2921,7 +2955,55 @@ def generate_full_data_internal():
             # 💰 MIXED TAX + MORTGAGE
             tax_status = random.choice(["Paid", "Pending"])
             mortgage_status = random.choice(["None", "Active"])
+            # =========================
+# CREATE REAL MORTGAGE RECORD
+# =========================
+if mortgage_status == "Active":
 
+    try:
+
+        c.execute("""
+
+            INSERT INTO mortgage (
+
+                mortgage_id,
+                parcel_id,
+                lender_name,
+                loan_amount,
+                start_date,
+                end_date,
+                mortgage_status
+
+            )
+
+            VALUES (?,?,?,?,?,?,?)
+
+        """, (
+
+            "M" + str(random.randint(1000,9999)),
+
+            parcel_id,
+
+            random.choice([
+                "SBI Bank",
+                "HDFC Bank",
+                "ICICI Bank"
+            ]),
+
+            random.randint(500000, 5000000),
+
+            "2024-01-01",
+
+            "2034-01-01",
+
+            "Active"
+
+        ))
+
+    except Exception as e:
+
+        print("Mortgage insert failed:", e)
+              
             # 🧱 RANDOM POLYGON
             poly = json.dumps([
                 [lat+0.001, lon+0.001],
