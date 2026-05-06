@@ -652,30 +652,207 @@ function loadGISData(){
     });
 }
 function handleGISClick(land, marker){
+
+    // =========================
+    // SAFETY CHECK
+    // =========================
+    if(!ST.map) return;
+
+    // =========================
+    // FIX PARCEL ID
+    // =========================
+    let rawId = land.parcel_id || land.land_id || "L001";
+
+    let num = String(rawId).replace("L", "");
+
+    let parcelId =
+        "L" + String(parseInt(num)).padStart(3, '0');
+
+    land.parcel_id = parcelId;
+
+    // =========================
+    // MAP FLY
+    // =========================
+    ST.map.flyTo(
+        [land.lat, land.lon],
+        17,
+        {duration:0.8}
+    );
+
+    // =========================
+    // SIDE PANEL DETAILS
+    // =========================
+    $('gisDetails').innerHTML = `
+        <div style="line-height:1.8">
+
+            <strong style="color:var(--accent)">
+                ${parcelId}
+            </strong><br>
+
+            Owner: ${land.owner || "Unknown"}<br>
+
+            Type: ${land.type || "Residential"}<br>
+
+            Status: ${land.status || "Registered"}<br>
+
+            Area: ${land.area || 0} sqft
+
+        </div>
+    `;
+
+    // =========================
+    // QR CODE
+    // =========================
+    $('gisQR').innerHTML = `
+        <img src="/qr/${parcelId}"
+             style="
+                width:120px;
+                height:120px;
+                border-radius:12px;
+                background:white;
+                padding:6px;
+             ">
+    `;
+
+    // =========================
+    // LOAD DOCUMENTS
+    // =========================
+    loadGISDocs(parcelId);
+
+    // =========================
+    // SHOW LOADING
+    // =========================
+    $('gisPriceBox').innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Predicting...';
+
+    // =========================
+    // ML PREDICTION
+    // =========================
+    api('/predict_price', {
+        method:'POST',
+
+        body: JSON.stringify({
+
+            area: land.area || 1000,
+
+            type: land.type || "Residential"
+
+        })
+    })
+
+    .then(function(res){
+
+        console.log("Prediction:", res);
+
+        let price =
+            res.price || res.predicted_price;
+
+        if(!price){
+
+            throw new Error("Prediction failed");
+        }
+
+        price = parseFloat(price);
+
+        // =========================
+        // SIDE PRICE
+        // =========================
+        $('gisPriceBox').innerHTML = `
+            <span style="
+                color:var(--success);
+                font-size:18px;
+                font-weight:bold;
+            ">
+                ₹ ${price.toLocaleString()}
+            </span>
+        `;
+
+        // =========================
+        // MAP POPUP
+        // =========================
+        if(marker){
+
+            marker.bindPopup(`
+
+                <div style="
+                    text-align:center;
+                    min-width:220px;
+                ">
+
+                    <h3 style="
+                        margin-bottom:10px;
+                        color:#00d084;
+                    ">
+                        ${parcelId}
+                    </h3>
+
+                    <div style="margin-bottom:6px">
+                        ${land.owner || "Unknown"}
+                    </div>
+
+                    <div style="margin-bottom:6px">
+                        ${land.type || "Residential"}
+                    </div>
+
+                    <div style="
+                        font-size:18px;
+                        font-weight:bold;
+                        color:green;
+                        margin:10px 0;
+                    ">
+                        ₹ ${price.toLocaleString()}
+                    </div>
+
+                    <img src="/qr/${parcelId}"
+                         style="
+                            width:90px;
+                            height:90px;
+                            border-radius:8px;
+                            margin-top:8px;
+                         ">
+
                 </div>
+
             `).openPopup();
         }
 
     })
+
     .catch(function(err){
 
-        console.error("ML Error:", err);
+        console.error("ML ERROR:", err);
 
+        // =========================
+        // DEMO PRICE
+        // =========================
         let demoPrice = Math.round(
-            (land.area || 1000) * 3500 + Math.random()*500000
+            (land.area || 1000) * 3500
+            + Math.random()*500000
         );
 
-        $('gisPriceBox').innerHTML =
-        '<span style="color:var(--warn)">₹ ' +
-        demoPrice.toLocaleString() +
-        ' (demo)</span>';
+        $('gisPriceBox').innerHTML = `
+            <span style="
+                color:orange;
+                font-weight:bold;
+            ">
+                ₹ ${demoPrice.toLocaleString()}
+                (demo)
+            </span>
+        `;
 
         if(marker){
+
             marker.bindPopup(`
+
                 <div style="text-align:center">
+
                     <b>${parcelId}</b><br>
-                    ₹ ${demoPrice.toLocaleString()} (demo)
+
+                    ₹ ${demoPrice.toLocaleString()}
+                    (demo)
+
                 </div>
+
             `).openPopup();
         }
     });
@@ -683,21 +860,25 @@ function handleGISClick(land, marker){
     // =========================
     // NEARBY LANDS
     // =========================
+    let nearbyHtml = '';
 
-    var nearbyHtml = '';
-    var found = false;
+    let found = false;
 
     ST.mapData.forEach(function(o){
 
-        let oId = o.parcel_id || o.land_id;
+        let oId =
+            o.parcel_id || o.land_id;
 
-        let num2 = oId.replace("L","");
+        let num2 =
+            String(oId).replace("L","");
 
-        oId = "L" + String(parseInt(num2)).padStart(3,'0');
+        oId =
+            "L" + String(parseInt(num2))
+            .padStart(3,'0');
 
         if(oId !== parcelId){
 
-            var d = getDistance(
+            let d = getDistance(
                 land.lat,
                 land.lon,
                 o.lat,
@@ -705,17 +886,25 @@ function handleGISClick(land, marker){
             );
 
             if(d < 1){
+
                 found = true;
 
-                nearbyHtml +=
-                '<div>' + oId +
-                ' (' + d.toFixed(2) + ' km)</div>';
+                nearbyHtml += `
+                    <div style="
+                        margin-bottom:4px;
+                    ">
+                        ${oId}
+                        (${d.toFixed(2)} km)
+                    </div>
+                `;
             }
         }
     });
 
     $('gisNearby').innerHTML =
-        found ? nearbyHtml : 'No nearby lands';
+        found
+        ? nearbyHtml
+        : 'No nearby lands';
 }
 function loadGISDocs(pid){api('/documents/'+pid).then(function(data){var box=$('gisDocs');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='No documents';return;}box.innerHTML=data.map(function(d){return'<div style="margin-bottom:4px"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:4px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
 function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMarkers.find(function(m){return m.land.parcel_id===id;});if(found)handleGISClick(found.land,found.marker);else toast('Not found','err');}
