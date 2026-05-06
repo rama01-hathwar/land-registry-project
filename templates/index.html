@@ -651,24 +651,12 @@ function loadGISData(){
         setTimeout(function(){if(ST.map)ST.map.invalidateSize();},600);
     });
 }
-
 function handleGISClick(land, marker){
-                    ${land.owner}<br>
-                    ${land.type}<br><br>
-
-                    <span style="color:green;font-weight:bold">
-                        ₹ ${price.toLocaleString()}
-                    </span>
-                    <br><br>
-
-                    <img src="/qr/${parcelId}"
-                         style="width:90px;height:90px;border-radius:8px">
                 </div>
             `).openPopup();
         }
 
-    
-    
+    })
     .catch(function(err){
 
         console.error("ML Error:", err);
