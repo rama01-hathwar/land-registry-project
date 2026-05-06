@@ -3151,8 +3151,10 @@ def generate_full_data_internal():
                        "2034-01-01",
                        "Active"
                    ))
-    except Exception as e:
-        print("Mortgage insert failed:",e)
+                except Exception as e:
+                    print("Mortgage insert failed:",e)
+                   
+    
                    
             # 🧱 RANDOM POLYGON
             poly = json.dumps([
