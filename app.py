@@ -2463,7 +2463,7 @@ def predict_price():
             prediction = area * 3000 + random.randint(50000, 200000)
 
         return jsonify({
-            "price": round(float(prediction), 2)
+            "price": round(float(prediction), 2),
             "predicted_price": round(float(prediction), 2)
         })
 
