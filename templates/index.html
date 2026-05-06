@@ -729,7 +729,7 @@ function doQRVerify(){
         // =========================
         if(res.status==='approved'){
 
-            box.innerHTML='
+            box.innerHTML=`
             <div style="
                 padding:16px;
                 background:rgba(56,161,105,.1);
@@ -753,7 +753,7 @@ function doQRVerify(){
                     Verified
                 </div>
 
-            </div>';
+            </div>`;
         }
 
         // =========================
@@ -761,7 +761,7 @@ function doQRVerify(){
         // =========================
         else{
 
-            box.innerHTML='
+            box.innerHTML=`
             <div style="
                 padding:16px;
                 background:rgba(229,62,62,.1);
@@ -793,7 +793,7 @@ function doQRVerify(){
                     '+(res.reason||'Unknown')+'
                 </p>
 
-            </div>';
+            </div>`;
         }
     });
 }
@@ -805,10 +805,10 @@ function doMLPredict(e){
 
     var box = $('mlResult');
 
-    box.innerHTML = '
+    box.innerHTML = `
         <div style="text-align:center">
             <i class="fas fa-spinner fa-spin"></i>
-        </div>';
+        </div>`;
 
     api('/predict_price',{
 
@@ -861,7 +861,7 @@ function doMLPredict(e){
         // =========================
         // SUCCESS
         // =========================
-        box.innerHTML = '
+        box.innerHTML = `
 
             <div style="
                 padding:20px;
@@ -886,7 +886,7 @@ function doMLPredict(e){
                     Rs ' + price.toLocaleString() + '
                 </div>
 
-            </div>';
+            </div>`;
 
         toast('Prediction complete','ok');
 
@@ -896,7 +896,7 @@ function doMLPredict(e){
 
         console.error(err);
 
-        box.innerHTML = '
+        box.innerHTML = `
 
             <div style="
                 padding:12px;
@@ -910,7 +910,7 @@ function doMLPredict(e){
 
                 Prediction failed
 
-            </div>';
+            </div>`;
     });
 
     return false;
