@@ -3082,14 +3082,28 @@ def generate_full_data_internal():
 init_document_table()
 init_db()
 
+import json
+import random
+
+from datetime import datetime
+
+
+# ============================================================
+# GENERATE FULL DEMO DATA
+# ============================================================
 def generate_full_data_internal():
+
     try:
+
         conn = get_db()
+
         c = conn.cursor()
 
-        # 🔥 CLEAN TABLES
+        # =====================================================
+        # CLEAN TABLES
+        # =====================================================
         c.execute("DELETE FROM gis_land_data")
-        
+
         try:
             c.execute("DELETE FROM property")
         except:
@@ -3100,150 +3114,403 @@ def generate_full_data_internal():
         except:
             pass
 
-        # ✅ REAL NAME LIST
-        first_names = ["Ravi","Sita","Arjun","Meena","Kiran","Anita","Rahul","Priya","Vikram","Neha"]
-        last_names = ["Kumar","Sharma","Reddy","Patel","Singh","Nair","Iyer","Gupta"]
+        try:
+            c.execute("DELETE FROM mortgage")
+        except:
+            pass
 
-        for i in range(1, 501):
+        try:
+            c.execute("DELETE FROM tax")
+        except:
+            pass
+
+        # =====================================================
+        # REALISTIC NAMES
+        # =====================================================
+        first_names = [
+
+            "Ravi",
+            "Sita",
+            "Arjun",
+            "Meena",
+            "Kiran",
+            "Anita",
+            "Rahul",
+            "Priya",
+            "Vikram",
+            "Neha"
+        ]
+
+        last_names = [
+
+            "Kumar",
+            "Sharma",
+            "Reddy",
+            "Patel",
+            "Singh",
+            "Nair",
+            "Iyer",
+            "Gupta"
+        ]
+
+        # =====================================================
+        # GENERATE 200 LANDS
+        # =====================================================
+        for i in range(1, 201):
 
             parcel_id = f"L{i:03}"
+
             owner_id = f"U{i:03}"
 
-            # 📍 RANDOM LOCATION (NOT LINE)
+            # =================================================
+            # RANDOM LOCATION
+            # =================================================
             lat = 12.90 + random.uniform(0.01, 0.08)
+
             lon = 77.50 + random.uniform(0.01, 0.08)
 
-            # 🏷 LAND TYPE
+            # =================================================
+            # LAND TYPE
+            # =================================================
             land_type = random.choices(
-                ["Residential", "Commercial", "Agricultural"],
+
+                [
+                    "Residential",
+                    "Commercial",
+                    "Agricultural"
+                ],
+
                 weights=[60, 25, 15]
+
             )[0]
 
-            # 👤 REAL OWNER NAME
-            owner_name = random.choice(first_names) + " " + random.choice(last_names)
+            # =================================================
+            # OWNER NAME
+            # =================================================
+            owner_name = (
 
-            # 💰 MIXED TAX + MORTGAGE
-            tax_status = random.choice(["Paid", "Pending"])
-            mortgage_status = random.choice(["None", "Active"])
-            if mortgage_status=="Active":
-               try:
-                   c.execute("""
-                       INSERT INTO mortgage(
-                          mortgage_id,
-                          parcel_id,
-                          lender_name,
-                          loan_amount,
-                          start_date,
-                          mortgage_status
-                       )
-                       VALUES(?,?,?,?,?,?,?)
-                       """,(
-                       "M"+
-                       atr(random.randint(1000,9999)),
-                       parcel_id,
-                       random.choice([
-                           "SBI Bank",
-                           "HDFC Bank",
-                           "ICICI Bank"
-                       ]),
-                       random.randint(500000,5000000),
-                       "2024-01-01",
-                       "2034-01-01",
-                       "Active"
-                   ))
-                except Exception as e:
-                    print("Mortgage insert failed:",e)
-                   
-    
-                   
-            # 🧱 RANDOM POLYGON
-            poly = json.dumps([
-                [lat+0.001, lon+0.001],
-                [lat+0.001, lon-0.001],
-                [lat-0.001, lon-0.001],
-                [lat-0.001, lon+0.001]
+                random.choice(first_names)
+
+                + " " +
+
+                random.choice(last_names)
+            )
+
+            # =================================================
+            # TAX + MORTGAGE
+            # =================================================
+            tax_status = random.choice([
+                "Paid",
+                "Pending"
             ])
 
-            # 🗺 GIS TABLE (MAP)
+            mortgage_status = random.choice([
+                "None",
+                "Active"
+            ])
+
+            # =================================================
+            # RANDOM POLYGON
+            # =================================================
+            poly = json.dumps([
+
+                [lat+0.001, lon+0.001],
+
+                [lat+0.001, lon-0.001],
+
+                [lat-0.001, lon-0.001],
+
+                [lat-0.001, lon+0.001]
+
+            ])
+
+            # =================================================
+            # GIS TABLE
+            # =================================================
             c.execute("""
-            INSERT INTO gis_land_data (
-                land_id, survey_number, owner_name,
-                land_use_type, area_sq_ft,
-                latitude, longitude, boundary_polygon, status
-            ) VALUES (?,?,?,?,?,?,?,?,?)
+
+                INSERT INTO gis_land_data (
+
+                    land_id,
+                    survey_number,
+                    owner_name,
+                    land_use_type,
+                    area_sq_ft,
+                    latitude,
+                    longitude,
+                    boundary_polygon,
+                    status
+
+                )
+
+                VALUES (?,?,?,?,?,?,?,?,?)
+
             """, (
+
                 parcel_id,
+
                 f"S{i:03}",
+
                 owner_name,
+
                 land_type,
+
                 1000 + i,
+
                 lat,
+
                 lon,
+
                 poly,
+
                 "registered"
             ))
 
-            # 🏠 PROPERTY TABLE
+            # =================================================
+            # PROPERTY TABLE
+            # =================================================
             try:
+
                 c.execute("""
-                INSERT INTO property (
-                    parcel_id, owner_id, survey_number,
-                    village, taluk, district, state,
-                    land_type, area_sqft, registration_date,
-                    current_market_value,
-                    geo_latitude, geo_longitude,
-                    tax_status, mortgage_status
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+
+                    INSERT INTO property (
+
+                        parcel_id,
+                        owner_id,
+                        survey_number,
+                        village,
+                        taluk,
+                        district,
+                        state,
+                        land_type,
+                        area_sqft,
+                        registration_date,
+                        current_market_value,
+                        geo_latitude,
+                        geo_longitude,
+                        tax_status,
+                        mortgage_status
+
+                    )
+
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+
                 """, (
+
                     parcel_id,
+
                     owner_id,
+
                     f"S{i:03}",
+
                     "Village X",
+
                     "Taluk X",
+
                     "District X",
+
                     "State X",
+
                     land_type,
+
                     1000 + i,
+
                     "2024-01-01",
+
                     500000 + i * 1000,
+
                     lat,
+
                     lon,
+
                     tax_status,
+
                     mortgage_status
                 ))
-            except Exception as e:
-                print("Property insert failed:", e)
 
-            # ⚖ ADD DISPUTE (20% RANDOM)
-            if random.random() < 0.2:
+            except Exception as e:
+
+                print(
+                    "Property insert failed:",
+                    str(e)
+                )
+
+            # =================================================
+            # MORTGAGE TABLE
+            # =================================================
+            if mortgage_status == "Active":
+
                 try:
+
                     c.execute("""
-                    INSERT INTO dispute 
-                    (dispute_id, parcel_id, dispute_type, reported_by, description, status, created_date)
-                    VALUES (?,?,?,?,?,?,?)
+
+                        INSERT INTO mortgage (
+
+                            mortgage_id,
+                            parcel_id,
+                            lender_name,
+                            loan_amount,
+                            start_date,
+                            end_date,
+                            mortgage_status
+
+                        )
+
+                        VALUES (?,?,?,?,?,?,?)
+
                     """, (
-                        "D" + str(random.randint(1000,9999)),
+
+                        "M" + str(
+                            random.randint(1000,9999)
+                        ),
+
                         parcel_id,
+
+                        random.choice([
+                            "SBI Bank",
+                            "HDFC Bank",
+                            "ICICI Bank"
+                        ]),
+
+                        random.randint(
+                            500000,
+                            5000000
+                        ),
+
+                        "2024-01-01",
+
+                        "2034-01-01",
+
+                        "Active"
+                    ))
+
+                except Exception as e:
+
+                    print(
+                        "Mortgage insert failed:",
+                        str(e)
+                    )
+
+            # =================================================
+            # TAX TABLE
+            # =================================================
+            try:
+
+                tax_amount = random.randint(
+                    5000,
+                    50000
+                )
+
+                c.execute("""
+
+                    INSERT INTO tax (
+
+                        tax_id,
+                        parcel_id,
+                        tax_amount,
+                        tax_paid,
+                        payment_status,
+                        payment_date
+
+                    )
+
+                    VALUES (?,?,?,?,?,?)
+
+                """, (
+
+                    "TX" + str(
+                        random.randint(1000,9999)
+                    ),
+
+                    parcel_id,
+
+                    tax_amount,
+
+                    0 if tax_status == "Pending"
+                    else tax_amount,
+
+                    tax_status,
+
+                    None if tax_status == "Pending"
+                    else str(datetime.now())
+                ))
+
+            except Exception as e:
+
+                print(
+                    "Tax insert failed:",
+                    str(e)
+                )
+
+            # =================================================
+            # RANDOM DISPUTE
+            # =================================================
+            if random.random() < 0.2:
+
+                try:
+
+                    c.execute("""
+
+                        INSERT INTO dispute (
+
+                            dispute_id,
+                            parcel_id,
+                            dispute_type,
+                            reported_by,
+                            description,
+                            status,
+                            created_date
+
+                        )
+
+                        VALUES (?,?,?,?,?,?,?)
+
+                    """, (
+
+                        "D" + str(
+                            random.randint(1000,9999)
+                        ),
+
+                        parcel_id,
+
                         "Ownership",
+
                         owner_id,
+
                         "Auto-generated dispute",
+
                         "Open",
+
                         str(datetime.now())
                     ))
-                except:
-                    pass
 
+                except Exception as e:
+
+                    print(
+                        "Dispute insert failed:",
+                        str(e)
+                    )
+
+        # =====================================================
+        # SAVE
+        # =====================================================
         conn.commit()
+
         conn.close()
 
-        return "✅ Data inserted successfully"
+        return "✅ Full demo data generated successfully"
 
     except Exception as e:
+
         return f"❌ ERROR: {str(e)}"
 
 
+# ============================================================
+# ROUTE
+# ============================================================
 @app.route('/generate-full-data')
 def generate_full_data():
+
     return generate_full_data_internal()
 
 if __name__ == "__main__":
