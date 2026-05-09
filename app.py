@@ -1104,22 +1104,118 @@ def view_tax(parcel_id):
 # ============================================================
 @app.route('/add_mortgage', methods=['POST'])
 def add_mortgage():
+
     data = request.json
+
     conn = get_db()
-    existing = conn.execute("SELECT mortgage_id FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (data['parcel_id'],)).fetchone()
+
+    c = conn.cursor()
+
+    # =========================
+    # CHECK EXISTING ACTIVE
+    # =========================
+    existing = c.execute("""
+
+        SELECT mortgage_id
+
+        FROM mortgage
+
+        WHERE parcel_id=?
+        AND mortgage_status='Active'
+
+    """, (data['parcel_id'],)).fetchone()
+
     if existing:
+
         conn.close()
-        return jsonify({"message": "Property already has active mortgage"}), 400
-    count = conn.execute("SELECT COUNT(*) FROM mortgage").fetchone()[0] + 1
+
+        return jsonify({
+            "message": "Property already has active mortgage"
+        }), 400
+
+    # =========================
+    # GENERATE ID
+    # =========================
+    count = c.execute("""
+
+        SELECT COUNT(*)
+
+        FROM mortgage
+
+    """).fetchone()[0] + 1
+
     mortgage_id = "M{:03d}".format(count)
-    conn.execute("""INSERT INTO mortgage
-        (mortgage_id, parcel_id, owner_id, bank_name, loan_amount, interest_rate, start_date, end_date, mortgage_status)
-        VALUES (?,?,?,?,?,?,?,?,?)""",
-        (mortgage_id, data['parcel_id'], data['owner_id'], data['bank_name'],
-         data['loan_amount'], data['interest_rate'], data['start_date'], data['end_date'], 'Active'))
+
+    # =========================
+    # INSERT MORTGAGE
+    # =========================
+    c.execute("""
+
+        INSERT INTO mortgage (
+
+            mortgage_id,
+            parcel_id,
+            owner_id,
+            bank_name,
+            loan_amount,
+            interest_rate,
+            start_date,
+            end_date,
+            mortgage_status
+
+        )
+
+        VALUES (?,?,?,?,?,?,?,?,?)
+
+    """, (
+
+        mortgage_id,
+
+        data['parcel_id'],
+
+        data['owner_id'],
+
+        data['bank_name'],
+
+        data['loan_amount'],
+
+        data['interest_rate'],
+
+        data['start_date'],
+
+        data['end_date'],
+
+        'Active'
+
+    ))
+
+    # =========================
+    # UPDATE PROPERTY TABLE
+    # =========================
+    c.execute("""
+
+        UPDATE property
+
+        SET mortgage_status='Active'
+
+        WHERE parcel_id=?
+
+    """, (data['parcel_id'],))
+
+    # =========================
+    # SAVE
+    # =========================
     conn.commit()
+
     conn.close()
-    return jsonify({"message": "Mortgage added successfully", "mortgage_id": mortgage_id})
+
+    return jsonify({
+
+        "message": "Mortgage added successfully",
+
+        "mortgage_id": mortgage_id
+
+    })
 
 @app.route('/get_mortgage/<parcel_id>', methods=['GET'])
 def get_mortgage(parcel_id):
@@ -2350,6 +2446,7 @@ def generate_full_data_internal():
 
                         tax_id,
                         parcel_id,
+                        tax_year,
                         tax_amount,
                         tax_paid,
                         payment_status,
