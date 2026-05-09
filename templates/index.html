@@ -418,7 +418,21 @@ function doTransfer(e){
     });
 }
 
- 
+  fetch('/transfer_property', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(res => {
+    alert(res.message || res.error);
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Transfer failed");
+  });
 
 
 /* ===== HISTORY ===== */
@@ -540,147 +554,7 @@ function dispTab(t,btn){if(btn){qsa('#dispTabs .tab-btn').forEach(function(b){b.
 function doFileDispute(e){e.preventDefault();api('/file_dispute',{method:'POST',body:JSON.stringify({parcel_id:$('dpParcel').value.trim(),dispute_type:$('dpType').value,reported_by:$('dpReporter').value.trim(),description:$('dpDesc').value.trim()})}).then(function(res){var box=$('dpFileResult');if(res&&res.dispute_id){box.innerHTML='<div style="padding:12px;background:rgba(214,158,46,.1);border-radius:8px;color:var(--warn)">'+res.message+' — <strong>'+res.dispute_id+'</strong></div>';toast('Filed','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)">Failed</div>';}});return false;}
 function loadDisputes(){var pid=$('dpViewParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('dpViewResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/get_disputes/'+pid).then(function(res){if(!res||!res.disputes||!res.disputes.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>None</p></div>';return;}box.innerHTML='<table><thead><tr><th>ID</th><th>Type</th><th>By</th><th>Status</th><th>Action</th></tr></thead><tbody>'+res.disputes.map(function(d){return'<tr><td style="font-family:monospace;color:var(--warn)">'+d.dispute_id+'</td><td>'+d.dispute_type+'</td><td>'+d.reported_by+'</td><td><span class="badge '+(d.status==='Resolved'?'b-green':'b-red')+'">'+d.status+'</span></td><td>'+(d.status!=='Resolved'?'<button type="button" class="btn btn-s btn-sm" onclick="resolveDispute(\''+d.dispute_id+'\')">Resolve</button>':'—')+'</td></tr>';}).join('')+'</tbody></table>';});}
 function resolveDispute(did){api('/resolve_dispute/'+did,{method:'POST'}).then(function(res){if(res&&res.message){toast(res.message,'ok');loadDisputes();}else toast('Failed','err');});}
-function doEligibility(){
-
-    var pid = $('elParcel').value.trim();
-
-    if(!pid){
-
-        toast('Enter Parcel ID','err');
-
-        return;
-    }
-
-    var box = $('elResult');
-
-    box.innerHTML =
-    '<i class="fas fa-spinner fa-spin"></i>';
-
-    api('/verify_property/' + pid)
-
-    .then(function(res){
-
-        if(!res){
-
-            box.innerHTML = `
-
-                <div style="
-                    padding:12px;
-                    background:rgba(229,62,62,.1);
-                    border-radius:8px;
-                    color:var(--danger)
-                ">
-                    Unreachable
-                </div>
-            `;
-
-            return;
-        }
-
-        // =========================
-        // APPROVED
-        // =========================
-        if(res.status === 'approved'){
-
-            box.innerHTML = `
-
-                <div style="
-                    padding:16px;
-                    background:rgba(56,161,105,.1);
-                    border:1px solid rgba(56,161,105,.3);
-                    border-radius:10px
-                ">
-
-                    <div style="
-                        font-size:1rem;
-                        font-weight:700;
-                        color:var(--success);
-                        margin-bottom:8px
-                    ">
-
-                        <i class="fas fa-check-circle"
-                           style="margin-right:6px"></i>
-
-                        Eligible
-
-                    </div>
-
-                    <p style="
-                        font-size:.82rem;
-                        color:var(--txt2)
-                    ">
-
-                        ${res.message || 'All checks passed.'}
-
-                    </p>
-
-                </div>
-            `;
-        }
-
-        // =========================
-        // BLOCKED
-        // =========================
-        else{
-
-            box.innerHTML = `
-
-                <div style="
-                    padding:16px;
-                    background:rgba(229,62,62,.1);
-                    border:1px solid rgba(229,62,62,.3);
-                    border-radius:10px
-                ">
-
-                    <div style="
-                        font-size:1rem;
-                        font-weight:700;
-                        color:var(--danger);
-                        margin-bottom:8px
-                    ">
-
-                        <i class="fas fa-times-circle"
-                           style="margin-right:6px"></i>
-
-                        Blocked
-
-                    </div>
-
-                    <p style="
-                        font-size:.82rem;
-                        color:var(--txt2)
-                    ">
-
-                        Reason:
-                        ${res.reason || 'Unknown'}
-
-                    </p>
-
-                </div>
-            `;
-        }
-
-    })
-
-    .catch(function(err){
-
-        console.error(err);
-
-        box.innerHTML = `
-
-            <div style="
-                padding:12px;
-                background:rgba(229,62,62,.1);
-                border-radius:8px;
-                color:var(--danger)
-            ">
-
-                Error loading eligibility
-
-            </div>
-        `;
-    });
-}
+function doEligibility(){var pid=$('elParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('elResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/verify_property/'+pid).then(function(res){if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)">Unreachable</div>';return;}if(res.status==='approved'){box.innerHTML='<div style="padding:16px;background:rgba(56,161,105,.1);border:1px solid rgba(56,161,105,.3);border-radius:10px"><div style="font-size:1rem;font-weight:700;color:var(--success);margin-bottom:8px"><i class="fas fa-check-circle" style="margin-right:6px"></i>Eligible</div><p style="font-size:.82rem;color:var(--txt2)">'+(res.message||'All checks passed.')+'</p></div>';}else{box.innerHTML='<div style="padding:16px;background:rgba(229,62,62,.1);border:1px solid rgba(229,62,62,.3);border-radius:10px"><div style="font-size:1rem;font-weight:700;color:var(--danger);margin-bottom:8px"><i class="fas fa-times-circle" style="margin-right:6px"></i>Blocked</div><p style="font-size:.82rem;color:var(--txt2)">Reason: '+(res.reason||'Unknown')+'</p></div>';}});}
 function checkDispute() {
 
     const parcelId = document.getElementById('parcelId').value;
@@ -1416,6 +1290,35 @@ function loadQR(parcelId){
 
     container.style.display = "block";
 }
+function doEligibility(){
+
+    const parcelId = $('elParcel').value.trim();
+
+    if(!parcelId){
+        toast("Enter Parcel ID","err");
+        return;
+    }
+
+    // 🔥 show loading
+    $('elResult').innerHTML = "Checking...";
+
+    api('/check_dispute/' + parcelId)
+    .then(function(data){
+
+        $('elResult').innerHTML = `
+            <div style="padding:10px">
+                <b>Eligible:</b> ${data.eligible ? "Yes" : "No"} <br>
+                <b>Tax Clear:</b> ${data.tax_clear ? "Yes" : "No"} <br>
+                <b>Mortgage Clear:</b> ${data.mortgage_clear ? "Yes" : "No"}
+            </div>
+        `;
+
+    })
+    .catch(function(err){
+        console.error(err);
+        $('elResult').innerHTML = "Error loading data";
+    });
+}
 
 function apiForm(url, formData){
 
@@ -1435,7 +1338,6 @@ function apiForm(url, formData){
         }
     });
 }
-   
 </script>
 </body>
 </html>
