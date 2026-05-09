@@ -91,7 +91,7 @@ def init_db():
     #c.execute("DROP TABLE IF EXISTS ownership_history")
 
     # ================= USERS =================
-    c.execute("""CREATE TABLE users (
+    c.execute("""CREATE TABLE IF NOT EXISTS users (
         user_id TEXT PRIMARY KEY,
         full_name TEXT,
         wallet_address TEXT DEFAULT '',
@@ -103,7 +103,7 @@ def init_db():
     )""")
 
     # ================= PROPERTY =================
-    c.execute("""CREATE TABLE property (
+    c.execute("""CREATE TABLE IF NOT EXISTS property (
         parcel_id TEXT PRIMARY KEY,
         owner_id TEXT,
         survey_number TEXT,
@@ -123,7 +123,7 @@ def init_db():
     )""")
 
     # ================= TAX =================
-    c.execute("""CREATE TABLE tax (
+    c.execute("""CREATE TABLE IF NOT EXISTS tax (
         tax_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         tax_year INTEGER,
@@ -134,7 +134,7 @@ def init_db():
     )""")
 
     # ================= PROPERTY TAX =================
-    c.execute("""CREATE TABLE property_tax (
+    c.execute("""CREATE TABLE IF NOT EXISTS property_tax (
         tax_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         tax_year INTEGER,
@@ -145,7 +145,7 @@ def init_db():
     )""")
 
     # ================= MORTGAGE =================
-    c.execute("""CREATE TABLE mortgage (
+    c.execute("""CREATE TABLE IF NOT EXISTS mortgage (
         mortgage_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         owner_id TEXT,
@@ -158,7 +158,7 @@ def init_db():
     )""")
 
     # ================= DISPUTE =================
-    c.execute("""CREATE TABLE dispute (
+    c.execute("""CREATE TABLE IF NOT EXISTS dispute (
         dispute_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         dispute_type TEXT,
@@ -170,7 +170,7 @@ def init_db():
     )""")
 
     # ================= BLOCKCHAIN =================
-    c.execute("""CREATE TABLE blockchain (
+    c.execute("""CREATE TABLE IF NOT EXISTS blockchain (
         block_id TEXT PRIMARY KEY,
         block_number INTEGER,
         gas_fee REAL,
@@ -181,7 +181,7 @@ def init_db():
     )""")
 
     # ================= TRANSFER =================
-    c.execute("""CREATE TABLE transfer (
+    c.execute("""CREATE TABLE IF NOT EXISTS transfer (
         transaction_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         from_owner TEXT,
@@ -194,7 +194,7 @@ def init_db():
     )""")
 
     # ================= LOGIN =================
-    c.execute("""CREATE TABLE login_activity (
+    c.execute("""CREATE TABLE IF NOT EXISTS login_activity (
         login_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT,
         action_type TEXT,
@@ -217,7 +217,7 @@ def init_db():
     )""")
 
     # ================= FRAUD =================
-    c.execute("""CREATE TABLE fraud_detection (
+    c.execute("""CREATE TABLE IF NOT EXISTS fraud_detection (
         parcel_id TEXT PRIMARY KEY,
         duplicate_survey INTEGER DEFAULT 0,
         multiple_claim INTEGER DEFAULT 0,
@@ -226,7 +226,7 @@ def init_db():
     )""")
 
     # ================= GIS (FIXED WITH STATUS) =================
-    c.execute("""CREATE TABLE gis_land_data (
+    c.execute("""CREATE TABLE IF NOT EXISTS gis_land_data (
         land_id TEXT PRIMARY KEY,
         survey_number TEXT DEFAULT '',
         owner_name TEXT,
@@ -239,7 +239,7 @@ def init_db():
     )""")
 
     # ================= OWNERSHIP HISTORY =================
-    c.execute("""CREATE TABLE ownership_history (
+    c.execute("""CREATE TABLE IF NOT EXISTS ownership_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         parcel_id TEXT,
         from_owner TEXT,
