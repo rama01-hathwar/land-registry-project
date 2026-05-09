@@ -205,7 +205,7 @@ def init_db():
     )""")
 
     # ================= DOCUMENT =================
-    c.execute("""CREATE TABLE document (
+    c.execute("""CREATE TABLE IF NOT EXISTS document (
         document_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         document_type TEXT,
