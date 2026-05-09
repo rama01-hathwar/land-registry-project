@@ -76,22 +76,22 @@ def init_db():
     c = conn.cursor()
 
     # 🔥 DROP ALL TABLES (RESET)
-    #c.execute("DROP TABLE IF EXISTS users")
-    #c.execute("DROP TABLE IF EXISTS property")
-    #c.execute("DROP TABLE IF EXISTS property_tax")
-    #c.execute("DROP TABLE IF EXISTS tax")
-    #c.execute("DROP TABLE IF EXISTS mortgage")
-    #c.execute("DROP TABLE IF EXISTS dispute")
-    #c.execute("DROP TABLE IF EXISTS blockchain")
-    #c.execute("DROP TABLE IF EXISTS transfer")
-    #c.execute("DROP TABLE IF EXISTS login_activity")
-    #c.execute("DROP TABLE IF EXISTS document")
-    #c.execute("DROP TABLE IF EXISTS fraud_detection")
-    #c.execute("DROP TABLE IF EXISTS gis_land_data")
-    #c.execute("DROP TABLE IF EXISTS ownership_history")
+    c.execute("DROP TABLE IF EXISTS users")
+    c.execute("DROP TABLE IF EXISTS property")
+    c.execute("DROP TABLE IF EXISTS property_tax")
+    c.execute("DROP TABLE IF EXISTS tax")
+    c.execute("DROP TABLE IF EXISTS mortgage")
+    c.execute("DROP TABLE IF EXISTS dispute")
+    c.execute("DROP TABLE IF EXISTS blockchain")
+    c.execute("DROP TABLE IF EXISTS transfer")
+    c.execute("DROP TABLE IF EXISTS login_activity")
+    c.execute("DROP TABLE IF EXISTS document")
+    c.execute("DROP TABLE IF EXISTS fraud_detection")
+    c.execute("DROP TABLE IF EXISTS gis_land_data")
+    c.execute("DROP TABLE IF EXISTS ownership_history")
 
     # ================= USERS =================
-    c.execute("""CREATE TABLE IF NOT EXISTS users (
+    c.execute("""CREATE TABLE users (
         user_id TEXT PRIMARY KEY,
         full_name TEXT,
         wallet_address TEXT DEFAULT '',
@@ -103,7 +103,7 @@ def init_db():
     )""")
 
     # ================= PROPERTY =================
-    c.execute("""CREATE TABLE IF NOT EXISTS property (
+    c.execute("""CREATE TABLE property (
         parcel_id TEXT PRIMARY KEY,
         owner_id TEXT,
         survey_number TEXT,
@@ -123,7 +123,7 @@ def init_db():
     )""")
 
     # ================= TAX =================
-    c.execute("""CREATE TABLE IF NOT EXISTS tax (
+    c.execute("""CREATE TABLE tax (
         tax_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         tax_year INTEGER,
@@ -134,7 +134,7 @@ def init_db():
     )""")
 
     # ================= PROPERTY TAX =================
-    c.execute("""CREATE TABLE IF NOT EXISTS property_tax (
+    c.execute("""CREATE TABLE property_tax (
         tax_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         tax_year INTEGER,
@@ -145,7 +145,7 @@ def init_db():
     )""")
 
     # ================= MORTGAGE =================
-    c.execute("""CREATE TABLE IF NOT EXISTS mortgage (
+    c.execute("""CREATE TABLE mortgage (
         mortgage_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         owner_id TEXT,
@@ -158,7 +158,7 @@ def init_db():
     )""")
 
     # ================= DISPUTE =================
-    c.execute("""CREATE TABLE IF NOT EXISTS dispute (
+    c.execute("""CREATE TABLE dispute (
         dispute_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         dispute_type TEXT,
@@ -170,7 +170,7 @@ def init_db():
     )""")
 
     # ================= BLOCKCHAIN =================
-    c.execute("""CREATE TABLE IF NOT EXISTS blockchain (
+    c.execute("""CREATE TABLE blockchain (
         block_id TEXT PRIMARY KEY,
         block_number INTEGER,
         gas_fee REAL,
@@ -181,7 +181,7 @@ def init_db():
     )""")
 
     # ================= TRANSFER =================
-    c.execute("""CREATE TABLE IF NOT EXISTS transfer (
+    c.execute("""CREATE TABLE transfer (
         transaction_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         from_owner TEXT,
@@ -194,7 +194,7 @@ def init_db():
     )""")
 
     # ================= LOGIN =================
-    c.execute("""CREATE TABLE IF NOT EXISTS login_activity (
+    c.execute("""CREATE TABLE login_activity (
         login_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT,
         action_type TEXT,
@@ -205,7 +205,7 @@ def init_db():
     )""")
 
     # ================= DOCUMENT =================
-    c.execute("""CREATE TABLE IF NOT EXISTS document (
+    c.execute("""CREATE TABLE document (
         document_id TEXT PRIMARY KEY,
         parcel_id TEXT,
         document_type TEXT,
@@ -217,7 +217,7 @@ def init_db():
     )""")
 
     # ================= FRAUD =================
-    c.execute("""CREATE TABLE IF NOT EXISTS fraud_detection (
+    c.execute("""CREATE TABLE fraud_detection (
         parcel_id TEXT PRIMARY KEY,
         duplicate_survey INTEGER DEFAULT 0,
         multiple_claim INTEGER DEFAULT 0,
@@ -226,7 +226,7 @@ def init_db():
     )""")
 
     # ================= GIS (FIXED WITH STATUS) =================
-    c.execute("""CREATE TABLE IF NOT EXISTS gis_land_data (
+    c.execute("""CREATE TABLE gis_land_data (
         land_id TEXT PRIMARY KEY,
         survey_number TEXT DEFAULT '',
         owner_name TEXT,
@@ -239,11 +239,11 @@ def init_db():
     )""")
 
     # ================= OWNERSHIP HISTORY =================
-    c.execute("""CREATE TABLE IF NOT EXISTS ownership_history (
+    c.execute("""CREATE TABLE ownership_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         parcel_id TEXT,
-        from_owner TEXT,
-        to_owner TEXT,
+        seller_id TEXT,
+        buyer_id TEXT,
         transfer_date TEXT,
         transaction_hash TEXT
     )""")
@@ -523,9 +523,9 @@ def transfer_property():
 
         parcel_id = data.get('parcel_id')
 
-        from_owner = data.get('from_owner')
+        seller_id = data.get('seller_id')
 
-        to_owner = data.get('to_owner')
+        buyer_id = data.get('buyer_id')
 
         sale_amount = data.get('sale_amount', 0)
 
@@ -565,7 +565,7 @@ def transfer_property():
         # =====================================================
         # OWNER CHECK
         # =====================================================
-        if owner[0] != from_owner:
+        if owner[0] != seller_id:
 
             conn.close()
 
@@ -933,7 +933,172 @@ def check_dispute(parcel_id):
         "mortgage_clear": mortgage == "None"
     })
 
+# ============================================================
+# TAX — all variants
+# ============================================================
+@app.route('/generate_tax/<parcel_id>', methods=['POST'])
+def generate_tax(parcel_id):
+    conn = get_db()
+    c = conn.cursor()
 
+    prop = c.execute(
+        "SELECT current_market_value FROM property WHERE parcel_id=?",
+        (parcel_id,)
+    ).fetchone()
+
+    if not prop:
+        conn.close()
+        return jsonify({"error": "Property not found"})
+
+    market_value = float(prop[0])
+    tax_amount = market_value * 0.01
+    year = datetime.now().year
+
+    existing = c.execute(
+        "SELECT tax_id FROM tax WHERE parcel_id=? AND tax_year=?",
+        (parcel_id, year)
+    ).fetchone()
+
+    if existing:
+        conn.close()
+        return jsonify({"message": "Tax already generated"})
+
+    tax_id = "TX" + str(random.randint(1000, 9999))
+
+    c.execute("""
+        INSERT INTO tax (tax_id, parcel_id, tax_year, tax_amount, tax_paid, payment_date, payment_status)
+        VALUES (?,?,?,?,?,?,?)
+    """, (
+        tax_id,
+        parcel_id,
+        year,
+        tax_amount,
+        0,
+        None,
+        "Pending"
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Tax generated", "tax_amount": tax_amount})
+
+@app.route('/tax/<parcel_id>')
+def get_tax(parcel_id):
+    conn = get_db()
+    c = conn.cursor()
+
+    rows = c.execute("""
+        SELECT tax_id, tax_year, tax_amount, tax_paid, payment_status
+        FROM tax WHERE parcel_id=?
+    """, (parcel_id,)).fetchall()
+
+    conn.close()
+
+    return jsonify([
+        {
+            "tax_id": r[0],
+            "tax_year": r[1],
+            "tax_amount": r[2],
+            "tax_paid": r[3],
+            "payment_status": r[4]
+        }
+        for r in rows
+    ])
+
+@app.route('/pending_tax/<parcel_id>', methods=['GET'])
+def get_pending_tax(parcel_id):
+    conn = get_db()
+    rows = conn.execute("SELECT tax_id, tax_year, tax_amount, tax_paid, payment_date, payment_status FROM tax WHERE parcel_id=?", (parcel_id,)).fetchall()
+    conn.close()
+    return jsonify([{"tax_id": r[0], "tax_year": r[1], "tax_amount": r[2], "tax_paid": r[3],
+        "payment_date": str(r[4]) if r[4] else None, "payment_status": r[5]} for r in rows])
+
+@app.route('/get_tax/<parcel_id>', methods=['GET'])
+def get_unpaid_tax(parcel_id):
+    conn = get_db()
+    rows = conn.execute("SELECT tax_id, tax_year, tax_amount, tax_paid, payment_status FROM tax WHERE parcel_id=? AND payment_status!='Paid'", (parcel_id,)).fetchall()
+    conn.close()
+    return jsonify([{"tax_id": r[0], "tax_year": r[1], "tax_amount": r[2], "tax_paid": r[3], "payment_status": r[4]} for r in rows])
+
+@app.route('/pay_tax/<parcel_id>', methods=['POST'])
+def pay_tax(parcel_id):
+
+    try:
+
+        conn = get_db()
+
+        c = conn.cursor()
+
+        # =========================
+        # UPDATE TAX TABLE
+        # =========================
+        c.execute("""
+
+            UPDATE tax
+
+            SET
+                payment_status='Paid',
+                tax_paid=tax_amount,
+                payment_date=DATE('now')
+
+            WHERE parcel_id=?
+
+        """, (parcel_id,))
+
+        # =========================
+        # UPDATE PROPERTY TABLE
+        # =========================
+        c.execute("""
+
+            UPDATE property
+
+            SET tax_status='Paid'
+
+            WHERE parcel_id=?
+
+        """, (parcel_id,))
+
+        conn.commit()
+
+        conn.close()
+
+        return jsonify({
+            "success": True,
+            "message": "Tax paid successfully"
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+        
+@app.route('/view_tax/<parcel_id>')
+def view_tax(parcel_id):
+    conn = get_db()
+    c = conn.cursor()
+
+    row = c.execute("""
+        SELECT parcel_id, tax_amount, payment_status, payment_date
+        FROM tax
+        WHERE parcel_id=?
+        ORDER BY tax_year DESC
+        LIMIT 1
+    """, (parcel_id,)).fetchone()
+
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "No tax found"}), 404
+
+    return jsonify({
+        "parcel_id": row[0],
+        "tax_amount": row[1],
+        "status": row[2],
+        "date": row[3]
+    })
 # ============================================================
 # MORTGAGE — all variants
 # ============================================================
@@ -1208,6 +1373,7 @@ def add_land():
     conn.commit()
     conn.close()
     return jsonify({"message": "Land added successfully"})
+
 
 # ============================================================
 # QR CODE
@@ -1856,10 +2022,8 @@ def generate_full_data_internal():
 # ============================================================
 # STARTUP
 # ============================================================
-if __name__ == "__main__":
-    init_document_table()
-    init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+init_document_table()
+init_db()
 
 import json
 import random
@@ -2127,7 +2291,7 @@ def generate_full_data_internal():
 
                             mortgage_id,
                             parcel_id,
-                            bank_name,
+                            lender_name,
                             loan_amount,
                             start_date,
                             end_date,
