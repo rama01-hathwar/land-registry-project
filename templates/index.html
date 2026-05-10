@@ -446,8 +446,135 @@ function loadHistory(){var pid=$('histParcel').value.trim();if(!pid){toast('Ente
 function renderDocuments(){var isV=ST.role==='verifier';$('mainArea').className='main';$('gisPageWrap').style.display='none';var upH=isV?'<form id="verifyDocForm"><div class="form-group" style="margin-bottom:12px"><label>Document ID</label><input class="inp" id="vdDocId" required></div><div class="form-group" style="margin-bottom:12px"><label>Your User ID</label><input class="inp" id="vdUserId" required></div><button type="submit" class="btn btn-s"><i class="fas fa-check"></i> Verify</button></form><div id="vdResult" style="margin-top:12px"></div>':'<form id="uploadDocForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="udParcel" required></div><div class="form-group"><label>Type</label><select class="inp" id="udType"><option>Sale Deed</option><option>Tax Receipt</option><option>Transfer Deed</option></select></div><div class="form-group" style="grid-column:span 2"><label>File</label><input type="file" class="inp" id="udFile" accept=".pdf,.png,.jpg,.jpeg"></div></div><button type="submit" class="btn btn-p" style="margin-top:12px"><i class="fas fa-cloud-upload-alt"></i> Upload</button></form><div id="udResult" style="margin-top:12px"></div>';$('mainArea').innerHTML='<div class="section-head"><h2>Documents</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">'+(isV?'Verify':'Upload')+'</h3>'+upH+'</div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">View</h3><div style="display:flex;gap:8px;margin-bottom:12px"><input class="inp" placeholder="Parcel ID" id="vdSearch"><button type="button" class="btn btn-p btn-sm" onclick="loadDocs()"><i class="fas fa-search"></i></button></div><div id="docsList"><div class="empty-state"><i class="fas fa-file-alt"></i><p>Search to view</p></div></div></div></div>';if(isV)$('verifyDocForm').onsubmit=doVerifyDoc;else $('uploadDocForm').onsubmit=doUploadDoc;}
 function doUploadDoc(e){e.preventDefault();var fd=new FormData();fd.append('parcel_id',$('udParcel').value.trim());fd.append('document_type',$('udType').value);fd.append('uploaded_by',ST.user);fd.append('file',$('udFile').files[0]);apiForm('/upload_document',fd).then(function(res){if(res&&res.message){$('udResult').innerHTML='<div style="padding:10px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Uploaded','ok');}else{$('udResult').innerHTML='<div style="padding:10px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Failed</div>';}});return false;}
 function doVerifyDoc(e){e.preventDefault();api('/verify_document/'+$('vdDocId').value.trim(),{method:'PUT',body:JSON.stringify({user_id:$('vdUserId').value.trim()})}).then(function(res){if(res&&res.message){$('vdResult').innerHTML='<div style="padding:10px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Verified','ok');}else{$('vdResult').innerHTML='<div style="padding:10px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Failed</div>';}});return false;}
-function loadDocs(){var pid=$('vdSearch').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}api('/documents/'+pid).then(function(data){var box=$('docsList');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>None</p></div>';return;}box.innerHTML=data.map(function(d){return'<div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:.82rem"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:6px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
+function loadDocs(){
 
+    var pid = $('vdSearch').value.trim();
+
+    if(!pid){
+
+        toast('Enter Parcel ID','err');
+
+        return;
+    }
+
+    api('/documents/' + pid)
+
+    .then(function(data){
+
+        var box = $('docsList');
+
+        // =========================
+        // NO DOCUMENTS
+        // =========================
+        if(!data || !Array.isArray(data) || !data.length){
+
+            box.innerHTML = `
+
+                <div class="empty-state">
+
+                    <i class="fas fa-inbox"></i>
+
+                    <p>No documents found</p>
+
+                </div>
+            `;
+
+            return;
+        }
+
+        // =========================
+        // DOCUMENT LIST
+        // =========================
+        box.innerHTML = data.map(function(d){
+
+            return `
+
+                <div style="
+                    padding:12px;
+                    background:var(--bg);
+                    border:1px solid var(--border);
+                    border-radius:10px;
+                    margin-bottom:10px;
+                    font-size:.82rem
+                ">
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center
+                    ">
+
+                        <div>
+
+                            <i class="fas fa-file-alt"
+                               style="
+                                color:var(--accent);
+                                margin-right:6px
+                               ">
+                            </i>
+
+                            <a href="/view_document/${d.document_id}"
+                               target="_blank"
+                               style="
+                                    color:var(--accent);
+                                    text-decoration:none;
+                                    font-weight:600
+                               ">
+
+                                ${d.document_type}
+
+                            </a>
+
+                        </div>
+
+                        <span style="
+                            padding:4px 8px;
+                            border-radius:6px;
+                            background:
+                                ${d.status === 'Verified'
+                                    ? 'rgba(56,161,105,.15)'
+                                    : 'rgba(229,62,62,.15)'};
+
+                            color:
+                                ${d.status === 'Verified'
+                                    ? '#38a169'
+                                    : '#e53e3e'};
+
+                            font-size:.72rem;
+                            font-weight:600
+                        ">
+
+                            ${d.status || 'Pending'}
+
+                        </span>
+
+                    </div>
+
+                </div>
+            `;
+
+        }).join('');
+    })
+
+    .catch(function(err){
+
+        console.error(err);
+
+        $('docsList').innerHTML = `
+
+            <div style="
+                padding:12px;
+                background:rgba(229,62,62,.1);
+                border-radius:8px;
+                color:var(--danger)
+            ">
+
+                Error loading documents
+
+            </div>
+        `;
+    });
+}
 /* ===== TAX ===== */
 async function generateTax() {
     const id = document.getElementById("parcelId").value;
