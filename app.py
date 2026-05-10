@@ -1235,15 +1235,70 @@ def check_mortgage(parcel_id):
         return jsonify({"mortgage_status": status[0]})
     return jsonify({"message": "No mortgage found"})
 
-@app.route('/close_mortgage', methods=['PUT'])
-def close_mortgage():
-    data = request.json
-    conn = get_db()
-    conn.execute("UPDATE mortgage SET mortgage_status='Closed' WHERE mortgage_id=?", (data['mortgage_id'],))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Mortgage closed successfully"})
+@app.route('/close_mortgage/<mortgage_id>', methods=['POST'])
+def close_mortgage(mortgage_id):
 
+    conn = get_db()
+
+    c = conn.cursor()
+
+    # =========================
+    # FIND PARCEL
+    # =========================
+    row = c.execute("""
+
+        SELECT parcel_id
+
+        FROM mortgage
+
+        WHERE mortgage_id=?
+
+    """, (mortgage_id,)).fetchone()
+
+    if not row:
+
+        conn.close()
+
+        return jsonify({
+            "error": "Mortgage not found"
+        }), 404
+
+    parcel_id = row[0]
+
+    # =========================
+    # CLOSE MORTGAGE
+    # =========================
+    c.execute("""
+
+        UPDATE mortgage
+
+        SET mortgage_status='Closed'
+
+        WHERE mortgage_id=?
+
+    """, (mortgage_id,))
+
+    # =========================
+    # UPDATE PROPERTY TABLE
+    # =========================
+    c.execute("""
+
+        UPDATE property
+
+        SET mortgage_status='None'
+
+        WHERE parcel_id=?
+
+    """, (parcel_id,))
+
+    conn.commit()
+
+    conn.close()
+
+    return jsonify({
+        "success": True,
+        "message": "Mortgage closed"
+    })
 @app.route('/check_property_mortgage/<parcel_id>', methods=['GET'])
 def check_property_mortgage(parcel_id):
     conn = get_db()
@@ -1976,6 +2031,46 @@ def setup():
     except Exception as e:
         print("❌ Init error:", e)
 
+@app.route('/fix_mortgage_data')
+def fix_mortgage_data():
+
+    conn = get_db()
+
+    c = conn.cursor()
+
+    # RESET ALL
+    c.execute("""
+
+    UPDATE property
+
+    SET mortgage_status='None'
+
+    """)
+
+    # RE-ENABLE ACTIVE ONES
+    c.execute("""
+
+    UPDATE property
+
+    SET mortgage_status='Active'
+
+    WHERE parcel_id IN (
+
+        SELECT parcel_id
+
+        FROM mortgage
+
+        WHERE mortgage_status='Active'
+
+    )
+
+    """)
+
+    conn.commit()
+
+    conn.close()
+
+    return "Mortgage data fixed"
 
 
 
