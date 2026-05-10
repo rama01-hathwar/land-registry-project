@@ -542,8 +542,97 @@ function renderMortgage(){$('mainArea').className='main';$('gisPageWrap').style.
 function mortTab(t,btn){if(btn){qsa('#mortTabs .tab-btn').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');}var c=$('mortContent');if(t==='add'){c.innerHTML='<div class="card"><form id="addMortForm"><div class="form-grid"><div class="form-group"><label>Parcel ID</label><input class="inp" id="mParcel" required></div><div class="form-group"><label>Owner ID</label><input class="inp" id="mOwner" required></div><div class="form-group"><label>Bank</label><input class="inp" id="mBank" required></div><div class="form-group"><label>Loan Amount</label><input type="number" class="inp" id="mAmount" required></div><div class="form-group"><label>Rate %</label><input type="number" step="0.1" class="inp" id="mRate" required></div><div class="form-group"><label>Start</label><input type="date" class="inp" id="mStart" required></div><div class="form-group"><label>End</label><input type="date" class="inp" id="mEnd" required></div></div><button type="submit" class="btn btn-p" style="margin-top:14px"><i class="fas fa-file-signature"></i> Register</button></form><div id="mAddResult" style="margin-top:12px"></div></div>';$('addMortForm').onsubmit=doAddMortgage;}else if(t==='view'){c.innerHTML='<div class="card"><div style="display:flex;gap:10px;align-items:end;margin-bottom:14px"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="mViewParcel"></div><button type="button" class="btn btn-p" onclick="loadMortgage()"><i class="fas fa-search"></i></button></div><div id="mViewResult"></div></div>';}else{c.innerHTML='<div class="card"><form id="closeMortForm"><div class="form-group" style="margin-bottom:14px;max-width:300px"><label>Mortgage ID</label><input class="inp" id="mCloseId" required></div><button type="submit" class="btn btn-s"><i class="fas fa-check"></i> Close</button></form><div id="mCloseResult" style="margin-top:12px"></div></div>';$('closeMortForm').onsubmit=doCloseMortgage;}}
 function doAddMortgage(e){e.preventDefault();api('/add_mortgage',{method:'POST',body:JSON.stringify({parcel_id:$('mParcel').value.trim(),owner_id:$('mOwner').value.trim(),bank_name:$('mBank').value.trim(),loan_amount:parseFloat($('mAmount').value),interest_rate:parseFloat($('mRate').value),start_date:$('mStart').value,end_date:$('mEnd').value})}).then(function(res){var box=$('mAddResult');if(res&&res.mortgage_id){box.innerHTML='<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+' — <strong>'+res.mortgage_id+'</strong></div>';toast('Registered!','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">'+(res?res.message:'Failed')+'</div>';}});return false;}
 function loadMortgage(){var pid=$('mViewParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('mViewResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/get_mortgage/'+pid).then(function(data){if(!data||!Array.isArray(data)||!data.length){box.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>None</p></div>';return;}box.innerHTML='<table><thead><tr><th>ID</th><th>Parcel</th><th>Bank</th><th>Loan</th><th>Rate</th><th>Status</th></tr></thead><tbody>'+data.map(function(m){return'<tr><td style="font-family:monospace;color:var(--purple)">'+m.mortgage_id+'</td><td>'+m.parcel_id+'</td><td>'+m.bank_name+'</td><td>Rs '+parseFloat(m.loan_amount).toLocaleString()+'</td><td>'+m.interest_rate+'%</td><td><span class="badge '+(m.mortgage_status==='Active'?'b-yellow':'b-green')+'">'+m.mortgage_status+'</span></td></tr>';}).join('')+'</tbody></table>';});}
-function doCloseMortgage(e){e.preventDefault();api('/close_mortgage',{method:'PUT',body:JSON.stringify({mortgage_id:$('mCloseId').value.trim()})}).then(function(res){var box=$('mCloseResult');if(res&&res.message){box.innerHTML='<div style="padding:12px;background:rgba(56,161,105,.1);border-radius:8px;font-size:.82rem;color:var(--success)">'+res.message+'</div>';toast('Closed','ok');}else{box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;font-size:.82rem;color:var(--danger)">Failed</div>';}});return false;}
+function doCloseMortgage(e){
 
+    e.preventDefault();
+
+    let parcelId =
+        $('mCloseId').value.trim();
+
+    if(!parcelId){
+
+        toast('Enter Parcel ID','err');
+
+        return false;
+    }
+
+    api('/close_mortgage/' + parcelId, {
+
+        method:'POST'
+
+    })
+
+    .then(function(res){
+
+        var box = $('mCloseResult');
+
+        // =========================
+        // SUCCESS
+        // =========================
+        if(res && res.success){
+
+            box.innerHTML = `
+
+                <div style="
+                    padding:12px;
+                    background:rgba(56,161,105,.1);
+                    border-radius:8px;
+                    font-size:.82rem;
+                    color:var(--success)
+                ">
+
+                    ${res.message}
+
+                </div>
+            `;
+
+            toast('Mortgage closed','ok');
+        }
+
+        // =========================
+        // FAILED
+        // =========================
+        else{
+
+            box.innerHTML = `
+
+                <div style="
+                    padding:12px;
+                    background:rgba(229,62,62,.1);
+                    border-radius:8px;
+                    font-size:.82rem;
+                    color:var(--danger)
+                ">
+
+                    ${res.error || 'Failed'}
+
+                </div>
+            `;
+        }
+
+    })
+
+    .catch(function(err){
+
+        console.error(err);
+
+        $('mCloseResult').innerHTML = `
+
+            <div style="
+                padding:12px;
+                background:rgba(229,62,62,.1);
+                border-radius:8px;
+                color:var(--danger)
+            ">
+
+                Server Error
+
+            </div>
+        `;
+    });
+
+    return false;
+}
 /* ===== FRAUD ===== */
 function renderFraud(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>Fraud Detection</h2></div><div class="card" style="margin-bottom:14px"><div style="display:flex;gap:10px;align-items:end"><div class="form-group" style="flex:1"><label>Parcel ID</label><input class="inp" id="fraudParcel"></div><button type="button" class="btn btn-p" onclick="doFraudCheck()"><i class="fas fa-search"></i> Check</button></div><div id="fraudResult" style="margin-top:14px"></div></div>';}
 function doFraudCheck(){var pid=$('fraudParcel').value.trim();if(!pid){toast('Enter Parcel ID','err');return;}var box=$('fraudResult');box.innerHTML='<i class="fas fa-spinner fa-spin"></i>';api('/fraud_check/'+pid).then(function(res){if(!res){box.innerHTML='<div style="padding:12px;background:rgba(229,62,62,.1);border-radius:8px;color:var(--danger)">Unreachable</div>';return;}if(res.message){box.innerHTML='<div style="padding:12px;background:var(--bg);border-radius:8px;font-size:.82rem;color:var(--txt2)">'+res.message+'</div>';return;}var rc={Low:'var(--success)',Medium:'var(--warn)',High:'var(--danger)'};box.innerHTML='<div style="padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px"><div style="font-weight:600;margin-bottom:10px">Risk: <span style="color:'+(rc[res.risk_level]||'var(--txt2)')+';font-size:1.1rem">'+res.risk_level+'</span></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:.82rem"><div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Duplicate</div><div style="font-weight:700;color:'+(res.duplicate_survey?'var(--danger)':'var(--success)')+'">'+(res.duplicate_survey?'Flagged':'Clear')+'</div></div><div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Claims</div><div style="font-weight:700;color:'+(res.multiple_claim?'var(--danger)':'var(--success)')+'">'+(res.multiple_claim?'Flagged':'Clear')+'</div></div><div style="padding:8px;background:var(--bg2);border-radius:6px;text-align:center"><div style="color:var(--txt2);font-size:.72rem">Abnormal</div><div style="font-weight:700;color:'+(res.abnormal_transfer?'var(--danger)':'var(--success)')+'">'+(res.abnormal_transfer?'Flagged':'Clear')+'</div></div></div></div>';});}
