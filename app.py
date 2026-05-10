@@ -1235,8 +1235,8 @@ def check_mortgage(parcel_id):
         return jsonify({"mortgage_status": status[0]})
     return jsonify({"message": "No mortgage found"})
 
-@app.route('/close_mortgage/<mortgage_id>', methods=['POST'])
-def close_mortgage(mortgage_id):
+@app.route('/close_mortgage/<parcel_id>', methods=['POST'])
+def close_mortgage(parcel_id):
 
     conn = get_db()
 
@@ -1251,9 +1251,9 @@ def close_mortgage(mortgage_id):
 
         FROM mortgage
 
-        WHERE mortgage_id=?
+        WHERE parcel_id=?
 
-    """, (mortgage_id,)).fetchone()
+    """, (parcel_id,)).fetchone()
 
     if not row:
 
@@ -1274,9 +1274,9 @@ def close_mortgage(mortgage_id):
 
         SET mortgage_status='Closed'
 
-        WHERE mortgage_id=?
+        WHERE parcel_id=?
 
-    """, (mortgage_id,))
+    """, (parcel_id,))
 
     # =========================
     # UPDATE PROPERTY TABLE
