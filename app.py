@@ -1238,67 +1238,84 @@ def check_mortgage(parcel_id):
 @app.route('/close_mortgage/<parcel_id>', methods=['POST'])
 def close_mortgage(parcel_id):
 
-    conn = get_db()
+    try:
 
-    c = conn.cursor()
+        conn = get_db()
 
-    # =========================
-    # FIND PARCEL
-    # =========================
-    row = c.execute("""
+        c = conn.cursor()
 
-        SELECT parcel_id
+        # =========================
+        # CHECK ACTIVE MORTGAGE
+        # =========================
+        row = c.execute("""
 
-        FROM mortgage
+            SELECT mortgage_id
 
-        WHERE parcel_id=?
+            FROM mortgage
 
-    """, (parcel_id,)).fetchone()
+            WHERE parcel_id=?
+            AND mortgage_status='Active'
 
-    if not row:
+        """, (parcel_id,)).fetchone()
+
+        if not row:
+
+            conn.close()
+
+            return jsonify({
+                "success": False,
+                "error": "No active mortgage found"
+            }), 404
+
+        # =========================
+        # CLOSE MORTGAGE
+        # =========================
+        c.execute("""
+
+            UPDATE mortgage
+
+            SET mortgage_status='Closed'
+
+            WHERE parcel_id=?
+
+        """, (parcel_id,))
+
+        # =========================
+        # UPDATE PROPERTY TABLE
+        # =========================
+        c.execute("""
+
+            UPDATE property
+
+            SET mortgage_status='None'
+
+            WHERE parcel_id=?
+
+        """, (parcel_id,))
+
+        conn.commit()
 
         conn.close()
 
         return jsonify({
-            "error": "Mortgage not found"
-        }), 404
 
-    parcel_id = row[0]
+            "success": True,
 
-    # =========================
-    # CLOSE MORTGAGE
-    # =========================
-    c.execute("""
+            "message": "Mortgage closed successfully"
 
-        UPDATE mortgage
+        })
 
-        SET mortgage_status='Closed'
+    except Exception as e:
 
-        WHERE parcel_id=?
+        print("CLOSE ERROR:", str(e))
 
-    """, (parcel_id,))
+        return jsonify({
 
-    # =========================
-    # UPDATE PROPERTY TABLE
-    # =========================
-    c.execute("""
+            "success": False,
 
-        UPDATE property
+            "error": str(e)
 
-        SET mortgage_status='None'
-
-        WHERE parcel_id=?
-
-    """, (parcel_id,))
-
-    conn.commit()
-
-    conn.close()
-
-    return jsonify({
-        "success": True,
-        "message": "Mortgage closed"
-    })
+        }), 500
 @app.route('/check_property_mortgage/<parcel_id>', methods=['GET'])
 def check_property_mortgage(parcel_id):
     conn = get_db()
