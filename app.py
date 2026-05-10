@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "static/documents"
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 SECRET_KEY = "land_registry_secure"
@@ -1594,33 +1595,100 @@ def regenerate_qr(parcel_id):
 # ============================================================
 # DOCUMENTS
 # ============================================================
-@app.route("/upload_document", methods=["POST"])
+@app.route('/upload_document', methods=['POST'])
 def upload_document():
-    parcel_id = request.form.get("parcel_id")
-    document_type = request.form.get("document_type")
-    uploaded_by = request.form.get("uploaded_by")
-    if "file" not in request.files:
-        return {"error": "No file provided"}, 400
-    f = request.files["file"]
-    if f.filename == "":
-        return {"error": "Empty filename"}, 400
-    if not allowed_file(f.filename):
-        return {"error": "Invalid file type"}, 400
-    document_id = "DOC" + str(int(datetime.now().timestamp()))
-    ext = f.filename.split(".")[-1]
-    filename = document_id + "." + ext
-    file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    f.save(file_path)
-    file_hash = generate_file_hash(file_path)
-    conn = get_db()
-    conn.execute("""INSERT INTO document
-        (document_id, parcel_id, document_type, file_path, file_hash, uploaded_by, uploaded_date, verification_status)
-        VALUES (?,?,?,?,?,?,?,?)""",
-        (document_id, parcel_id, document_type, file_path, file_hash,
-         uploaded_by, str(datetime.now()), "Pending"))
-    conn.commit()
-    conn.close()
-    return {"message": "Document uploaded successfully", "document_id": document_id}
+
+    try:
+
+        parcel_id = request.form.get('parcel_id')
+
+        document_type = request.form.get('document_type')
+
+        uploaded_by = request.form.get('uploaded_by')
+
+        file = request.files['file']
+
+        if not file:
+
+            return jsonify({
+                "success": False,
+                "error": "No file selected"
+            })
+
+        filename = secure_filename(file.filename)
+
+        filepath = os.path.join(
+            app.config['UPLOAD_FOLDER'],
+            filename
+        )
+
+        file.save(filepath)
+
+        conn = get_db()
+
+        c = conn.cursor()
+
+        doc_id = "DOC" + str(random.randint(1000,9999))
+
+        c.execute("""
+
+            INSERT INTO document (
+
+                document_id,
+                parcel_id,
+                document_type,
+                file_hash,
+                uploaded_by,
+                upload_date,
+                verification_status
+
+            )
+
+            VALUES (?,?,?,?,?,?,?)
+
+        """, (
+
+            doc_id,
+
+            parcel_id,
+
+            document_type,
+
+            filepath,
+
+            uploaded_by,
+
+            str(datetime.now()),
+
+            "Verified"
+
+        ))
+
+        conn.commit()
+
+        conn.close()
+
+        return jsonify({
+
+            "success": True,
+
+            "message": "Document uploaded",
+
+            "path": filepath
+
+        })
+
+    except Exception as e:
+
+        print("UPLOAD ERROR:", str(e))
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(e)
+
+        })
 
 @app.route('/documents/<land_id>')
 def get_documents(land_id):
@@ -1649,31 +1717,54 @@ def view_document_simple(document_id):
 
 @app.route('/view_document/<doc_id>')
 def view_document(doc_id):
-    # Try PostgreSQL first
-    if HAS_POSTGRES:
-        try:
-            pg = get_postgres()
-            if pg:
-                cur = pg.cursor()
-                cur.execute("SELECT file_hash FROM document WHERE document_id=%s", (doc_id,))
-                row = cur.fetchone()
-                cur.close()
-                pg.close()
-                if row and row[0]:
-                    filename = row[0]
-                    if os.path.exists(os.path.join(UPLOAD_FOLDER, filename)):
-                        return send_from_directory(UPLOAD_FOLDER, filename)
-        except:
-            pass
-    conn = get_db()
-    row = conn.execute("SELECT file_path FROM document WHERE document_id=?", (doc_id,)).fetchone()
-    conn.close()
-    if not row or not row[0]:
-        return "Document not found ❌"
-    if os.path.exists(row[0]):
-        return send_from_directory(os.path.dirname(row[0]), os.path.basename(row[0]))
-    return "File not found on disk"
 
+    try:
+
+        conn = get_db()
+
+        c = conn.cursor()
+
+        row = c.execute("""
+
+            SELECT file_path
+
+            FROM document
+
+            WHERE document_id=?
+
+        """, (doc_id,)).fetchone()
+
+        conn.close()
+
+        # =========================
+        # DOCUMENT NOT FOUND
+        # =========================
+        if not row or not row[0]:
+
+            return "Document not found ❌"
+
+        file_path = row[0]
+
+        # =========================
+        # FILE EXISTS
+        # =========================
+        if os.path.exists(file_path):
+
+            return send_from_directory(
+
+                os.path.dirname(file_path),
+
+                os.path.basename(file_path)
+
+            )
+
+        return "File not found on disk ❌"
+
+    except Exception as e:
+
+        print("VIEW DOC ERROR:", str(e))
+
+        return "Error loading document ❌"
 @app.route("/verify_document/<document_id>", methods=["PUT"])
 def verify_document(document_id):
     data = request.json
@@ -1885,7 +1976,7 @@ def generate_documents():
                     doc_id = f"DOC{count:03}"
                     status = random.choice(["verified", "pending", "rejected"])
                     doc_type = random.choice(["Sale Deed","Tax Receipt","Mortgage Deed","Transfer Deed","Lease Agreement"])
-                    cur.execute("INSERT INTO document (document_id,parcel_id,document_type,file_hash,uploaded_by,uploaded_date,verification_status) VALUES (%s,%s,%s,%s,%s,NOW(),%s)",
+                    cur.execute("INSERT INTO document (document_id,parcel_id,document_type,file_hash,uploaded_by,uploaded_date,verification_status,file_path) VALUES (%s,%s,%s,%s,%s,NOW(),%s)",
                         (doc_id, land[0], doc_type, f"hash{count}", "U001", status))
                     count += 1
                 pg.commit()
