@@ -901,67 +901,216 @@ def get_history(parcel_id):
 # ============================================================
 # FRAUD DETECTION
 # ============================================================
+# ============================================================
+# FRAUD CHECK
+# ============================================================
+
 @app.route('/fraud_check/<parcel_id>', methods=['GET'])
 def fraud_check(parcel_id):
-    conn = get_db()
-    result = conn.execute("SELECT duplicate_survey, multiple_claim, abnormal_transfer FROM fraud_detection WHERE parcel_id=?", (parcel_id,)).fetchone()
-    conn.close()
-    if result:
-        dup = int(result[0])
-        mult = int(result[1])
-        abn = int(result[2])
-        flag_sum = dup + mult + abn
-        if flag_sum == 0:
-            risk_level = "Low"
-        elif flag_sum == 1:
-            risk_level = "Medium"
-        else:
-            risk_level = "High"
-        return {
-            "parcel_id": parcel_id, "duplicate_survey": dup,
-            "multiple_claim": mult, "abnormal_transfer": abn,
-            "risk_level": risk_level
-        }
-    return {"message": "No fraud record found"}
+
+    try:
+
+        conn = get_db()
+
+        c = conn.cursor()
+
+        result = c.execute("""
+
+            SELECT
+
+                fraud_type,
+                risk_score,
+                detection_date
+
+            FROM fraud_detection
+
+            WHERE parcel_id=?
+
+            ORDER BY detection_date DESC
+
+            LIMIT 1
+
+        """, (parcel_id,)).fetchone()
+
+        conn.close()
+
+        # ==========================================
+        # FRAUD FOUND
+        # ==========================================
+        if result:
+
+            return jsonify({
+
+                "success": True,
+
+                "parcel_id": parcel_id,
+
+                "fraud_detected": True,
+
+                "fraud_type": result[0],
+
+                "risk_level": result[1],
+
+                "detection_date": result[2]
+
+            })
+
+        # ==========================================
+        # NO FRAUD
+        # ==========================================
+        return jsonify({
+
+            "success": True,
+
+            "parcel_id": parcel_id,
+
+            "fraud_detected": False,
+
+            "message": "No fraud record found"
+
+        })
+
+    except Exception as e:
+
+        print("FRAUD CHECK ERROR:", str(e))
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(e)
+
+        }), 500
+
 
 # ============================================================
-# DISPUTE
+# FILE DISPUTE
 # ============================================================
+
 @app.route('/file_dispute', methods=['POST'])
 def file_dispute():
-    data = request.json
-    dispute_id = "D" + str(random.randint(100, 999))
-    conn = get_db()
-    conn.execute("""INSERT INTO dispute
-        (dispute_id, parcel_id, dispute_type, reported_by, description, status, created_date)
-        VALUES (?,?,?,?,?,?,?)""",
-        (dispute_id, data['parcel_id'], data['dispute_type'],
-         data['reported_by'], data['description'], 'Open', str(datetime.now())))
+
     try:
-        conn.execute("""
-        INSERT INTO fraud_detection(
-        fraud_id,
-        parcel_id,
-        risk_score,
-        fraud_type,
-        detection_date
+
+        data = request.json
+
+        dispute_id = "D" + str(
+            random.randint(100, 999)
         )
-        VALUES(?,?,?,?,?)
-        """,(
-            "F"+
-            str(random.randint(1000,9999)),
+
+        conn = get_db()
+
+        c = conn.cursor()
+
+        # =====================================================
+        # INSERT DISPUTE
+        # =====================================================
+        c.execute("""
+
+            INSERT INTO dispute (
+
+                dispute_id,
+                parcel_id,
+                dispute_type,
+                reported_by,
+                description,
+                status,
+                created_date
+
+            )
+
+            VALUES (?,?,?,?,?,?,?)
+
+        """, (
+
+            dispute_id,
+
             data['parcel_id'],
-            "High",
-            "Ownership Dispute",
-            "Boundary Dispute",
-            "Encroachment Dispute",
+
+            data['dispute_type'],
+
+            data['reported_by'],
+
+            data['description'],
+
+            'Open',
+
             str(datetime.now())
+
         ))
+
+        # =====================================================
+        # AUTO FRAUD ENTRY
+        # =====================================================
+        try:
+
+            fraud_id = "F" + str(
+                random.randint(1000,9999)
+            )
+
+            c.execute("""
+
+                INSERT INTO fraud_detection (
+
+                    fraud_id,
+                    parcel_id,
+                    risk_score,
+                    fraud_type,
+                    detection_date
+
+                )
+
+                VALUES (?,?,?,?,?)
+
+            """, (
+
+                fraud_id,
+
+                data['parcel_id'],
+
+                "High",
+
+                data['dispute_type'],
+
+                str(datetime.now())
+
+            ))
+
+            print("FRAUD RECORD CREATED")
+
+        except Exception as e:
+
+            print(
+                "Fraud insert skipped:",
+                str(e)
+            )
+
+        conn.commit()
+
+        conn.close()
+
+        return jsonify({
+
+            "success": True,
+
+            "message":
+                "Dispute filed successfully",
+
+            "dispute_id": dispute_id
+
+        })
+
     except Exception as e:
-        print("Fraud insert skipped:",e)   
-    conn.commit()
-    conn.close()
-    return {"message": "Dispute filed successfully", "dispute_id": dispute_id}
+
+        print("FILE DISPUTE ERROR:", str(e))
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(e)
+
+        }), 500
 
 @app.route('/get_disputes/<parcel_id>', methods=['GET'])
 def get_disputes(parcel_id):
