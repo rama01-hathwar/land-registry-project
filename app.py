@@ -937,6 +937,39 @@ def file_dispute():
         VALUES (?,?,?,?,?,?,?)""",
         (dispute_id, data['parcel_id'], data['dispute_type'],
          data['reported_by'], data['description'], 'Open', str(datetime.now())))
+    # ============================================
+# AUTO FRAUD FLAG
+# ============================================
+
+try:
+
+    conn.execute("""
+
+        INSERT INTO fraud_detection (
+
+            fraud_id,
+            parcel_id,
+            risk_score,
+            fraud_type,
+            detection_date
+
+        )
+
+        VALUES (?,?,?,?,?)
+
+    """, (
+
+        "F" + str(random.randint(1000,9999)),
+        data['parcel_id'],
+        "High",
+        "Ownership Dispute",
+        str(datetime.now())
+
+    ))
+
+except Exception as e:
+
+    print("Fraud insert skipped:", e)
     conn.commit()
     conn.close()
     return {"message": "Dispute filed successfully", "dispute_id": dispute_id}
