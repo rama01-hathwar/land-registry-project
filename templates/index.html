@@ -1758,12 +1758,21 @@ function initiateTransfer(){
 
     var box = $('trResult');
 
+    // =========================================
+    // LOADING
+    // =========================================
     box.innerHTML = `
+
         <div style="text-align:center">
+
             <i class="fas fa-spinner fa-spin"></i>
+
         </div>
     `;
 
+    // =========================================
+    // API CALL
+    // =========================================
     api('/transfer_property',{
 
         method:'POST',
@@ -1774,7 +1783,10 @@ function initiateTransfer(){
 
     .then(function(res){
 
-        console.log("TRANSFER RESPONSE:", res);
+        console.log(
+            "TRANSFER RESPONSE:",
+            res
+        );
 
         // =====================================
         // SUCCESS
@@ -1799,22 +1811,38 @@ function initiateTransfer(){
                     </div>
 
                     <div>
-                        ${res.message}
+
+                        ${
+                            res.message ||
+                            'Property transferred successfully'
+                        }
+
                     </div>
 
-                    <div style="margin-top:6px">
+                    <div style="
+                        margin-top:6px;
+                        font-size:.82rem
+                    ">
+
                         Transaction ID:
-                        ${res.transaction_id || '-'}
+
+                        ${
+                            res.transaction_id || '-'
+                        }
+
                     </div>
 
                 </div>
             `;
 
-            toast('Transfer completed','ok');
+            toast(
+                'Transfer completed',
+                'ok'
+            );
         }
 
         // =====================================
-        // FAILED
+        // FAILURE
         // =====================================
         else{
 
@@ -1836,20 +1864,33 @@ function initiateTransfer(){
                     </div>
 
                     <div>
-                        ${res.error || 'Unknown Error'}
+
+                        ${
+                            res.error ||
+                            res.message ||
+                            'Transfer failed'
+                        }
+
                     </div>
 
                 </div>
             `;
 
             toast(
-                res.error || 'Transfer failed',
+
+                res.error ||
+                res.message ||
+                'Transfer failed',
+
                 'err'
             );
         }
 
     })
 
+    // =========================================
+    // SERVER ERROR
+    // =========================================
     .catch(function(err){
 
         console.error(err);
