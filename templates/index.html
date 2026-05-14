@@ -1749,7 +1749,10 @@ function initiateTransfer(){
 
         sale_amount: parseFloat(
             $('trAmount').value || 0
-        )
+        ),
+
+        transaction_hash:
+            $('trHash').value.trim()
 
     };
 
@@ -1761,11 +1764,11 @@ function initiateTransfer(){
         </div>
     `;
 
-    api('/transfer_property', {
+    api('/transfer_property',{
 
         method:'POST',
 
-        body: JSON.stringify(data)
+        body:JSON.stringify(data)
 
     })
 
@@ -1773,9 +1776,9 @@ function initiateTransfer(){
 
         console.log("TRANSFER RESPONSE:", res);
 
-        // =========================================
+        // =====================================
         // SUCCESS
-        // =========================================
+        // =====================================
         if(res && res.success){
 
             box.innerHTML = `
@@ -1792,12 +1795,16 @@ function initiateTransfer(){
                         font-weight:700;
                         margin-bottom:6px
                     ">
-                        Property Transferred Successfully
+                        Transfer Successful
                     </div>
 
                     <div>
+                        ${res.message}
+                    </div>
+
+                    <div style="margin-top:6px">
                         Transaction ID:
-                        ${res.transaction_id}
+                        ${res.transaction_id || '-'}
                     </div>
 
                 </div>
@@ -1806,9 +1813,9 @@ function initiateTransfer(){
             toast('Transfer completed','ok');
         }
 
-        // =========================================
-        // FAILURE
-        // =========================================
+        // =====================================
+        // FAILED
+        // =====================================
         else{
 
             box.innerHTML = `
@@ -1829,7 +1836,7 @@ function initiateTransfer(){
                     </div>
 
                     <div>
-                        ${res.error || 'Unknown error'}
+                        ${res.error || 'Unknown Error'}
                     </div>
 
                 </div>
