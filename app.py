@@ -539,7 +539,10 @@ def transfer_property():
 
         c = conn.cursor()
 
-        print("DATA RECEIVED:", data)
+        print("================================")
+        print("TRANSFER REQUEST RECEIVED")
+        print("DATA:", data)
+        print("================================")
 
         # =====================================================
         # PROPERTY EXISTS
@@ -554,7 +557,12 @@ def transfer_property():
 
         """, (parcel_id,)).fetchone()
 
+        print("OWNER FROM DB:", owner)
+        print("SELLER PROVIDED:", seller_id)
+
         if not owner:
+
+            print("ERROR: PROPERTY NOT FOUND")
 
             conn.close()
 
@@ -567,6 +575,8 @@ def transfer_property():
         # OWNER CHECK
         # =====================================================
         if owner[0] != seller_id:
+
+            print("ERROR: SELLER IS NOT CURRENT OWNER")
 
             conn.close()
 
@@ -589,7 +599,11 @@ def transfer_property():
 
         """, (parcel_id,)).fetchone()[0]
 
+        print("DISPUTE COUNT:", dispute_count)
+
         if dispute_count > 0:
+
+            print("ERROR: ACTIVE DISPUTE FOUND")
 
             conn.close()
 
@@ -612,7 +626,11 @@ def transfer_property():
 
         """, (parcel_id,)).fetchone()
 
+        print("MORTGAGE STATUS:", mortgage)
+
         if mortgage:
+
+            print("ERROR: ACTIVE MORTGAGE FOUND")
 
             conn.close()
 
@@ -634,7 +652,11 @@ def transfer_property():
 
         """, (parcel_id,)).fetchone()
 
+        print("TAX STATUS:", tax_pending)
+
         if tax_pending and tax_pending[0] == "Pending":
+
+            print("ERROR: PENDING TAX FOUND")
 
             conn.close()
 
@@ -658,7 +680,11 @@ def transfer_property():
 
             """, (transaction_hash,)).fetchone()
 
+            print("BLOCKCHAIN STATUS:", bc)
+
             if not bc or bc[0] != 'Confirmed':
+
+                print("ERROR: BLOCKCHAIN NOT CONFIRMED")
 
                 conn.close()
 
@@ -670,6 +696,8 @@ def transfer_property():
         # =====================================================
         # UPDATE OWNER
         # =====================================================
+        print("UPDATING PROPERTY OWNER...")
+
         c.execute("""
 
             UPDATE property
@@ -702,6 +730,9 @@ def transfer_property():
         txn_id = "T" + str(
             random.randint(1000, 9999)
         )
+
+        print("TRANSACTION ID:", txn_id)
+        print("HASH:", new_hash)
 
         # =====================================================
         # TRANSFER TABLE
@@ -747,10 +778,12 @@ def transfer_property():
                 sale_amount
             ))
 
+            print("TRANSFER TABLE INSERTED")
+
         except Exception as e:
 
             print(
-                "Transfer insert skipped:",
+                "TRANSFER INSERT SKIPPED:",
                 str(e)
             )
 
@@ -786,10 +819,12 @@ def transfer_property():
                 new_hash
             ))
 
+            print("OWNERSHIP HISTORY INSERTED")
+
         except Exception as e:
 
             print(
-                "History insert skipped:",
+                "HISTORY INSERT SKIPPED:",
                 str(e)
             )
 
@@ -799,6 +834,10 @@ def transfer_property():
         conn.commit()
 
         conn.close()
+
+        print("================================")
+        print("TRANSFER SUCCESSFUL")
+        print("================================")
 
         return jsonify({
 
@@ -812,7 +851,9 @@ def transfer_property():
 
     except Exception as e:
 
+        print("================================")
         print("TRANSFER ERROR:", str(e))
+        print("================================")
 
         return jsonify({
 
