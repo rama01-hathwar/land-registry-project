@@ -708,6 +708,16 @@ def transfer_property():
 
         """, (buyer_id, parcel_id))
 
+        #=======================================================
+        #RESET TAX STATUS FOR NEW OWNER
+        #=======================================================
+        c.execute("""
+             UPDATE property
+             SET tax_status='Pending'
+             WHERE parcel_id=?
+        """,(parcel_id,))
+        
+
         # =====================================================
         # GENERATE HASH + TXN ID
         # =====================================================
