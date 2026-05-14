@@ -240,29 +240,64 @@ function updateConnBadge(){
     if(ST.backendUp){el.className='conn-badge conn-ok';el.innerHTML='<i class="fas fa-circle" style="font-size:6px"></i> Backend Connected';}
     else{el.className='conn-badge conn-off';el.innerHTML='<i class="fas fa-circle" style="font-size:6px"></i> Demo Mode';}
 }
-function api(url, options){
-    return fetch(url, {
-        headers: {
-            'Content-Type': 'application/json'   // 🔥 THIS FIX
-        },
-        ...options
-    })
-    .then(async res => {
+function api(url, opt){
 
-        let text = await res.text();
+    opt = opt || {};
 
-        try {
-            let data = JSON.parse(text);
+    opt.headers = opt.headers || {};
 
-            if (!res.ok) {
-                throw new Error(data.message || data.error || "Request failed");
-            }
+    // =========================================
+    // JSON HEADER
+    // =========================================
+    if(!(opt.body instanceof FormData)){
 
-            return data;
+        opt.headers['Content-Type'] =
+            'application/json';
+    }
 
-        } catch {
-            throw new Error("Server returned HTML instead of JSON");
+    return fetch(url, opt)
+
+    .then(async function(response){
+
+        // =====================================
+        // READ RAW TEXT
+        // =====================================
+        let text = await response.text();
+
+        console.log("RAW RESPONSE:", text);
+
+        // =====================================
+        // TRY JSON
+        // =====================================
+        try{
+
+            return JSON.parse(text);
+
+        }catch(e){
+
+            console.error("INVALID JSON:", text);
+
+            return {
+
+                success:false,
+
+                error:text || "Server Error"
+
+            };
         }
+    })
+
+    .catch(function(err){
+
+        console.error("FETCH ERROR:", err);
+
+        return {
+
+            success:false,
+
+            error:"Network Error"
+
+        };
     });
 }
 
