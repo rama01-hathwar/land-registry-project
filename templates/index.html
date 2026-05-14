@@ -1029,128 +1029,135 @@ function doQRVerify(){
         return;
     }
 
-    // =========================
-    // SHOW QR IMAGE
-    // =========================
-    $('qrImageBox').innerHTML = `
-
-        <img
-            src="/qr/${pid}?t=${Date.now()}"
-            style="
-                width:180px;
-                height:180px;
-                background:white;
-                padding:10px;
-                border-radius:12px;
-            "
-        >
-
-        <br><br>
-
-        <b>${pid}</b>
-    `;
-
-    // =========================
-    // VERIFY PROPERTY
-    // =========================
     var box = $('qrResult');
 
-    box.innerHTML=`
+    box.innerHTML = `
         <div style="text-align:center">
             <i class="fas fa-spinner fa-spin"></i>
-        </div>`;
+        </div>
+    `;
 
-    api('/verify_property/'+pid)
+    api('/verify_property/' + pid)
 
     .then(function(res){
 
         if(!res){
 
-            box.innerHTML=`
-            <div style="
-                padding:12px;
-                background:rgba(229,62,62,.1);
-                border-radius:8px;
-                color:var(--danger);
-                text-align:center
-            ">
-                Unreachable
-            </div>`;
+            box.innerHTML = `
+                <div style="
+                    padding:12px;
+                    background:rgba(229,62,62,.1);
+                    border-radius:8px;
+                    color:var(--danger);
+                    text-align:center
+                ">
+                    Server unreachable
+                </div>
+            `;
 
             return;
         }
 
-        // =========================
-        // VERIFIED
-        // =========================
-        if(res.status==='approved'){
+        // ==========================================
+        // SUCCESS
+        // ==========================================
+        if(res.status === 'approved'){
 
-            box.innerHTML=`
-            <div style="
-                padding:16px;
-                background:rgba(56,161,105,.1);
-                border:1px solid rgba(56,161,105,.3);
-                border-radius:10px;
-                text-align:center
-            ">
+            box.innerHTML = `
 
                 <div style="
-                    font-size:1.5rem;
-                    color:var(--success);
-                    margin-bottom:8px
+                    padding:16px;
+                    background:rgba(56,161,105,.1);
+                    border:1px solid rgba(56,161,105,.3);
+                    border-radius:10px;
+                    text-align:center
                 ">
-                    <i class="fas fa-check-circle"></i>
-                </div>
 
-                <div style="
-                    font-weight:700;
-                    color:var(--success)
-                ">
-                    Verified
-                </div>
+                    <div style="
+                        font-size:1.5rem;
+                        color:var(--success);
+                        margin-bottom:8px
+                    ">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
 
-            </div>`;
+                    <div style="
+                        font-weight:700;
+                        color:var(--success)
+                    ">
+                        Verified
+                    </div>
+
+                    <p style="
+                        margin-top:8px;
+                        font-size:.82rem;
+                        color:var(--txt2)
+                    ">
+                        ${res.message || 'Property eligible'}
+                    </p>
+
+                </div>
+            `;
         }
 
-        // =========================
+        // ==========================================
         // FAILED
-        // =========================
+        // ==========================================
         else{
 
-            box.innerHTML=`
-            <div style="
-                padding:16px;
-                background:rgba(229,62,62,.1);
-                border:1px solid rgba(229,62,62,.3);
-                border-radius:10px;
-                text-align:center
-            ">
+            box.innerHTML = `
 
                 <div style="
-                    font-size:1.5rem;
-                    color:var(--danger);
-                    margin-bottom:8px
+                    padding:16px;
+                    background:rgba(229,62,62,.1);
+                    border:1px solid rgba(229,62,62,.3);
+                    border-radius:10px;
+                    text-align:center
                 ">
-                    <i class="fas fa-times-circle"></i>
+
+                    <div style="
+                        font-size:1.5rem;
+                        color:var(--danger);
+                        margin-bottom:8px
+                    ">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+
+                    <div style="
+                        font-weight:700;
+                        color:var(--danger)
+                    ">
+                        Failed
+                    </div>
+
+                    <p style="
+                        margin-top:8px;
+                        font-size:.82rem;
+                        color:var(--txt2)
+                    ">
+                        ${res.reason || 'Unknown'}
+                    </p>
+
                 </div>
-
-                <div style="
-                    font-weight:700;
-                    color:var(--danger)
-                ">
-                    Failed
-                </div>
-
-                <p style="
-                    font-size:.82rem;
-                    color:var(--txt2);
-                    margin-top:4px
-                ">
-                    '+(res.reason||'Unknown')+'
-                </p>
-
-            </div>`;
+            `;
         }
+
+    })
+
+    .catch(function(err){
+
+        console.error(err);
+
+        box.innerHTML = `
+            <div style="
+                padding:12px;
+                background:rgba(229,62,62,.1);
+                border-radius:8px;
+                color:var(--danger)
+            ">
+                Error loading verification
+            </div>
+        `;
     });
 }
 /* ===== ML ===== */
