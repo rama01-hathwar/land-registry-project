@@ -1701,6 +1701,132 @@ function apiForm(url, formData){
         }
     });
 }
+
+function initiateTransfer(){
+
+    var data = {
+
+        parcel_id: $('trParcelId').value.trim(),
+
+        seller_id: $('trSellerId').value.trim(),
+
+        buyer_id: $('trBuyerId').value.trim(),
+
+        sale_amount: parseFloat(
+            $('trAmount').value || 0
+        )
+
+    };
+
+    var box = $('trResult');
+
+    box.innerHTML = `
+        <div style="text-align:center">
+            <i class="fas fa-spinner fa-spin"></i>
+        </div>
+    `;
+
+    api('/transfer_property', {
+
+        method:'POST',
+
+        body: JSON.stringify(data)
+
+    })
+
+    .then(function(res){
+
+        console.log("TRANSFER RESPONSE:", res);
+
+        // =========================================
+        // SUCCESS
+        // =========================================
+        if(res && res.success){
+
+            box.innerHTML = `
+
+                <div style="
+                    padding:14px;
+                    background:rgba(56,161,105,.1);
+                    border:1px solid rgba(56,161,105,.3);
+                    border-radius:10px;
+                    color:var(--success)
+                ">
+
+                    <div style="
+                        font-weight:700;
+                        margin-bottom:6px
+                    ">
+                        Property Transferred Successfully
+                    </div>
+
+                    <div>
+                        Transaction ID:
+                        ${res.transaction_id}
+                    </div>
+
+                </div>
+            `;
+
+            toast('Transfer completed','ok');
+        }
+
+        // =========================================
+        // FAILURE
+        // =========================================
+        else{
+
+            box.innerHTML = `
+
+                <div style="
+                    padding:14px;
+                    background:rgba(229,62,62,.1);
+                    border:1px solid rgba(229,62,62,.3);
+                    border-radius:10px;
+                    color:var(--danger)
+                ">
+
+                    <div style="
+                        font-weight:700;
+                        margin-bottom:6px
+                    ">
+                        Transfer Failed
+                    </div>
+
+                    <div>
+                        ${res.error || 'Unknown error'}
+                    </div>
+
+                </div>
+            `;
+
+            toast(
+                res.error || 'Transfer failed',
+                'err'
+            );
+        }
+
+    })
+
+    .catch(function(err){
+
+        console.error(err);
+
+        box.innerHTML = `
+
+            <div style="
+                padding:14px;
+                background:rgba(229,62,62,.1);
+                border-radius:10px;
+                color:var(--danger)
+            ">
+
+                Server Error
+
+            </div>
+        `;
+    });
+}
 </script>
 </body>
 </html>
