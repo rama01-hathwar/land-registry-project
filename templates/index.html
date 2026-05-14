@@ -1741,15 +1741,19 @@ function initiateTransfer(){
 
     var data = {
 
-        parcel_id: $('trParcelId').value.trim(),
+        parcel_id:
+            $('trParcelId').value.trim(),
 
-        seller_id: $('trSellerId').value.trim(),
+        seller_id:
+            $('trSellerId').value.trim(),
 
-        buyer_id: $('trBuyerId').value.trim(),
+        buyer_id:
+            $('trBuyerId').value.trim(),
 
-        sale_amount: parseFloat(
-            $('trAmount').value || 0
-        ),
+        sale_amount:
+            parseFloat(
+                $('trAmount').value || 0
+            ),
 
         transaction_hash:
             $('trHash').value.trim()
@@ -1846,6 +1850,80 @@ function initiateTransfer(){
         // =====================================
         else{
 
+            // ---------------------------------
+            // DEFAULT MESSAGE
+            // ---------------------------------
+            let errMsg =
+                res.error ||
+                res.message ||
+                'Transfer failed';
+
+            // ---------------------------------
+            // SPECIFIC ERRORS
+            // ---------------------------------
+            if(
+                errMsg.includes(
+                    'Pending tax'
+                )
+            ){
+
+                errMsg =
+                    'Transfer blocked: Pending tax';
+            }
+
+            else if(
+                errMsg.includes(
+                    'mortgage'
+                )
+            ){
+
+                errMsg =
+                    'Transfer blocked: Active mortgage';
+            }
+
+            else if(
+                errMsg.includes(
+                    'dispute'
+                )
+            ){
+
+                errMsg =
+                    'Transfer blocked: Active dispute';
+            }
+
+            else if(
+                errMsg.includes(
+                    'Seller is not current owner'
+                )
+            ){
+
+                errMsg =
+                    'Transfer blocked: Seller is not owner';
+            }
+
+            else if(
+                errMsg.includes(
+                    'Transaction not confirmed'
+                )
+            ){
+
+                errMsg =
+                    'Blockchain transaction not confirmed';
+            }
+
+            else if(
+                errMsg.includes(
+                    'Property not found'
+                )
+            ){
+
+                errMsg =
+                    'Property not found';
+            }
+
+            // =================================
+            // SHOW FAILURE
+            // =================================
             box.innerHTML = `
 
                 <div style="
@@ -1865,11 +1943,7 @@ function initiateTransfer(){
 
                     <div>
 
-                        ${
-                            res.error ||
-                            res.message ||
-                            'Transfer failed'
-                        }
+                        ${errMsg}
 
                     </div>
 
@@ -1877,11 +1951,7 @@ function initiateTransfer(){
             `;
 
             toast(
-
-                res.error ||
-                res.message ||
-                'Transfer failed',
-
+                errMsg,
                 'err'
             );
         }
@@ -1908,9 +1978,13 @@ function initiateTransfer(){
 
             </div>
         `;
+
+        toast(
+            'Server Error',
+            'err'
+        );
     });
 }
-
 function checkFraud(){
 
     var pid = $('frParcel').value.trim();
