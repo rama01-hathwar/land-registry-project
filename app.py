@@ -158,17 +158,47 @@ def init_db():
         mortgage_status TEXT DEFAULT 'Active'
     )""")
 
-    # ================= DISPUTE =================
-    c.execute("""CREATE TABLE dispute (
-        dispute_id TEXT PRIMARY KEY,
-        parcel_id TEXT,
-        dispute_type TEXT,
-        reported_by TEXT,
-        description TEXT,
-        status TEXT DEFAULT 'Open',
-        created_date TEXT,
-        resolved_date TEXT
-    )""")
+    # ================= FRAUD =================
+c.execute("""
+
+CREATE TABLE IF NOT EXISTS fraud_detection (
+
+    fraud_id TEXT PRIMARY KEY,
+
+    parcel_id TEXT,
+
+    fraud_type TEXT,
+
+    risk_score TEXT DEFAULT 'Low',
+
+    detection_date TEXT
+
+)
+
+""")
+try:
+    c.execute("""
+    ALTER TABLE fraud_detection
+    ADD COLUMN fraud_id TEXT
+    """)
+except:
+    pass
+
+try:
+    c.execute("""
+    ALTER TABLE fraud_detection
+    ADD COLUMN fraud_type TEXT
+    """)
+except:
+    pass
+
+try:
+    c.execute("""
+    ALTER TABLE fraud_detection
+    ADD COLUMN detection_date TEXT
+    """)
+except:
+    pass
 
     # ================= BLOCKCHAIN =================
     c.execute("""CREATE TABLE blockchain (
