@@ -159,7 +159,7 @@ def init_db():
     )""")
 
     # ================= FRAUD =================
-     c.executee("""
+    c.executee("""
      CREATE TABLE IF NOT EXISTS fraud _detection(
      fraud_id TEXT PRIMARY KEY,
      parcel_id TEXT,
