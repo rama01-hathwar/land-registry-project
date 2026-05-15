@@ -1066,134 +1066,37 @@ function doQRVerify(){
 
     var box = $('qrResult');
 
+    // =====================================
+    // SHOW QR
+    // =====================================
     box.innerHTML = `
+
         <div style="text-align:center">
-            <i class="fas fa-spinner fa-spin"></i>
+
+            <img
+                src="/qr/${pid}?t=${Date.now()}"
+                style="
+                    width:220px;
+                    height:220px;
+                    background:white;
+                    padding:12px;
+                    border-radius:14px;
+                    border:1px solid var(--border)
+                "
+            >
+
+            <div style="
+                margin-top:12px;
+                font-weight:700
+            ">
+
+                Parcel ID:
+                ${pid}
+
+            </div>
+
         </div>
     `;
-
-    api('/verify_property/' + pid)
-
-    .then(function(res){
-
-        if(!res){
-
-            box.innerHTML = `
-                <div style="
-                    padding:12px;
-                    background:rgba(229,62,62,.1);
-                    border-radius:8px;
-                    color:var(--danger);
-                    text-align:center
-                ">
-                    Server unreachable
-                </div>
-            `;
-
-            return;
-        }
-
-        // ==========================================
-        // SUCCESS
-        // ==========================================
-        if(res.status === 'approved'){
-
-            box.innerHTML = `
-
-                <div style="
-                    padding:16px;
-                    background:rgba(56,161,105,.1);
-                    border:1px solid rgba(56,161,105,.3);
-                    border-radius:10px;
-                    text-align:center
-                ">
-
-                    <div style="
-                        font-size:1.5rem;
-                        color:var(--success);
-                        margin-bottom:8px
-                    ">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-
-                    <div style="
-                        font-weight:700;
-                        color:var(--success)
-                    ">
-                        Verified
-                    </div>
-
-                    <p style="
-                        margin-top:8px;
-                        font-size:.82rem;
-                        color:var(--txt2)
-                    ">
-                        ${res.message || 'Property eligible'}
-                    </p>
-
-                </div>
-            `;
-        }
-
-        // ==========================================
-        // FAILED
-        // ==========================================
-        else{
-
-            box.innerHTML = `
-
-                <div style="
-                    padding:16px;
-                    background:rgba(229,62,62,.1);
-                    border:1px solid rgba(229,62,62,.3);
-                    border-radius:10px;
-                    text-align:center
-                ">
-
-                    <div style="
-                        font-size:1.5rem;
-                        color:var(--danger);
-                        margin-bottom:8px
-                    ">
-                        <i class="fas fa-times-circle"></i>
-                    </div>
-
-                    <div style="
-                        font-weight:700;
-                        color:var(--danger)
-                    ">
-                        Failed
-                    </div>
-
-                    <p style="
-                        margin-top:8px;
-                        font-size:.82rem;
-                        color:var(--txt2)
-                    ">
-                        ${res.reason || 'Unknown'}
-                    </p>
-
-                </div>
-            `;
-        }
-
-    })
-
-    .catch(function(err){
-
-        console.error(err);
-
-        box.innerHTML = `
-            <div style="
-                padding:12px;
-                background:rgba(229,62,62,.1);
-                border-radius:8px;
-                color:var(--danger)
-            ">
-                Error loading verification
-            </div>
-        `;
-    });
 }
 /* ===== ML ===== */
 function renderML(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>ML Prediction</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><form id="mlForm"><div class="form-grid"><div class="form-group"><label>Area (sqft)</label><input type="number" class="inp" id="mlArea" required></div><div class="form-group"><label>Road (km)</label><input type="number" step="0.1" class="inp" id="mlRoad" required></div><div class="form-group"><label>City (km)</label><input type="number" step="0.1" class="inp" id="mlCity" required></div><div class="form-group"><label>Year</label><input type="number" class="inp" id="mlYear" value="2024" required></div><div class="form-group"><label>School</label><select class="inp" id="mlSchool"><option value="Yes">Yes</option><option value="No">No</option></select></div><div class="form-group"><label>Hospital</label><select class="inp" id="mlHosp"><option value="Yes">Yes</option><option value="No">No</option></select></div></div><button type="submit" class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px"><i class="fas fa-magic"></i> Predict</button></form><div id="mlResult" style="margin-top:14px"></div></div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Model Info</h3><div style="font-size:.82rem;color:var(--txt2);line-height:1.8"><p><i class="fas fa-chart-line" style="color:var(--purple);margin-right:6px"></i>Scikit-learn Regressor</p><p><i class="fas fa-database" style="color:var(--accent);margin-right:6px"></i>Area, distances, amenities</p></div></div></div>';$('mlForm').onsubmit=doMLPredict;}
@@ -1737,112 +1640,161 @@ function apiForm(url, formData){
     });
 }
 
-function initiateTransfer(){
+async function initiateTransfer(){
 
-    var data = {
+    const data = {
 
         parcel_id:
-            $('trParcelId').value.trim(),
+            document.getElementById('trParcelId').value.trim(),
 
         seller_id:
-            $('trSellerId').value.trim(),
+            document.getElementById('trSellerId').value.trim(),
 
         buyer_id:
-            $('trBuyerId').value.trim(),
+            document.getElementById('trBuyerId').value.trim(),
 
         sale_amount:
             parseFloat(
-                $('trAmount').value || 0
-            ),
-
-        transaction_hash:
-            $('trHash').value.trim()
-
+                document.getElementById('trAmount').value
+            ) || 0
     };
 
-    var box = $('trResult');
+    // =========================================
+    // VALIDATION
+    // =========================================
+    if(
+        !data.parcel_id ||
+        !data.seller_id ||
+        !data.buyer_id
+    ){
+
+        toast(
+            "Fill all transfer fields",
+            "err"
+        );
+
+        return;
+    }
 
     // =========================================
-    // LOADING
+    // LOADING UI
     // =========================================
-    box.innerHTML = `
+    const btn = document.getElementById('transferBtn');
 
-        <div style="text-align:center">
+    const oldText = btn.innerHTML;
 
-            <i class="fas fa-spinner fa-spin"></i>
+    btn.disabled = true;
 
-        </div>
+    btn.innerHTML = `
+        <span class="spinner"></span>
+        Processing Transfer...
     `;
 
-    // =========================================
-    // API CALL
-    // =========================================
-    api('/transfer_property',{
+    try{
 
-        method:'POST',
+        // =====================================
+        // API CALL
+        // =====================================
+        const res = await fetch(
 
-        body:JSON.stringify(data)
+            '/transfer_property',
 
-    })
+            {
+                method:'POST',
 
-    .then(function(res){
+                headers:{
+                    'Content-Type':'application/json'
+                },
 
-        console.log(
-            "TRANSFER RESPONSE:",
-            res
+                body:JSON.stringify(data)
+            }
         );
+
+        const result = await res.json();
+
+        console.log(result);
 
         // =====================================
         // SUCCESS
         // =====================================
-        if(res && res.success){
+        if(result.success){
 
-            box.innerHTML = `
+            toast(
+                "Property transferred successfully",
+                "ok"
+            );
 
-                <div style="
-                    padding:14px;
-                    background:rgba(56,161,105,.1);
-                    border:1px solid rgba(56,161,105,.3);
-                    border-radius:10px;
-                    color:var(--success)
-                ">
+            // =================================
+            // SUCCESS CARD
+            // =================================
+            document.getElementById(
+                'transferResult'
+            ).innerHTML = `
 
-                    <div style="
-                        font-weight:700;
-                        margin-bottom:6px
-                    ">
+                <div class="successCard">
+
+                    <div class="successIcon">
+                        ✅
+                    </div>
+
+                    <div class="successTitle">
                         Transfer Successful
                     </div>
 
-                    <div>
+                    <div class="successBody">
 
-                        ${
-                            res.message ||
-                            'Property transferred successfully'
-                        }
+                        <div>
+                            <b>Parcel ID:</b>
+                            ${data.parcel_id}
+                        </div>
 
-                    </div>
+                        <div>
+                            <b>Seller:</b>
+                            ${data.seller_id}
+                        </div>
 
-                    <div style="
-                        margin-top:6px;
-                        font-size:.82rem
-                    ">
+                        <div>
+                            <b>Buyer:</b>
+                            ${data.buyer_id}
+                        </div>
 
-                        Transaction ID:
-
-                        ${
-                            res.transaction_id || '-'
-                        }
+                        <div>
+                            <b>Transaction ID:</b>
+                            ${result.transaction_id}
+                        </div>
 
                     </div>
 
                 </div>
             `;
 
-            toast(
-                'Transfer completed',
-                'ok'
-            );
+            // =================================
+            // CLEAR FORM
+            // =================================
+            document.getElementById(
+                'trParcelId'
+            ).value='';
+
+            document.getElementById(
+                'trSellerId'
+            ).value='';
+
+            document.getElementById(
+                'trBuyerId'
+            ).value='';
+
+            document.getElementById(
+                'trAmount'
+            ).value='';
+
+            // =================================
+            // OPTIONAL AUTO REFRESH
+            // =================================
+            if(typeof loadDashboard==='function'){
+
+                loadDashboard();
+            }
+
         }
 
         // =====================================
@@ -1850,140 +1802,59 @@ function initiateTransfer(){
         // =====================================
         else{
 
-            // ---------------------------------
-            // DEFAULT MESSAGE
-            // ---------------------------------
-            let errMsg =
-                res.error ||
-                res.message ||
-                'Transfer failed';
+            toast(
+                result.error || "Transfer failed",
+                "err"
+            );
 
-            // ---------------------------------
-            // SPECIFIC ERRORS
-            // ---------------------------------
-            if(
-                errMsg.includes(
-                    'Pending tax'
-                )
-            ){
+            document.getElementById(
+                'transferResult'
+            ).innerHTML = `
 
-                errMsg =
-                    'Transfer blocked: Pending tax';
-            }
+                <div class="errorCard">
 
-            else if(
-                errMsg.includes(
-                    'mortgage'
-                )
-            ){
-
-                errMsg =
-                    'Transfer blocked: Active mortgage';
-            }
-
-            else if(
-                errMsg.includes(
-                    'dispute'
-                )
-            ){
-
-                errMsg =
-                    'Transfer blocked: Active dispute';
-            }
-
-            else if(
-                errMsg.includes(
-                    'Seller is not current owner'
-                )
-            ){
-
-                errMsg =
-                    'Transfer blocked: Seller is not owner';
-            }
-
-            else if(
-                errMsg.includes(
-                    'Transaction not confirmed'
-                )
-            ){
-
-                errMsg =
-                    'Blockchain transaction not confirmed';
-            }
-
-            else if(
-                errMsg.includes(
-                    'Property not found'
-                )
-            ){
-
-                errMsg =
-                    'Property not found';
-            }
-
-            // =================================
-            // SHOW FAILURE
-            // =================================
-            box.innerHTML = `
-
-                <div style="
-                    padding:14px;
-                    background:rgba(229,62,62,.1);
-                    border:1px solid rgba(229,62,62,.3);
-                    border-radius:10px;
-                    color:var(--danger)
-                ">
-
-                    <div style="
-                        font-weight:700;
-                        margin-bottom:6px
-                    ">
-                        Transfer Failed
-                    </div>
-
-                    <div>
-
-                        ${errMsg}
-
-                    </div>
+                    ❌
+                    ${result.error || "Transfer failed"}
 
                 </div>
             `;
-
-            toast(
-                errMsg,
-                'err'
-            );
         }
 
-    })
+    }
 
     // =========================================
     // SERVER ERROR
     // =========================================
-    .catch(function(err){
+    catch(err){
 
         console.error(err);
 
-        box.innerHTML = `
+        toast(
+            "Server connection failed",
+            "err"
+        );
 
-            <div style="
-                padding:14px;
-                background:rgba(229,62,62,.1);
-                border-radius:10px;
-                color:var(--danger)
-            ">
+        document.getElementById(
+            'transferResult'
+        ).innerHTML = `
 
-                Server Error
+            <div class="errorCard">
+
+                ❌ Server Error
 
             </div>
         `;
+    }
 
-        toast(
-            'Server Error',
-            'err'
-        );
-    });
+    // =========================================
+    // RESET BUTTON
+    // =========================================
+    finally{
+
+        btn.disabled = false;
+
+        btn.innerHTML = oldText;
+    }
 }
 function checkFraud(){
 
@@ -2008,7 +1879,7 @@ function checkFraud(){
 
     .then(function(res){
 
-        console.log("FRAUD RESPONSE:", res);
+        console.log(res);
 
         // =====================================
         // FRAUD FOUND
@@ -2030,37 +1901,27 @@ function checkFraud(){
                         color:var(--danger);
                         margin-bottom:12px
                     ">
-
                         Fraud Detected
-
-                    </div>
-
-                    <div style="margin-bottom:8px">
-
-                        <b>Parcel:</b>
-                        ${res.parcel_id}
-
-                    </div>
-
-                    <div style="margin-bottom:8px">
-
-                        <b>Fraud Type:</b>
-                        ${res.fraud_type}
-
-                    </div>
-
-                    <div style="margin-bottom:8px">
-
-                        <b>Risk Level:</b>
-                        ${res.risk_level}
-
                     </div>
 
                     <div>
+                        <b>Parcel:</b>
+                        ${res.parcel_id}
+                    </div>
 
-                        <b>Detected On:</b>
+                    <div>
+                        <b>Fraud Type:</b>
+                        ${res.fraud_type}
+                    </div>
+
+                    <div>
+                        <b>Risk Level:</b>
+                        ${res.risk_level}
+                    </div>
+
+                    <div>
+                        <b>Date:</b>
                         ${res.detection_date}
-
                     </div>
 
                 </div>
@@ -2087,7 +1948,6 @@ function checkFraud(){
                 </div>
             `;
         }
-
     })
 
     .catch(function(err){
@@ -2108,8 +1968,7 @@ function checkFraud(){
             </div>
         `;
     });
-}
-   
+}  
 </script>
 </body>
 </html>
