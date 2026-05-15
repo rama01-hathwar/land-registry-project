@@ -1059,44 +1059,213 @@ function doQRVerify(){
 
     if(!pid){
 
-        toast('Enter Parcel ID','err');
+        toast(
+            'Enter Parcel ID',
+            'err'
+        );
 
         return;
     }
 
     var box = $('qrResult');
 
-    // =====================================
-    // SHOW QR
-    // =====================================
+    // =========================================
+    // LOADING
+    // =========================================
     box.innerHTML = `
 
         <div style="text-align:center">
 
-            <img
-                src="/qr/${pid}?t=${Date.now()}"
-                style="
-                    width:220px;
-                    height:220px;
-                    background:white;
-                    padding:12px;
-                    border-radius:14px;
-                    border:1px solid var(--border)
-                "
-            >
-
-            <div style="
-                margin-top:12px;
-                font-weight:700
-            ">
-
-                Parcel ID:
-                ${pid}
-
-            </div>
+            <i class="fas fa-spinner fa-spin"></i>
 
         </div>
     `;
+
+    // =========================================
+    // VERIFY PROPERTY
+    // =========================================
+    api('/verify_property/' + pid)
+
+    .then(function(res){
+
+        console.log(
+            "VERIFY RESPONSE:",
+            res
+        );
+
+        // =====================================
+        // API FAILED
+        // =====================================
+        if(!res || res.success===false){
+
+            box.innerHTML = `
+
+                <div style="
+                    padding:16px;
+                    background:rgba(229,62,62,.1);
+                    border-radius:10px;
+                    color:var(--danger)
+                ">
+
+                    ${res.error || 'Verification failed'}
+
+                </div>
+            `;
+
+            return;
+        }
+
+        // =====================================
+        // PROPERTY VERIFIED
+        // =====================================
+        if(res.verified){
+
+            box.innerHTML = `
+
+                <div style="
+                    padding:20px;
+                    background:rgba(56,161,105,.1);
+                    border:1px solid rgba(56,161,105,.3);
+                    border-radius:12px;
+                    text-align:center
+                ">
+
+                    <div style="
+                        font-size:2rem;
+                        color:var(--success);
+                        margin-bottom:10px
+                    ">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+
+                    <div style="
+                        font-size:1.1rem;
+                        font-weight:700;
+                        color:var(--success)
+                    ">
+                        Property Verified
+                    </div>
+
+                    <div style="
+                        margin-top:10px;
+                        color:var(--txt2)
+                    ">
+
+                        Parcel ID:
+                        ${res.parcel_id}
+
+                    </div>
+
+                    <div style="
+                        margin-top:6px;
+                        color:var(--txt2)
+                    ">
+
+                        Owner:
+                        ${res.owner_id}
+
+                    </div>
+
+                </div>
+            `;
+        }
+
+        // =====================================
+        // WARNINGS FOUND
+        // =====================================
+        else{
+
+            let warnHTML = '';
+
+            if(
+                res.warnings &&
+                Array.isArray(res.warnings)
+            ){
+
+                warnHTML = res.warnings.map(
+
+                    function(w){
+
+                        return `
+
+                            <div style="
+                                margin-top:8px;
+                                padding:10px;
+                                background:rgba(229,62,62,.08);
+                                border-radius:8px
+                            ">
+
+                                ⚠ ${w}
+
+                            </div>
+                        `;
+                    }
+
+                ).join('');
+            }
+
+            box.innerHTML = `
+
+                <div style="
+                    padding:20px;
+                    background:rgba(229,62,62,.08);
+                    border:1px solid rgba(229,62,62,.25);
+                    border-radius:12px
+                ">
+
+                    <div style="
+                        font-size:1.1rem;
+                        font-weight:700;
+                        color:var(--danger);
+                        margin-bottom:12px
+                    ">
+
+                        Verification Warning
+
+                    </div>
+
+                    <div>
+
+                        Parcel ID:
+                        ${res.parcel_id}
+
+                    </div>
+
+                    <div style="
+                        margin-top:8px
+                    ">
+
+                        Owner:
+                        ${res.owner_id}
+
+                    </div>
+
+                    ${warnHTML}
+
+                </div>
+            `;
+        }
+
+    })
+
+    .catch(function(err){
+
+        console.error(err);
+
+        box.innerHTML = `
+
+            <div style="
+                padding:16px;
+                background:rgba(229,62,62,.1);
+                border-radius:10px;
+                color:var(--danger)
+            ">
+
+                Server Error
+
+            </div>
+        `;
+    });
 }
 /* ===== ML ===== */
 function renderML(){$('mainArea').className='main';$('gisPageWrap').style.display='none';$('mainArea').innerHTML='<div class="section-head"><h2>ML Prediction</h2></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><form id="mlForm"><div class="form-grid"><div class="form-group"><label>Area (sqft)</label><input type="number" class="inp" id="mlArea" required></div><div class="form-group"><label>Road (km)</label><input type="number" step="0.1" class="inp" id="mlRoad" required></div><div class="form-group"><label>City (km)</label><input type="number" step="0.1" class="inp" id="mlCity" required></div><div class="form-group"><label>Year</label><input type="number" class="inp" id="mlYear" value="2024" required></div><div class="form-group"><label>School</label><select class="inp" id="mlSchool"><option value="Yes">Yes</option><option value="No">No</option></select></div><div class="form-group"><label>Hospital</label><select class="inp" id="mlHosp"><option value="Yes">Yes</option><option value="No">No</option></select></div></div><button type="submit" class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px"><i class="fas fa-magic"></i> Predict</button></form><div id="mlResult" style="margin-top:14px"></div></div><div class="card"><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px">Model Info</h3><div style="font-size:.82rem;color:var(--txt2);line-height:1.8"><p><i class="fas fa-chart-line" style="color:var(--purple);margin-right:6px"></i>Scikit-learn Regressor</p><p><i class="fas fa-database" style="color:var(--accent);margin-right:6px"></i>Area, distances, amenities</p></div></div></div>';$('mlForm').onsubmit=doMLPredict;}
