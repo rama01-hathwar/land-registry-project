@@ -158,6 +158,18 @@ def init_db():
         mortgage_status TEXT DEFAULT 'Active'
     )""")
 
+     # ================= DISPUTE =================
+    c.execute("""CREATE TABLE dispute (
+        dispute_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        dispute_type TEXT,
+        reported_by TEXT,
+        description TEXT,
+        status TEXT DEFAULT 'Open',
+        created_date TEXT,
+        resolved_date TEXT
+    )""")
+
     # ================= BLOCKCHAIN =================
     c.execute("""CREATE TABLE blockchain (
         block_id TEXT PRIMARY KEY,
