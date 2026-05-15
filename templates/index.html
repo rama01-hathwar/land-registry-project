@@ -1872,17 +1872,27 @@ async function initiateTransfer(){
     const data = {
 
         parcel_id:
-            document.getElementById('trParcelId').value.trim(),
+            document.getElementById(
+                'trParcelId'
+            ).value.trim(),
 
         seller_id:
-            document.getElementById('trSellerId').value.trim(),
+            document.getElementById(
+                'trSellerId'
+            ).value.trim(),
 
         buyer_id:
-            document.getElementById('trBuyerId').value.trim(),
+            document.getElementById(
+                'trBuyerId'
+            ).value.trim(),
 
         sale_amount:
             parseFloat(
-                document.getElementById('trAmount').value
+
+                document.getElementById(
+                    'trAmount'
+                ).value
+
             ) || 0
     };
 
@@ -1890,8 +1900,11 @@ async function initiateTransfer(){
     // VALIDATION
     // =========================================
     if(
+
         !data.parcel_id ||
+
         !data.seller_id ||
+
         !data.buyer_id
     ){
 
@@ -1904,133 +1917,86 @@ async function initiateTransfer(){
     }
 
     // =========================================
-    // LOADING UI
+    // BUTTON LOADING
     // =========================================
-    const btn = document.getElementById('transferBtn');
+    const btn = document.getElementById(
+        'transferBtn'
+    );
 
     const oldText = btn.innerHTML;
 
     btn.disabled = true;
 
     btn.innerHTML = `
+
         <span class="spinner"></span>
+
         Processing Transfer...
     `;
 
     try{
 
         // =====================================
-        // API CALL
+        // FETCH API
         // =====================================
         const res = await fetch(
 
             '/transfer_property',
 
             {
+
                 method:'POST',
 
                 headers:{
-                    'Content-Type':'application/json'
+
+                    'Content-Type':
+                        'application/json'
                 },
 
                 body:JSON.stringify(data)
             }
         );
 
-        const result = await res.json();
-
-        console.log(result);
-
         // =====================================
-        // SUCCESS
+        // SAFE JSON PARSE
         // =====================================
-        if(result.success){
+        let result;
 
-            toast(
-                "Property transferred successfully",
-                "ok"
-            );
+        try{
 
-            // =================================
-            // SUCCESS CARD
-            // =================================
-            document.getElementById(
-                'transferResult'
-            ).innerHTML = `
+            result = await res.json();
 
-                <div class="successCard">
+        }catch(e){
 
-                    <div class="successIcon">
-                        ✅
-                    </div>
+            result = {
 
-                    <div class="successTitle">
-                        Transfer Successful
-                    </div>
+                success:false,
 
-                    <div class="successBody">
-
-                        <div>
-                            <b>Parcel ID:</b>
-                            ${data.parcel_id}
-                        </div>
-
-                        <div>
-                            <b>Seller:</b>
-                            ${data.seller_id}
-                        </div>
-
-                        <div>
-                            <b>Buyer:</b>
-                            ${data.buyer_id}
-                        </div>
-
-                        <div>
-                            <b>Transaction ID:</b>
-                            ${result.transaction_id}
-                        </div>
-
-                    </div>
-
-                </div>
-            `;
-
-            // =================================
-            // CLEAR FORM
-            // =================================
-            document.getElementById(
-                'trParcelId'
-            ).value='';
-
-            document.getElementById(
-                'trSellerId'
-            ).value='';
-
-            document.getElementById(
-                'trBuyerId'
-            ).value='';
-
-            document.getElementById(
-                'trAmount'
-            ).value='';
-
-            // =================================
-            // OPTIONAL AUTO REFRESH
-            // =================================
-            if(typeof loadDashboard==='function'){
-
-                loadDashboard();
-            }
-
+                error:
+                    "Server returned invalid response"
+            };
         }
+
+        console.log(
+            "TRANSFER RESULT:",
+            result
+        );
 
         // =====================================
         // FAILURE
         // =====================================
-        else{
+        if(!res.ok || !result.success){
+
+            const errMsg =
+
+                result.error ||
+
+                result.message ||
+
+                "Transfer failed";
 
             toast(
-                result.error || "Transfer failed",
+                errMsg,
                 "err"
             );
 
@@ -2040,11 +2006,115 @@ async function initiateTransfer(){
 
                 <div class="errorCard">
 
-                    ❌
-                    ${result.error || "Transfer failed"}
+                    ❌ ${errMsg}
 
                 </div>
             `;
+
+            return;
+        }
+
+        // =====================================
+        // SUCCESS
+        // =====================================
+        toast(
+
+            "Property transferred successfully",
+
+            "ok"
+        );
+
+        document.getElementById(
+            'transferResult'
+        ).innerHTML = `
+
+            <div class="successCard">
+
+                <div class="successIcon">
+
+                    ✅
+
+                </div>
+
+                <div class="successTitle">
+
+                    Transfer Successful
+
+                </div>
+
+                <div class="successBody">
+
+                    <div>
+
+                        <b>Parcel ID:</b>
+
+                        ${data.parcel_id}
+
+                    </div>
+
+                    <div>
+
+                        <b>Seller:</b>
+
+                        ${data.seller_id}
+
+                    </div>
+
+                    <div>
+
+                        <b>Buyer:</b>
+
+                        ${data.buyer_id}
+
+                    </div>
+
+                    <div>
+
+                        <b>Transaction ID:</b>
+
+                        ${
+
+                            result.transaction_id ||
+
+                            '-'
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+
+        // =====================================
+        // CLEAR FORM
+        // =====================================
+        document.getElementById(
+            'trParcelId'
+        ).value='';
+
+        document.getElementById(
+            'trSellerId'
+        ).value='';
+
+        document.getElementById(
+            'trBuyerId'
+        ).value='';
+
+        document.getElementById(
+            'trAmount'
+        ).value='';
+
+        // =====================================
+        // OPTIONAL REFRESH
+        // =====================================
+        if(
+
+            typeof loadDashboard ===
+            'function'
+        ){
+
+            loadDashboard();
         }
 
     }
