@@ -174,7 +174,7 @@ def init_db():
           ALTER TABLE fraud_detection
           ADD COLUMN fraud_id TEXT
           """)
-          except:
+        except:
               pass
         
     try:
@@ -182,7 +182,7 @@ def init_db():
             ALTER TABLE fraud_detectin
             ADD COLUMN detection_date TEXT
             """)
-            except:
+        except:
                 pass
      
   
