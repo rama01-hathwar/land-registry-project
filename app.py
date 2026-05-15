@@ -158,7 +158,10 @@ def init_db():
         mortgage_status TEXT DEFAULT 'Active'
     )""")
 
-    # ================= FRAUD =================
+    # ============================================================
+# FRAUD TABLE
+# ============================================================
+
 c.execute("""
 
 CREATE TABLE IF NOT EXISTS fraud_detection (
@@ -176,6 +179,11 @@ CREATE TABLE IF NOT EXISTS fraud_detection (
 )
 
 """)
+
+# ============================================================
+# UPDATE OLD DATABASE (SAFE ALTER)
+# ============================================================
+
 try:
     c.execute("""
     ALTER TABLE fraud_detection
@@ -200,6 +208,209 @@ try:
 except:
     pass
 
+# ============================================================
+# FILE DISPUTE
+# ============================================================
+
+@app.route('/file_dispute', methods=['POST'])
+def file_dispute():
+
+    try:
+
+        data = request.json
+
+        dispute_id = "D" + str(
+            random.randint(100, 999)
+        )
+
+        conn = get_db()
+
+        c = conn.cursor()
+
+        # =====================================================
+        # INSERT DISPUTE
+        # =====================================================
+        c.execute("""
+
+            INSERT INTO dispute (
+
+                dispute_id,
+                parcel_id,
+                dispute_type,
+                reported_by,
+                description,
+                status,
+                created_date
+
+            )
+
+            VALUES (?,?,?,?,?,?,?)
+
+        """, (
+
+            dispute_id,
+
+            data['parcel_id'],
+
+            data['dispute_type'],
+
+            data['reported_by'],
+
+            data['description'],
+
+            'Open',
+
+            str(datetime.now())
+
+        ))
+
+        # =====================================================
+        # CREATE FRAUD ENTRY
+        # =====================================================
+        fraud_id = "F" + str(
+            random.randint(1000,9999)
+        )
+
+        c.execute("""
+
+            INSERT INTO fraud_detection (
+
+                fraud_id,
+                parcel_id,
+                fraud_type,
+                risk_score,
+                detection_date
+
+            )
+
+            VALUES (?,?,?,?,?)
+
+        """, (
+
+            fraud_id,
+
+            data['parcel_id'],
+
+            data['dispute_type'],
+
+            "High",
+
+            str(datetime.now())
+
+        ))
+
+        print("FRAUD RECORD CREATED")
+
+        conn.commit()
+
+        conn.close()
+
+        return jsonify({
+
+            "success": True,
+
+            "message":
+                "Dispute filed successfully",
+
+            "dispute_id": dispute_id
+
+        })
+
+    except Exception as e:
+
+        print(
+            "FILE DISPUTE ERROR:",
+            str(e)
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(e)
+
+        }), 500
+
+
+# ============================================================
+# FRAUD CHECK
+# ============================================================
+
+@app.route('/fraud_check/<parcel_id>', methods=['GET'])
+def fraud_check(parcel_id):
+
+    try:
+
+        conn = get_db()
+
+        c = conn.cursor()
+
+        result = c.execute("""
+
+            SELECT
+
+                fraud_type,
+                risk_score,
+                detection_date
+
+            FROM fraud_detection
+
+            WHERE parcel_id=?
+
+            ORDER BY detection_date DESC
+
+            LIMIT 1
+
+        """, (parcel_id,)).fetchone()
+
+        conn.close()
+
+        # =====================================================
+        # FRAUD FOUND
+        # =====================================================
+        if result:
+
+            return jsonify({
+
+                "fraud_detected": True,
+
+                "parcel_id": parcel_id,
+
+                "fraud_type": result[0],
+
+                "risk_level": result[1],
+
+                "detection_date": result[2]
+
+            })
+
+        # =====================================================
+        # NO FRAUD
+        # =====================================================
+        return jsonify({
+
+            "fraud_detected": False,
+
+            "message":
+                "No fraud record found"
+
+        })
+
+    except Exception as e:
+
+        print(
+            "FRAUD CHECK ERROR:",
+            str(e)
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(e)
+
+        }), 500
+    
     # ================= BLOCKCHAIN =================
     c.execute("""CREATE TABLE blockchain (
         block_id TEXT PRIMARY KEY,
