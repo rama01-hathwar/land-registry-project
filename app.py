@@ -159,58 +159,46 @@ def init_db():
     )""")
 
    #==================FRAUD DETECTION==============
-    c.execute("""
-
-CREATE TABLE IF NOT EXISTS fraud_detection (
-
-    fraud_id TEXT PRIMARY KEY,
-
-    parcel_id TEXT,
-
-    fraud_type TEXT,
-
-    risk_score TEXT DEFAULT 'Low',
-
-    detection_date TEXT
-
-)
-
-""")
-
-# ============================================================
-# SAFE DATABASE UPGRADE
-# ============================================================
-
-try:
+   c.execute("""
+   CREATE TABLE IF NOT EXISTS fraud_detection(
+   fraud_id TEXT PRIMARY KEY,
+   parcel_id TEXT,
+   fraud_type TEXT,
+   risk_score TEXT DEFAULT 'Low',
+   detection_date TEXT
+   )
+   """)
+  try:
     c.execute("""
     ALTER TABLE fraud_detection
     ADD COLUMN fraud_id TEXT
     """)
-except:
-    pass
-
-try:
+    except:
+        pass
+  try:
     c.execute("""
     ALTER TABLE fraud_detection
     ADD COLUMN fraud_type TEXT
     """)
-except:
-    pass
+    except:
+        pass
 
-try:
+  try:
     c.execute("""
     ALTER TABLE fraud_detection
     ADD COLUMN risk_score TEXT DEFAULT 'Low'
     """)
-except:
-    pass
+    except:
+        pass
 
-try:
+  
+  try:
     c.execute("""
     ALTER TABLE fraud_detection
     ADD COLUMN detection_date TEXT
     """)
-except:
+    except:
+        pass
     # ================= BLOCKCHAIN =================
     c.execute("""CREATE TABLE blockchain (
         block_id TEXT PRIMARY KEY,
