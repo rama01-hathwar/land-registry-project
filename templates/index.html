@@ -2065,32 +2065,48 @@ function checkFraud(){
                 ">
 
                     <div style="
-                        font-size:1.1rem;
+                        font-size:1.2rem;
                         font-weight:700;
                         color:var(--danger);
-                        margin-bottom:12px
+                        margin-bottom:14px
                     ">
                         Fraud Detected
                     </div>
 
-                    <div>
+                    <div style="margin-bottom:10px">
+
                         <b>Parcel:</b>
                         ${res.parcel_id}
+
                     </div>
 
-                    <div>
+                    <div style="margin-bottom:10px">
+
                         <b>Fraud Type:</b>
                         ${res.fraud_type}
+
                     </div>
 
-                    <div>
+                    <div style="margin-bottom:10px">
+
                         <b>Risk Level:</b>
-                        ${res.risk_level}
+
+                        <span style="
+                            color:#ff4d4d;
+                            font-weight:700
+                        ">
+
+                            ${res.risk_level}
+
+                        </span>
+
                     </div>
 
                     <div>
-                        <b>Date:</b>
+
+                        <b>Detected:</b>
                         ${res.detection_date}
+
                     </div>
 
                 </div>
@@ -2109,14 +2125,16 @@ function checkFraud(){
                     background:rgba(56,161,105,.08);
                     border:1px solid rgba(56,161,105,.25);
                     border-radius:12px;
-                    color:var(--success)
+                    color:var(--success);
+                    font-weight:700
                 ">
 
-                    No fraud record found
+                    No Fraud Record Found
 
                 </div>
             `;
         }
+
     })
 
     .catch(function(err){
@@ -2126,18 +2144,18 @@ function checkFraud(){
         box.innerHTML = `
 
             <div style="
-                padding:14px;
+                padding:16px;
                 background:rgba(229,62,62,.1);
                 border-radius:10px;
                 color:var(--danger)
             ">
 
-                Error loading fraud data
+                Error Loading Fraud Data
 
             </div>
         `;
     });
-}  
+} 
 </script>
 </body>
 </html>
