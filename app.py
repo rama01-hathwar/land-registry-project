@@ -170,14 +170,15 @@ def init_db():
      """)
     #===========update old data base ===========
     try:
-          c.execute("""
+        c.execute("""
           ALTER TABLE fraud_detection
           ADD COLUMN fraud_id TEXT
           """)
           except:
               pass
+        
     try:
-            c.execute("""
+        c.execute("""
             ALTER TABLE fraud_detectin
             ADD COLUMN detection_date TEXT
             """)
