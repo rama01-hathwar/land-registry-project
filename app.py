@@ -158,47 +158,6 @@ def init_db():
         mortgage_status TEXT DEFAULT 'Active'
     )""")
 
-   #==================FRAUD DETECTION==============
-   c.execute("""
-   CREATE TABLE IF NOT EXISTS fraud_detection(
-   fraud_id TEXT PRIMARY KEY,
-   parcel_id TEXT,
-   fraud_type TEXT,
-   risk_score TEXT DEFAULT 'Low',
-   detection_date TEXT
-   )
-   """)
-  try:
-    c.execute("""
-    ALTER TABLE fraud_detection
-    ADD COLUMN fraud_id TEXT
-    """)
-    except:
-        pass
-  try:
-    c.execute("""
-    ALTER TABLE fraud_detection
-    ADD COLUMN fraud_type TEXT
-    """)
-    except:
-        pass
-
-  try:
-    c.execute("""
-    ALTER TABLE fraud_detection
-    ADD COLUMN risk_score TEXT DEFAULT 'Low'
-    """)
-    except:
-        pass
-
-  
-  try:
-    c.execute("""
-    ALTER TABLE fraud_detection
-    ADD COLUMN detection_date TEXT
-    """)
-    except:
-        pass
     # ================= BLOCKCHAIN =================
     c.execute("""CREATE TABLE blockchain (
         block_id TEXT PRIMARY KEY,
@@ -248,11 +207,11 @@ def init_db():
 
     # ================= FRAUD =================
     c.execute("""CREATE TABLE fraud_detection (
-        parcel_id TEXT PRIMARY KEY,
-        duplicate_survey INTEGER DEFAULT 0,
-        multiple_claim INTEGER DEFAULT 0,
-        abnormal_transfer INTEGER DEFAULT 0,
-        risk_score TEXT DEFAULT 'Low'
+        fraud_id TEXT PRIMARY KEY,
+        parcel_id TEXT,
+        fraud_type TEXT,
+        risk_score TEXT DEFAULT 'Low',
+        detection_date TEXT
     )""")
 
     # ================= GIS (FIXED WITH STATUS) =================
