@@ -1166,6 +1166,28 @@ function doQRVerify(){
 
                     </div>
 
+                    <!-- QR CODE -->
+
+                    <div style="
+                        margin-top:20px
+                    ">
+
+                        <img
+
+                            src="/qr/${res.parcel_id}?t=${Date.now()}"
+
+                            style="
+                                width:220px;
+                                height:220px;
+                                background:white;
+                                padding:10px;
+                                border-radius:12px;
+                                border:1px solid var(--border)
+                            "
+                        >
+
+                    </div>
+
                 </div>
             `;
         }
@@ -1204,6 +1226,9 @@ function doQRVerify(){
                 ).join('');
             }
 
+            // =================================
+            // WARNING + QR
+            // =================================
             box.innerHTML = `
 
                 <div style="
@@ -1241,6 +1266,39 @@ function doQRVerify(){
                     </div>
 
                     ${warnHTML}
+
+                    <!-- QR CODE -->
+
+                    <div style="
+                        margin-top:18px;
+                        text-align:center
+                    ">
+
+                        <img
+
+                            src="/qr/${res.parcel_id}?t=${Date.now()}"
+
+                            style="
+                                width:220px;
+                                height:220px;
+                                background:white;
+                                padding:10px;
+                                border-radius:12px;
+                                border:1px solid var(--border)
+                            "
+                        >
+
+                        <div style="
+                            margin-top:10px;
+                            font-size:.85rem;
+                            color:var(--txt2)
+                        ">
+
+                            QR generated with warnings
+
+                        </div>
+
+                    </div>
 
                 </div>
             `;
