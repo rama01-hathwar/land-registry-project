@@ -733,7 +733,8 @@ def transfer_property():
 
             return jsonify({
                 "success": False,
-                "error": "Property not found"
+                "error": "Property not found",
+                "message":"Property not found"
             }), 404
 
         # =====================================================
@@ -747,7 +748,8 @@ def transfer_property():
 
             return jsonify({
                 "success": False,
-                "error": "Seller is not current owner"
+                "error": "Seller is not current owner",
+                "message": "Seller is not current owner"
             }), 400
 
         # =====================================================
@@ -774,7 +776,8 @@ def transfer_property():
 
             return jsonify({
                 "success": False,
-                "error": "Transfer blocked: Active dispute"
+                "error": "Transfer blocked: Active dispute",
+                "message": "Transfer blocked: Active dispute"
             }), 400
 
         # =====================================================
@@ -801,7 +804,8 @@ def transfer_property():
 
             return jsonify({
                 "success": False,
-                "error": "Transfer blocked: Active mortgage"
+                "error": "Transfer blocked: Active mortgage",
+                "message": "Transfer blocked: Active mortgage"
             }), 400
 
         # =====================================================
@@ -827,7 +831,8 @@ def transfer_property():
 
             return jsonify({
                 "success": False,
-                "error": "Transfer blocked: Pending tax"
+                "error": "Transfer blocked: Pending tax",
+                "message": "Transfer blocked: Pending tax"
             }), 400
 
         # =====================================================
@@ -855,7 +860,8 @@ def transfer_property():
 
                 return jsonify({
                     "success": False,
-                    "error": "Blockchain transaction not confirmed"
+                    "error": "Blockchain transaction not confirmed",
+                    "message": "Blockchain transaction not confirmed"
                 }), 400
 
         # =====================================================
