@@ -370,30 +370,195 @@ def add_property():
     return {"message": "Property added successfully"}
 
 # ============================================================
-# VERIFY PROPERTY
+# MASTER PROPERTY VERIFICATION
 # ============================================================
+
 @app.route('/verify_property/<parcel_id>', methods=['GET'])
 def verify_property(parcel_id):
-    conn = get_db()
-    dispute = conn.execute("SELECT COUNT(*) FROM dispute WHERE parcel_id=? AND status!='Resolved'", (parcel_id,)).fetchone()[0]
-    if dispute > 0:
-        conn.close()
-        return {"status": "blocked", "reason": "Active dispute on property"}
-    fraud = conn.execute("SELECT risk_score FROM fraud_detection WHERE parcel_id=?", (parcel_id,)).fetchone()
-    if fraud and fraud[0] == "High":
-        conn.close()
-        return {"status": "blocked", "reason": "High fraud risk detected"}
-    tax = conn.execute("SELECT tax_status FROM tax WHERE parcel_id=?", (parcel_id,)).fetchone()
-    if tax and tax[0] == "Pending":
-        conn.close()
-        return {"status": "blocked", "reason": "Property tax pending"}
-    mort = conn.execute("SELECT mortgage_status FROM mortgage WHERE parcel_id=? AND mortgage_status='Active'", (parcel_id,)).fetchone()
-    if mort and mort[0] == "Active":
-        conn.close()
-        return {"status": "blocked", "reason": "Property under mortgage"}
-    conn.close()
-    return {"status": "approved", "message": "Property eligible for transfer"}
 
+    try:
+
+        conn = get_db()
+
+        c = conn.cursor()
+
+        # =====================================================
+        # PROPERTY DETAILS
+        # =====================================================
+        prop = c.execute("""
+
+            SELECT
+
+                owner_id,
+                tax_status,
+                mortgage_status
+
+            FROM property
+
+            WHERE parcel_id=?
+
+        """, (parcel_id,)).fetchone()
+
+        # =====================================================
+        # PROPERTY NOT FOUND
+        # =====================================================
+        if not prop:
+
+            conn.close()
+
+            return jsonify({
+
+                "success": False,
+
+                "verified": False,
+
+                "warning": "Property not found"
+
+            })
+
+        owner_id = prop[0]
+
+        tax_status = prop[1]
+
+        mortgage_status = prop[2]
+
+        # =====================================================
+        # ACTIVE DISPUTE CHECK
+        # =====================================================
+        dispute_count = c.execute("""
+
+            SELECT COUNT(*)
+
+            FROM dispute
+
+            WHERE parcel_id=?
+            AND status!='Resolved'
+
+        """, (parcel_id,)).fetchone()[0]
+
+        # =====================================================
+        # FRAUD CHECK
+        # =====================================================
+        fraud = c.execute("""
+
+            SELECT
+
+                fraud_type,
+                risk_score
+
+            FROM fraud_detection
+
+            WHERE parcel_id=?
+
+            ORDER BY detection_date DESC
+
+            LIMIT 1
+
+        """, (parcel_id,)).fetchone()
+
+        conn.close()
+
+        # =====================================================
+        # WARNINGS ARRAY
+        # =====================================================
+        warnings = []
+
+        # =====================================================
+        # DISPUTE WARNING
+        # =====================================================
+        if dispute_count > 0:
+
+            warnings.append(
+                "Active dispute found"
+            )
+
+        # =====================================================
+        # TAX WARNING
+        # =====================================================
+        if tax_status == "Pending":
+
+            warnings.append(
+                "Pending tax dues"
+            )
+
+        # =====================================================
+        # MORTGAGE WARNING
+        # =====================================================
+        if mortgage_status == "Active":
+
+            warnings.append(
+                "Active mortgage exists"
+            )
+
+        # =====================================================
+        # FRAUD WARNING
+        # =====================================================
+        if fraud:
+
+            warnings.append(
+
+                "Fraud Risk: " +
+
+                str(fraud[0]) +
+
+                " (" +
+
+                str(fraud[1]) +
+
+                ")"
+            )
+
+        # =====================================================
+        # BLOCKED
+        # =====================================================
+        if len(warnings) > 0:
+
+            return jsonify({
+
+                "success": True,
+
+                "verified": False,
+
+                "parcel_id": parcel_id,
+
+                "owner_id": owner_id,
+
+                "warnings": warnings
+
+            })
+
+        # =====================================================
+        # VERIFIED
+        # =====================================================
+        return jsonify({
+
+            "success": True,
+
+            "verified": True,
+
+            "parcel_id": parcel_id,
+
+            "owner_id": owner_id,
+
+            "message":
+                "Property verified successfully"
+
+        })
+
+    except Exception as e:
+
+        print(
+            "VERIFY PROPERTY ERROR:",
+            str(e)
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(e)
+
+        }), 500
 # ============================================================
 # VERIFY PROPERTY WITH HASH (QR scan)
 # ============================================================
