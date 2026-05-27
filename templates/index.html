@@ -1775,6 +1775,74 @@ function handleGISClick(land, marker){
 function loadGISDocs(pid){api('/documents/'+pid).then(function(data){var box=$('gisDocs');if(!data||!Array.isArray(data)||!data.length){box.innerHTML='No documents';return;}box.innerHTML=data.map(function(d){return'<div style="margin-bottom:4px"><i class="fas fa-file-alt" style="color:var(--accent);margin-right:4px"></i>'+d.document_type+' ('+(d.status||'Pending')+')</div>';}).join('');});}
 function gisSearchLand(){var id=$('gisSearch').value.trim();var found=ST.allMarkers.find(function(m){return m.land.parcel_id===id;});if(found)handleGISClick(found.land,found.marker);else toast('Not found','err');}
 
+async function uploadDocument(){
+
+    const fileInput =
+        document.getElementById('udFile');
+
+    if(fileInput.files.length === 0){
+
+        alert("Select a file");
+
+        return;
+    }
+
+    const formData = new FormData();
+
+    formData.append(
+        'file',
+        fileInput.files[0]
+    );
+
+    formData.append(
+        'parcel_id',
+        document.getElementById('udParcelId').value
+    );
+
+    formData.append(
+        'document_type',
+        document.getElementById('udType').value
+    );
+
+    formData.append(
+        'uploaded_by',
+        document.getElementById('udUser').value
+    );
+
+    try{
+
+        const res = await fetch(
+
+            '/upload_document',
+
+            {
+                method:'POST',
+
+                body: formData
+            }
+        );
+
+        const result = await res.json();
+
+        console.log(result);
+
+        if(result.success){
+
+            alert("Document uploaded");
+
+        }else{
+
+            alert(result.error);
+        }
+
+    }catch(err){
+
+        console.log(err);
+
+        alert("Upload failed");
+    }
+}
+
 /* ============================================================
    INIT — event listeners
    ============================================================ */
