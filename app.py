@@ -1991,25 +1991,34 @@ def upload_document():
 
     try:
 
+        print(request.files)
+
+        print(request.form)
+
+        if 'file' not in request.files:
+
+            return jsonify({
+
+                "success": False,
+
+                "error": "No file uploaded"
+
+            })
+
+        file = request.files['file']
+
         parcel_id = request.form.get('parcel_id')
 
         document_type = request.form.get('document_type')
 
         uploaded_by = request.form.get('uploaded_by')
 
-        file = request.files['file']
-
-        if not file:
-
-            return jsonify({
-                "success": False,
-                "error": "No file selected"
-            })
-
         filename = secure_filename(file.filename)
 
         filepath = os.path.join(
+
             app.config['UPLOAD_FOLDER'],
+
             filename
         )
 
@@ -2019,27 +2028,25 @@ def upload_document():
 
         c = conn.cursor()
 
-        doc_id = "DOC" + str(random.randint(1000,9999))
-
         c.execute("""
 
-            INSERT INTO document (
+            INSERT INTO document(
 
                 document_id,
                 parcel_id,
                 document_type,
-                file_hash,
+                file_path,
                 uploaded_by,
-                upload_date,
+                uploaded_date,
                 verification_status
 
             )
 
-            VALUES (?,?,?,?,?,?,?)
+            VALUES(?,?,?,?,?,?,?)
 
-        """, (
+        """,(
 
-            doc_id,
+            "DOC"+str(random.randint(1000,9999)),
 
             parcel_id,
 
@@ -2051,8 +2058,7 @@ def upload_document():
 
             str(datetime.now()),
 
-            "Verified"
-
+            "Pending"
         ))
 
         conn.commit()
@@ -2063,9 +2069,8 @@ def upload_document():
 
             "success": True,
 
-            "message": "Document uploaded",
-
-            "path": filepath
+            "message":
+                "Document uploaded successfully"
 
         })
 
@@ -2080,7 +2085,7 @@ def upload_document():
             "error": str(e)
 
         })
-
+        
 @app.route('/documents/<land_id>')
 def get_documents(land_id):
     # Try PostgreSQL first
