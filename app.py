@@ -9,6 +9,12 @@ import math
 import qrcode
 from io import BytesIO
 from werkzeug.utils import secure_filename
+UPLOAD_FOLDER='static/documents'
+app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
+os.makedirs(
+    UPLOAD_FOLDER,
+    exist_ok=True
+)
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "static/documents"
